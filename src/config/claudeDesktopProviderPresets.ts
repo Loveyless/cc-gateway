@@ -366,8 +366,7 @@ export const claudeDesktopProviderPresets: ClaudeDesktopProviderPreset[] = [
   {
     name: "TeamoRouter",
     websiteUrl: "https://teamorouter.com",
-    apiKeyUrl:
-      "https://teamorouter.com/",
+    apiKeyUrl: "https://teamorouter.com/",
     category: "aggregator",
     baseUrl: "https://api.teamorouter.com",
     mode: "direct",
@@ -388,10 +387,8 @@ export const claudeDesktopProviderPresets: ClaudeDesktopProviderPreset[] = [
   },
   {
     name: "火山Agentplan",
-    websiteUrl:
-      "https://www.volcengine.com/activity/codingplan",
-    apiKeyUrl:
-      "https://www.volcengine.com/activity/codingplan",
+    websiteUrl: "https://www.volcengine.com/activity/codingplan",
+    apiKeyUrl: "https://www.volcengine.com/activity/codingplan",
     category: "cn_official",
     baseUrl: "https://ark.cn-beijing.volces.com/api/coding",
     mode: "proxy",
@@ -406,10 +403,8 @@ export const claudeDesktopProviderPresets: ClaudeDesktopProviderPreset[] = [
   },
   {
     name: "BytePlus",
-    websiteUrl:
-      "https://www.byteplus.com/en/product/modelark",
-    apiKeyUrl:
-      "https://www.byteplus.com/en/product/modelark",
+    websiteUrl: "https://www.byteplus.com/en/product/modelark",
+    apiKeyUrl: "https://www.byteplus.com/en/product/modelark",
     category: "cn_official",
     baseUrl: "https://ark.ap-southeast.bytepluses.com/api/coding",
     mode: "proxy",
@@ -499,8 +494,7 @@ export const claudeDesktopProviderPresets: ClaudeDesktopProviderPreset[] = [
     name: "Compshare",
     nameKey: "providerForm.presets.ucloud",
     websiteUrl: "https://www.compshare.cn",
-    apiKeyUrl:
-      "https://www.compshare.cn/coding-plan",
+    apiKeyUrl: "https://www.compshare.cn/coding-plan",
     category: "aggregator",
     baseUrl: "https://api.modelverse.cn",
     mode: "direct",
@@ -514,8 +508,7 @@ export const claudeDesktopProviderPresets: ClaudeDesktopProviderPreset[] = [
     name: "Compshare Coding Plan",
     nameKey: "providerForm.presets.ucloudCoding",
     websiteUrl: "https://www.compshare.cn",
-    apiKeyUrl:
-      "https://www.compshare.cn/coding-plan",
+    apiKeyUrl: "https://www.compshare.cn/coding-plan",
     category: "aggregator",
     baseUrl: "https://cp.compshare.cn",
     mode: "direct",
@@ -635,8 +628,7 @@ export const claudeDesktopProviderPresets: ClaudeDesktopProviderPreset[] = [
   {
     name: "SudoCode.chat",
     websiteUrl: "https://sudocode.chat",
-    apiKeyUrl:
-      "https://sudocode.chat/sign-up",
+    apiKeyUrl: "https://sudocode.chat/sign-up",
     category: "third_party",
     baseUrl: "https://api.sudocode.chat",
     mode: "direct",

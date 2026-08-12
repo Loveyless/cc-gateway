@@ -8,7 +8,7 @@
  * 第一条是官方 Claude Code CLI 实际发送的完整格式（参见 `stream_check.rs` 里检测用的
  * `claude-cli/2.1.2 (external, cli)`），最贴近真实客户端、最稳过严格的 UA 校验；其余为简短变体。
  *
- * 这些预设主要用于"非白名单 Coding Agent（Codex/Gemini/Hermes/OpenClaw 等）想接入受 UA
+ * 这些预设主要用于"非白名单 Coding Agent（Codex/Gemini/Hermes 等）想接入受 UA
  * 限制的上游"的场景——把转发请求伪装成已在白名单内的客户端。是否使用由用户显式选择。
  */
 export const USER_AGENT_PRESETS: readonly string[] = [

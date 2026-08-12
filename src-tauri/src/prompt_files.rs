@@ -5,11 +5,11 @@ use crate::codex_config::get_codex_auth_path;
 use crate::config::get_claude_settings_path;
 use crate::error::AppError;
 use crate::gemini_config::get_gemini_dir;
-use crate::openclaw_config::get_openclaw_dir;
 use crate::opencode_config::get_opencode_dir;
 
 /// 返回指定应用所使用的提示词文件路径。
 pub fn prompt_file_path(app: &AppType) -> Result<PathBuf, AppError> {
+    app.ensure_supported()?;
     if matches!(app, AppType::ClaudeDesktop) {
         return Err(AppError::localized(
             "app.prompts_unsupported",
@@ -24,7 +24,7 @@ pub fn prompt_file_path(app: &AppType) -> Result<PathBuf, AppError> {
         AppType::Gemini => get_gemini_dir(),
         AppType::GrokBuild => crate::grok_config::get_grok_config_dir(),
         AppType::OpenCode => get_opencode_dir(),
-        AppType::OpenClaw => get_openclaw_dir(),
+        AppType::OpenClaw => unreachable!("retired app rejected above"),
         AppType::Hermes => crate::hermes_config::get_hermes_dir(),
         AppType::ClaudeDesktop => unreachable!("handled above"),
     };
@@ -33,7 +33,8 @@ pub fn prompt_file_path(app: &AppType) -> Result<PathBuf, AppError> {
         AppType::Claude => "CLAUDE.md",
         AppType::Codex => "AGENTS.md",
         AppType::Gemini => "GEMINI.md",
-        AppType::GrokBuild | AppType::OpenCode | AppType::OpenClaw => "AGENTS.md",
+        AppType::GrokBuild | AppType::OpenCode => "AGENTS.md",
+        AppType::OpenClaw => unreachable!("retired app rejected above"),
         AppType::Hermes => "SOUL.md",
         AppType::ClaudeDesktop => unreachable!("handled above"),
     };

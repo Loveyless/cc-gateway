@@ -166,6 +166,7 @@ impl StreamCheckService {
     /// 没有 cc-switch 能可靠探测的目标——这类供应商的连通检测按钮在前端已隐藏
     /// （见 `ProviderCard.tsx`），故此处对其提取失败直接报错即可，不做官方端点回退。
     fn resolve_base_url(app_type: &AppType, provider: &Provider) -> Result<String, AppError> {
+        app_type.ensure_supported()?;
         if provider.category.as_deref() == Some("official") {
             return Err(AppError::Message(
                 "Official providers do not expose a reachability-check target".to_string(),
@@ -179,7 +180,7 @@ impl StreamCheckService {
                 let npm = Self::extract_opencode_npm(provider);
                 Self::resolve_opencode_base_url(provider, npm.as_deref())
             }
-            AppType::OpenClaw => Self::extract_openclaw_base_url(provider),
+            AppType::OpenClaw => unreachable!("retired app rejected above"),
             AppType::Hermes => Self::extract_hermes_base_url(provider),
             AppType::ClaudeDesktop => ClaudeAdapter::new()
                 .extract_base_url(provider)
@@ -288,23 +289,6 @@ impl StreamCheckService {
     }
 
     // ===== 各应用 base_url 提取（settings_config 结构互不相同）=====
-
-    /// OpenClaw: `{ baseUrl, apiKey, api, ... }`（camelCase）
-    fn extract_openclaw_base_url(provider: &Provider) -> Result<String, AppError> {
-        provider
-            .settings_config
-            .get("baseUrl")
-            .and_then(|v| v.as_str())
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
-            .ok_or_else(|| {
-                AppError::localized(
-                    "openclaw_base_url_missing",
-                    "OpenClaw 供应商缺少 baseUrl",
-                    "OpenClaw provider is missing `baseUrl`",
-                )
-            })
-    }
 
     /// Hermes: `{ base_url, api_key, api_mode }`（snake_case）
     fn extract_hermes_base_url(provider: &Provider) -> Result<String, AppError> {
@@ -487,18 +471,6 @@ mod tests {
         let result =
             StreamCheckService::resolve_opencode_base_url(&p, Some("@ai-sdk/openai-compatible"));
         assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_extract_openclaw_base_url_missing_errors() {
-        let p = make_provider(serde_json::json!({ "apiKey": "k", "api": "openai-completions" }));
-        assert!(StreamCheckService::extract_openclaw_base_url(&p).is_err());
-
-        let p2 = make_provider(serde_json::json!({ "baseUrl": "https://api.deepseek.com/v1" }));
-        assert_eq!(
-            StreamCheckService::extract_openclaw_base_url(&p2).unwrap(),
-            "https://api.deepseek.com/v1"
-        );
     }
 
     #[test]

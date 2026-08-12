@@ -237,8 +237,7 @@ export const grokBuildProviderPresets: GrokBuildProviderPreset[] = [
   {
     name: "TeamoRouter",
     websiteUrl: "https://teamorouter.com",
-    apiKeyUrl:
-      "https://teamorouter.com/",
+    apiKeyUrl: "https://teamorouter.com/",
     auth: grokAuth(),
     config: grokPresetConfig("TeamoRouter", "https://api.teamorouter.com/v1"),
     endpointCandidates: ["https://api.teamorouter.com/v1"],
@@ -268,8 +267,7 @@ export const grokBuildProviderPresets: GrokBuildProviderPreset[] = [
     name: "Compshare",
     nameKey: "providerForm.presets.ucloud",
     websiteUrl: "https://www.compshare.cn",
-    apiKeyUrl:
-      "https://www.compshare.cn/coding-plan",
+    apiKeyUrl: "https://www.compshare.cn/coding-plan",
     auth: grokAuth(),
     config: grokPresetConfig("Compshare", "https://api.modelverse.cn/v1"),
     endpointCandidates: ["https://api.modelverse.cn/v1"],
@@ -281,8 +279,7 @@ export const grokBuildProviderPresets: GrokBuildProviderPreset[] = [
     name: "Compshare Coding Plan",
     nameKey: "providerForm.presets.ucloudCoding",
     websiteUrl: "https://www.compshare.cn",
-    apiKeyUrl:
-      "https://www.compshare.cn/coding-plan",
+    apiKeyUrl: "https://www.compshare.cn/coding-plan",
     auth: grokAuth(),
     config: grokPresetConfig(
       "Compshare Coding Plan",
@@ -390,8 +387,7 @@ export const grokBuildProviderPresets: GrokBuildProviderPreset[] = [
   {
     name: "SudoCode.chat",
     websiteUrl: "https://sudocode.chat",
-    apiKeyUrl:
-      "https://sudocode.chat/sign-up",
+    apiKeyUrl: "https://sudocode.chat/sign-up",
     auth: grokAuth(),
     config: grokPresetConfig("SudoCode.chat", "https://api.sudocode.chat/v1"),
     endpointCandidates: ["https://api.sudocode.chat/v1"],

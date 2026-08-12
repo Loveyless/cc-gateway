@@ -179,11 +179,11 @@ pub(crate) fn provider_exists_in_live_config(
     app_type: &AppType,
     provider_id: &str,
 ) -> Result<bool, AppError> {
+    app_type.ensure_supported()?;
     match app_type {
         AppType::OpenCode => crate::opencode_config::get_providers()
             .map(|providers| providers.contains_key(provider_id)),
-        AppType::OpenClaw => crate::openclaw_config::get_providers()
-            .map(|providers| providers.contains_key(provider_id)),
+        AppType::OpenClaw => unreachable!("retired app rejected above"),
         AppType::Hermes => crate::hermes_config::get_providers()
             .map(|providers| providers.contains_key(provider_id)),
         _ => Ok(false),
@@ -483,6 +483,10 @@ pub fn update_toml_common_config_snippet(
 }
 
 fn settings_contain_common_config(app_type: &AppType, settings: &Value, snippet: &str) -> bool {
+    if app_type.ensure_supported().is_err() {
+        return false;
+    }
+
     let trimmed = snippet.trim();
     if trimmed.is_empty() {
         return false;
@@ -536,6 +540,10 @@ pub(crate) fn provider_uses_common_config(
     provider: &Provider,
     snippet: Option<&str>,
 ) -> bool {
+    if app_type.ensure_supported().is_err() {
+        return false;
+    }
+
     match provider
         .meta
         .as_ref()
@@ -553,6 +561,8 @@ pub(crate) fn remove_common_config_from_settings(
     settings: &Value,
     snippet: &str,
 ) -> Result<Value, AppError> {
+    app_type.ensure_supported()?;
+
     let trimmed = snippet.trim();
     if trimmed.is_empty() {
         return Ok(settings.clone());
@@ -610,6 +620,8 @@ fn apply_common_config_to_settings(
     settings: &Value,
     snippet: &str,
 ) -> Result<Value, AppError> {
+    app_type.ensure_supported()?;
+
     let trimmed = snippet.trim();
     if trimmed.is_empty() {
         return Ok(settings.clone());
@@ -669,6 +681,8 @@ pub(crate) fn build_effective_settings_with_common_config(
     app_type: &AppType,
     provider: &Provider,
 ) -> Result<Value, AppError> {
+    app_type.ensure_supported()?;
+
     let snippet = db.get_config_snippet(app_type.as_str())?;
     let mut effective_settings = provider.settings_config.clone();
 
@@ -700,6 +714,7 @@ pub(crate) fn write_live_with_common_config(
     app_type: &AppType,
     provider: &Provider,
 ) -> Result<(), AppError> {
+    app_type.ensure_supported()?;
     if crate::services::proxy::ProxyService::detect_foreign_takeover_in_live_config(app_type) {
         return Err(AppError::Message(format!(
             "{} Live 配置正在由 CC Switch 或其它代理接管，CC Gateway 不会覆盖外部接管配置",
@@ -730,6 +745,10 @@ pub(crate) fn strip_common_config_from_live_settings(
     provider: &Provider,
     live_settings: Value,
 ) -> Value {
+    if app_type.ensure_supported().is_err() {
+        return live_settings;
+    }
+
     let snippet = match db.get_config_snippet(app_type.as_str()) {
         Ok(snippet) => snippet,
         Err(err) => {
@@ -914,6 +933,8 @@ pub(crate) fn normalize_provider_common_config_for_storage(
     app_type: &AppType,
     provider: &mut Provider,
 ) -> Result<(), AppError> {
+    app_type.ensure_supported()?;
+
     let uses_common_config = provider
         .meta
         .as_ref()
@@ -1021,6 +1042,8 @@ impl LiveSnapshot {
 
 /// Write live configuration snapshot for a provider
 pub(crate) fn write_live_snapshot(app_type: &AppType, provider: &Provider) -> Result<(), AppError> {
+    app_type.ensure_supported()?;
+
     if crate::services::proxy::ProxyService::detect_foreign_takeover_in_live_config(app_type) {
         return Err(AppError::Message(format!(
             "{} Live 配置正在由 CC Switch 或其它代理接管，CC Gateway 不会覆盖外部接管配置",
@@ -1130,48 +1153,7 @@ pub(crate) fn write_live_snapshot(app_type: &AppType, provider: &Provider) -> Re
                 }
             }
         }
-        AppType::OpenClaw => {
-            // OpenClaw uses additive mode - write provider to config
-            use crate::openclaw_config;
-            use crate::openclaw_config::OpenClawProviderConfig;
-
-            // Convert settings_config to OpenClawProviderConfig
-            let openclaw_config_result =
-                serde_json::from_value::<OpenClawProviderConfig>(provider.settings_config.clone());
-
-            match openclaw_config_result {
-                Ok(config) => {
-                    openclaw_config::set_typed_provider(&provider.id, &config)?;
-                    log::info!("OpenClaw provider '{}' written to live config", provider.id);
-                }
-                Err(e) => {
-                    log::warn!(
-                        "Failed to parse OpenClaw provider config for '{}': {}",
-                        provider.id,
-                        e
-                    );
-                    // Try to write as raw JSON if it looks valid
-                    if provider.settings_config.get("baseUrl").is_some()
-                        || provider.settings_config.get("api").is_some()
-                        || provider.settings_config.get("models").is_some()
-                    {
-                        openclaw_config::set_provider(
-                            &provider.id,
-                            provider.settings_config.clone(),
-                        )?;
-                        log::info!(
-                            "OpenClaw provider '{}' written as raw JSON to live config",
-                            provider.id
-                        );
-                    } else {
-                        return Err(AppError::Message(format!(
-                            "OpenClaw provider '{}' has invalid config structure for live config (must contain 'baseUrl', 'api', or 'models')",
-                            provider.id
-                        )));
-                    }
-                }
-            }
-        }
+        AppType::OpenClaw => unreachable!("retired app rejected above"),
         AppType::Hermes => {
             crate::hermes_config::set_provider(&provider.id, provider.settings_config.clone())?;
             log::debug!("Hermes provider '{}' written to live config", provider.id);
@@ -1305,7 +1287,7 @@ pub fn sync_current_to_live(state: &AppState) -> Result<(), AppError> {
 
     // MCP sync（best-effort 逐应用投影，内部已聚合失败）。错误暂存到
     // Skill 同步之后再返回：MCP 的失败不该跳过 Skill 同步，但调用方
-    //（配置导入 / 云同步恢复）需要知道结果不完整。
+    // 配置导入调用方需要知道结果不完整。
     let mcp_result = McpService::sync_all_enabled(state);
 
     // Skill sync
@@ -1321,6 +1303,7 @@ pub fn sync_current_to_live(state: &AppState) -> Result<(), AppError> {
 
 /// Read current live settings for an app type
 pub fn read_live_settings(app_type: AppType) -> Result<Value, AppError> {
+    app_type.ensure_supported()?;
     match app_type {
         AppType::Codex => {
             let mut result = crate::codex_config::read_codex_live_settings()?;
@@ -1403,21 +1386,7 @@ pub fn read_live_settings(app_type: AppType) -> Result<Value, AppError> {
             Ok(config)
         }
         AppType::GrokBuild => crate::grok_config::read_grok_live_settings(),
-        AppType::OpenClaw => {
-            use crate::openclaw_config::{get_openclaw_config_path, read_openclaw_config};
-
-            let config_path = get_openclaw_config_path();
-            if !config_path.exists() {
-                return Err(AppError::localized(
-                    "openclaw.config.missing",
-                    "OpenClaw 配置文件不存在",
-                    "OpenClaw configuration file not found",
-                ));
-            }
-
-            let config = read_openclaw_config()?;
-            Ok(config)
-        }
+        AppType::OpenClaw => unreachable!("retired app rejected above"),
         AppType::Hermes => {
             let config_path = crate::hermes_config::get_hermes_config_path();
             if !config_path.exists() {
@@ -1439,7 +1408,9 @@ pub fn read_live_settings(app_type: AppType) -> Result<Value, AppError> {
 /// Returns `Ok(true)` if a provider was actually imported,
 /// `Ok(false)` if skipped (providers already exist for this app).
 pub fn import_default_config(state: &AppState, app_type: AppType) -> Result<bool, AppError> {
-    // Additive mode apps (OpenCode, OpenClaw) should use their dedicated
+    app_type.ensure_supported()?;
+
+    // Additive mode apps (OpenCode and Hermes) should use their dedicated
     // import_xxx_providers_from_live functions, not this generic default config import
     if app_type.is_additive_mode() {
         return Ok(false);
@@ -1539,10 +1510,11 @@ pub fn import_default_config(state: &AppState, app_type: AppType) -> Result<bool
                 "config": config_obj
             })
         }
-        // OpenCode, OpenClaw and Hermes use additive mode and are handled by early return above
-        AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => {
+        // OpenCode and Hermes use additive mode and are handled by the early return above.
+        AppType::OpenCode | AppType::Hermes => {
             unreachable!("additive mode apps are handled by early return")
         }
+        AppType::OpenClaw => unreachable!("retired app rejected above"),
     };
 
     let mut provider = Provider::with_id(
@@ -1610,6 +1582,8 @@ pub fn should_import_default_config_on_startup(
     state: &AppState,
     app_type: &AppType,
 ) -> Result<bool, AppError> {
+    app_type.ensure_supported()?;
+
     if app_type.is_additive_mode() {
         return Ok(false);
     }
@@ -1793,94 +1767,6 @@ pub fn import_opencode_providers_from_live(state: &AppState) -> Result<usize, Ap
     Ok(imported + updated)
 }
 
-/// Import all providers from OpenClaw live config to database
-///
-/// This imports existing providers from ~/.openclaw/openclaw.json
-/// into the CC Gateway database. Each provider found will be added to the
-/// database with is_current set to false.
-pub fn import_openclaw_providers_from_live(state: &AppState) -> Result<usize, AppError> {
-    use crate::openclaw_config;
-
-    let providers = openclaw_config::get_typed_providers()?;
-    if providers.is_empty() {
-        return Ok(0);
-    }
-
-    let mut imported = 0;
-    let mut updated = 0;
-    let existing_ids = state.db.get_provider_ids("openclaw")?;
-
-    for (id, config) in providers {
-        // Validate: skip entries with empty id or no models
-        if id.trim().is_empty() {
-            log::warn!("Skipping OpenClaw provider with empty id");
-            continue;
-        }
-        if config.models.is_empty() {
-            log::warn!("Skipping OpenClaw provider '{id}': no models defined");
-            continue;
-        }
-
-        // Convert to Value for settings_config
-        let settings_config = match serde_json::to_value(&config) {
-            Ok(v) => v,
-            Err(e) => {
-                log::warn!("Failed to serialize OpenClaw provider '{id}': {e}");
-                continue;
-            }
-        };
-
-        if existing_ids.contains(&id) {
-            match state.db.get_provider_by_id(&id, "openclaw") {
-                Ok(Some(existing)) => {
-                    if existing.settings_config != settings_config {
-                        let mut provider = existing;
-                        provider.settings_config = settings_config;
-                        if let Err(e) = state.db.save_provider("openclaw", &provider) {
-                            log::warn!(
-                                "Failed to update OpenClaw provider '{id}' from live config: {e}"
-                            );
-                        } else {
-                            updated += 1;
-                            log::info!("Updated OpenClaw provider '{id}' from live config");
-                        }
-                    }
-                }
-                Ok(None) => {
-                    log::warn!("OpenClaw provider '{id}' disappeared while importing live config")
-                }
-                Err(e) => log::warn!("Failed to look up OpenClaw provider '{id}': {e}"),
-            }
-            continue;
-        }
-
-        // Determine display name: use first model name if available, otherwise use id
-        let display_name = config
-            .models
-            .first()
-            .and_then(|m| m.name.clone())
-            .unwrap_or_else(|| id.clone());
-
-        // Create provider
-        let mut provider = Provider::with_id(id.clone(), display_name, settings_config, None);
-        provider.meta = Some(crate::provider::ProviderMeta {
-            live_config_managed: Some(true),
-            ..Default::default()
-        });
-
-        // Save to database
-        if let Err(e) = state.db.save_provider("openclaw", &provider) {
-            log::warn!("Failed to import OpenClaw provider '{id}': {e}");
-            continue;
-        }
-
-        imported += 1;
-        log::info!("Imported OpenClaw provider '{id}' from live config");
-    }
-
-    Ok(imported + updated)
-}
-
 /// Import all providers from Hermes live config to database
 ///
 /// This imports existing providers from ~/.hermes/config.yaml
@@ -1964,25 +1850,6 @@ pub fn remove_hermes_provider_from_live(provider_id: &str) -> Result<(), AppErro
 
     hermes_config::remove_provider(provider_id)?;
     log::info!("Hermes provider '{provider_id}' removed from live config");
-
-    Ok(())
-}
-
-/// Remove an OpenClaw provider from live config
-///
-/// This removes a specific provider from ~/.openclaw/openclaw.json
-/// without affecting other providers in the file.
-pub fn remove_openclaw_provider_from_live(provider_id: &str) -> Result<(), AppError> {
-    use crate::openclaw_config;
-
-    // Check if OpenClaw config directory exists
-    if !openclaw_config::get_openclaw_dir().exists() {
-        log::debug!("OpenClaw config directory doesn't exist, skipping removal of '{provider_id}'");
-        return Ok(());
-    }
-
-    openclaw_config::remove_provider(provider_id)?;
-    log::info!("OpenClaw provider '{provider_id}' removed from live config");
 
     Ok(())
 }

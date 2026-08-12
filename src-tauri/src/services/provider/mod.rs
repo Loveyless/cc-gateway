@@ -22,8 +22,8 @@ use crate::store::AppState;
 
 // Re-export sub-module functions for external access
 pub use live::{
-    import_default_config, import_hermes_providers_from_live, import_openclaw_providers_from_live,
-    import_opencode_providers_from_live, read_live_settings,
+    import_default_config, import_hermes_providers_from_live, import_opencode_providers_from_live,
+    read_live_settings,
     should_import_default_config_on_startup, sync_current_to_live,
     update_toml_common_config_snippet,
 };
@@ -38,8 +38,7 @@ pub(crate) use live::{
 
 // Internal re-exports
 use live::{
-    remove_hermes_provider_from_live, remove_openclaw_provider_from_live,
-    remove_opencode_provider_from_live, write_gemini_live,
+    remove_hermes_provider_from_live, remove_opencode_provider_from_live, write_gemini_live,
 };
 use usage::validate_usage_script;
 
@@ -311,28 +310,6 @@ mod tests {
         provider
     }
 
-    fn openclaw_provider(id: &str) -> Provider {
-        Provider {
-            id: id.to_string(),
-            name: format!("Provider {id}"),
-            settings_config: json!({
-                "baseUrl": "https://api.deepseek.com",
-                "apiKey": "test-key",
-                "api": "openai-completions",
-                "models": [],
-            }),
-            website_url: None,
-            category: Some("custom".to_string()),
-            created_at: Some(1),
-            sort_index: Some(0),
-            notes: None,
-            meta: None,
-            icon: None,
-            icon_color: None,
-            in_failover_queue: false,
-        }
-    }
-
     fn hermes_provider(id: &str) -> Provider {
         Provider {
             id: id.to_string(),
@@ -386,55 +363,6 @@ mod tests {
             icon_color: None,
             in_failover_queue: false,
         }
-    }
-
-    fn opencode_omo_provider(id: &str, category: &str) -> Provider {
-        let mut settings = serde_json::Map::new();
-        settings.insert(
-            "agents".to_string(),
-            json!({
-                "writer": {
-                    "model": "gpt-4o-mini"
-                }
-            }),
-        );
-        if category == "omo" {
-            settings.insert(
-                "categories".to_string(),
-                json!({
-                    "default": ["writer"]
-                }),
-            );
-        }
-        settings.insert(
-            "otherFields".to_string(),
-            json!({
-                "theme": "dark"
-            }),
-        );
-
-        Provider {
-            id: id.to_string(),
-            name: format!("Provider {id}"),
-            settings_config: Value::Object(settings),
-            website_url: None,
-            category: Some(category.to_string()),
-            created_at: Some(1),
-            sort_index: Some(0),
-            notes: None,
-            meta: None,
-            icon: None,
-            icon_color: None,
-            in_failover_queue: false,
-        }
-    }
-
-    fn omo_config_path(home: &Path, category: &str) -> PathBuf {
-        home.join(".config").join("opencode").join(match category {
-            "omo" => crate::services::omo::STANDARD.preferred_filename,
-            "omo-slim" => crate::services::omo::SLIM.preferred_filename,
-            other => panic!("unexpected OMO category in test: {other}"),
-        })
     }
 
     #[test]
@@ -908,7 +836,7 @@ mod tests {
             .expect("read audit")
             .expect("an audit record must exist so the deletion is not silent");
 
-        // 值绝不能进这条记录：`settings` 会随 WebDAV/S3 同步上传，留值等于把一次
+        // 值绝不能进这条记录：`settings` 可能被旧版远端同步数据携带，留值等于把一次
         // 清除换成一份跨设备扩散、没有界面入口、永不过期的明文副本。
         assert!(
             !audit_text.contains("key-A-leaked") && !audit_text.contains("tok-A-leaked"),
@@ -1818,83 +1746,6 @@ requires_openai_auth = true
 
     #[test]
     #[serial]
-    fn rename_rejects_missing_original_provider() {
-        with_test_home(|state, _| {
-            let original = openclaw_provider("deepseek");
-            ProviderService::add(state, AppType::OpenClaw, original.clone(), false)
-                .expect("seed db-only provider");
-
-            let mut renamed = original.clone();
-            renamed.id = "deepseek-copy".to_string();
-
-            let err = ProviderService::update(
-                state,
-                AppType::OpenClaw,
-                Some("missing-provider"),
-                renamed,
-            )
-            .expect_err("stale originalId should be rejected");
-
-            assert!(
-                err.to_string().contains("Original provider"),
-                "expected missing original provider error, got {err:?}"
-            );
-            assert!(
-                state
-                    .db
-                    .get_provider_by_id("deepseek-copy", AppType::OpenClaw.as_str())
-                    .expect("query renamed provider")
-                    .is_none(),
-                "rename must not create a new row when originalId is stale"
-            );
-        });
-    }
-
-    #[test]
-    #[serial]
-    fn db_only_additive_update_survives_live_config_parse_errors() {
-        with_test_home(|state, home| {
-            let provider = openclaw_provider("deepseek");
-            ProviderService::add(state, AppType::OpenClaw, provider.clone(), false)
-                .expect("seed db-only provider");
-
-            let stored = state
-                .db
-                .get_provider_by_id("deepseek", AppType::OpenClaw.as_str())
-                .expect("query stored provider")
-                .expect("provider should exist");
-            assert_eq!(
-                stored
-                    .meta
-                    .as_ref()
-                    .and_then(|meta| meta.live_config_managed),
-                Some(false),
-                "db-only provider should be marked as not live-managed"
-            );
-
-            let openclaw_dir = home.join(".openclaw");
-            fs::create_dir_all(&openclaw_dir).expect("create openclaw dir");
-            fs::write(openclaw_dir.join("openclaw.json"), "{ invalid json5")
-                .expect("write malformed config");
-
-            let mut updated = stored.clone();
-            updated.name = "DeepSeek Edited".to_string();
-            updated.meta.get_or_insert_with(ProviderMeta::default);
-
-            ProviderService::update(state, AppType::OpenClaw, None, updated)
-                .expect("db-only update should ignore live parse errors");
-
-            let saved = state
-                .db
-                .get_provider_by_id("deepseek", AppType::OpenClaw.as_str())
-                .expect("query updated provider")
-                .expect("updated provider should exist");
-            assert_eq!(saved.name, "DeepSeek Edited");
-        });
-    }
-
-    #[test]
-    #[serial]
     fn sync_current_provider_for_app_skips_db_only_opencode_provider() {
         with_test_home(|state, _| {
             let provider = opencode_provider("db-only-opencode");
@@ -1909,26 +1760,6 @@ requires_openai_auth = true
             assert!(
                 !live_providers.contains_key(&provider.id),
                 "db-only opencode provider should not be written to live during sync"
-            );
-        });
-    }
-
-    #[test]
-    #[serial]
-    fn sync_current_provider_for_app_skips_db_only_openclaw_provider() {
-        with_test_home(|state, _| {
-            let provider = openclaw_provider("db-only-openclaw");
-            ProviderService::add(state, AppType::OpenClaw, provider.clone(), false)
-                .expect("seed db-only openclaw provider");
-
-            ProviderService::sync_current_provider_for_app(state, AppType::OpenClaw)
-                .expect("sync additive openclaw providers");
-
-            let live_providers = crate::openclaw_config::get_providers()
-                .expect("read openclaw providers after sync");
-            assert!(
-                !live_providers.contains_key(&provider.id),
-                "db-only openclaw provider should not be written to live during sync"
             );
         });
     }
@@ -1986,34 +1817,6 @@ requires_openai_auth = true
             assert!(
                 live_providers.contains_key(&provider.id),
                 "legacy opencode provider should be restored when live config is reset"
-            );
-        });
-    }
-
-    #[test]
-    #[serial]
-    fn sync_current_provider_for_app_restores_legacy_openclaw_provider_after_live_reset() {
-        with_test_home(|state, _| {
-            let mut provider = openclaw_provider("legacy-openclaw-reset");
-            provider.settings_config["models"] = json!([
-                {
-                    "id": "claude-sonnet-4",
-                    "name": "Claude Sonnet 4"
-                }
-            ]);
-            state
-                .db
-                .save_provider(AppType::OpenClaw.as_str(), &provider)
-                .expect("seed legacy openclaw provider in db");
-
-            ProviderService::sync_current_provider_for_app(state, AppType::OpenClaw)
-                .expect("sync legacy openclaw provider after reset");
-
-            let live_providers =
-                crate::openclaw_config::get_providers().expect("read openclaw providers");
-            assert!(
-                live_providers.contains_key(&provider.id),
-                "legacy openclaw provider should be restored when live config is reset"
             );
         });
     }
@@ -2082,83 +1885,6 @@ requires_openai_auth = true
     }
     #[test]
     #[serial]
-    fn import_openclaw_providers_from_live_marks_provider_as_live_managed() {
-        with_test_home(|state, _| {
-            let mut provider = openclaw_provider("imported-openclaw");
-            provider.settings_config["models"] = json!([
-                {
-                    "id": "claude-sonnet-4",
-                    "name": "Claude Sonnet 4"
-                }
-            ]);
-            crate::openclaw_config::set_provider(&provider.id, provider.settings_config.clone())
-                .expect("seed openclaw live provider");
-
-            let imported = import_openclaw_providers_from_live(state)
-                .expect("import openclaw providers from live");
-            assert_eq!(imported, 1);
-
-            let saved = state
-                .db
-                .get_provider_by_id(&provider.id, AppType::OpenClaw.as_str())
-                .expect("query imported openclaw provider")
-                .expect("imported openclaw provider should exist");
-            assert_eq!(
-                saved
-                    .meta
-                    .as_ref()
-                    .and_then(|meta| meta.live_config_managed),
-                Some(true),
-                "providers imported from live should be treated as live-managed"
-            );
-        });
-    }
-
-    #[test]
-    #[serial]
-    fn import_openclaw_providers_from_live_updates_existing_provider_from_live() {
-        with_test_home(|state, _| {
-            let mut provider = openclaw_provider("existing-openclaw");
-            provider.settings_config["models"] = json!([
-                {
-                    "id": "claude-sonnet-4",
-                    "name": "Claude Sonnet 4"
-                }
-            ]);
-            state
-                .db
-                .save_provider(AppType::OpenClaw.as_str(), &provider)
-                .expect("seed existing openclaw provider");
-
-            let mut live_settings = provider.settings_config.clone();
-            live_settings["baseUrl"] = Value::String("https://api.example.com/v1".to_string());
-            live_settings["models"][0]["name"] = Value::String("Claude Sonnet 4.1".to_string());
-            crate::openclaw_config::set_provider(&provider.id, live_settings)
-                .expect("seed edited live openclaw provider");
-
-            let updated = import_openclaw_providers_from_live(state)
-                .expect("import openclaw providers from live");
-            assert_eq!(updated, 1);
-
-            let saved = state
-                .db
-                .get_provider_by_id(&provider.id, AppType::OpenClaw.as_str())
-                .expect("query updated openclaw provider")
-                .expect("openclaw provider should exist");
-            assert_eq!(saved.name, provider.name);
-            assert_eq!(
-                saved.settings_config["baseUrl"],
-                json!("https://api.example.com/v1")
-            );
-            assert_eq!(
-                saved.settings_config["models"][0]["name"],
-                json!("Claude Sonnet 4.1")
-            );
-        });
-    }
-
-    #[test]
-    #[serial]
     fn import_hermes_providers_from_live_updates_existing_provider_from_live() {
         with_test_home(|state, _| {
             let provider = hermes_provider("existing-hermes");
@@ -2197,226 +1923,6 @@ requires_openai_auth = true
         });
     }
 
-    #[test]
-    #[serial]
-    fn legacy_additive_provider_still_errors_on_live_config_parse_failure() {
-        with_test_home(|state, home| {
-            let provider = openclaw_provider("legacy-provider");
-            state
-                .db
-                .save_provider(AppType::OpenClaw.as_str(), &provider)
-                .expect("seed legacy provider without live_config_managed marker");
-
-            let openclaw_dir = home.join(".openclaw");
-            fs::create_dir_all(&openclaw_dir).expect("create openclaw dir");
-            fs::write(openclaw_dir.join("openclaw.json"), "{ invalid json5")
-                .expect("write malformed config");
-
-            let mut updated = provider.clone();
-            updated.name = "Legacy Edited".to_string();
-
-            let err = ProviderService::update(state, AppType::OpenClaw, None, updated)
-                .expect_err("legacy providers should still surface live parse errors");
-            assert!(
-                err.to_string().contains("Failed to parse OpenClaw config"),
-                "expected parse error, got {err:?}"
-            );
-        });
-    }
-
-    #[test]
-    #[serial]
-    fn update_persists_non_current_omo_variants_in_database() {
-        with_test_home(|state, _| {
-            for category in ["omo", "omo-slim"] {
-                let provider = opencode_omo_provider(&format!("{category}-provider"), category);
-                state
-                    .db
-                    .save_provider(AppType::OpenCode.as_str(), &provider)
-                    .unwrap_or_else(|err| panic!("seed {category} provider: {err}"));
-
-                let mut updated = provider.clone();
-                updated.name = format!("Updated {category}");
-                updated.settings_config["agents"]["writer"]["model"] =
-                    Value::String(format!("{category}-next-model"));
-
-                ProviderService::update(state, AppType::OpenCode, None, updated)
-                    .unwrap_or_else(|err| panic!("update {category} provider: {err}"));
-
-                let saved = state
-                    .db
-                    .get_provider_by_id(&provider.id, AppType::OpenCode.as_str())
-                    .unwrap_or_else(|err| panic!("query updated {category} provider: {err}"))
-                    .unwrap_or_else(|| panic!("{category} provider should exist"));
-
-                assert_eq!(saved.name, format!("Updated {category}"));
-                assert_eq!(
-                    saved.settings_config["agents"]["writer"]["model"],
-                    Value::String(format!("{category}-next-model")),
-                    "{category} updates should persist in the database"
-                );
-            }
-        });
-    }
-
-    #[test]
-    #[serial]
-    fn update_current_omo_variant_rewrites_config_from_saved_provider() {
-        with_test_home(|state, home| {
-            for category in ["omo", "omo-slim"] {
-                let provider = opencode_omo_provider(&format!("{category}-current"), category);
-                state
-                    .db
-                    .save_provider(AppType::OpenCode.as_str(), &provider)
-                    .unwrap_or_else(|err| panic!("seed current {category} provider: {err}"));
-                state
-                    .db
-                    .set_omo_provider_current(AppType::OpenCode.as_str(), &provider.id, category)
-                    .unwrap_or_else(|err| panic!("set current {category} provider: {err}"));
-
-                let mut updated = provider.clone();
-                updated.name = format!("Current {category} updated");
-                updated.settings_config["agents"]["writer"]["model"] =
-                    Value::String(format!("{category}-saved-model"));
-                updated.settings_config["otherFields"]["theme"] =
-                    Value::String(format!("{category}-light"));
-
-                ProviderService::update(state, AppType::OpenCode, None, updated)
-                    .unwrap_or_else(|err| panic!("update current {category} provider: {err}"));
-
-                let saved = state
-                    .db
-                    .get_provider_by_id(&provider.id, AppType::OpenCode.as_str())
-                    .unwrap_or_else(|err| panic!("query current {category} provider: {err}"))
-                    .unwrap_or_else(|| panic!("current {category} provider should exist"));
-                assert_eq!(saved.name, format!("Current {category} updated"));
-
-                let written = fs::read_to_string(omo_config_path(home, category))
-                    .unwrap_or_else(|err| panic!("read written {category} config: {err}"));
-                let written_json: Value = serde_json::from_str(&written)
-                    .unwrap_or_else(|err| panic!("parse written {category} config: {err}"));
-
-                assert_eq!(
-                    written_json["agents"]["writer"]["model"],
-                    Value::String(format!("{category}-saved-model")),
-                    "{category} config should be written from the saved provider state"
-                );
-                assert_eq!(
-                    written_json["theme"],
-                    Value::String(format!("{category}-light")),
-                    "{category} top-level config should reflect updated otherFields"
-                );
-            }
-        });
-    }
-
-    #[test]
-    #[serial]
-    fn update_current_omo_variant_does_not_persist_database_when_file_write_fails() {
-        with_test_home(|state, home| {
-            let provider = opencode_omo_provider("omo-current", "omo");
-            state
-                .db
-                .save_provider(AppType::OpenCode.as_str(), &provider)
-                .unwrap_or_else(|err| panic!("seed current omo provider: {err}"));
-            state
-                .db
-                .set_omo_provider_current(AppType::OpenCode.as_str(), &provider.id, "omo")
-                .unwrap_or_else(|err| panic!("set current omo provider: {err}"));
-
-            let config_dir = home.join(".config").join("opencode");
-            fs::create_dir_all(config_dir.parent().expect("config dir parent"))
-                .expect("create .config dir");
-            fs::write(&config_dir, "not a directory").expect("block opencode config dir");
-
-            let mut updated = provider.clone();
-            updated.name = "Current omo updated".to_string();
-            updated.settings_config["agents"]["writer"]["model"] =
-                Value::String("omo-saved-model".to_string());
-
-            ProviderService::update(state, AppType::OpenCode, None, updated)
-                .expect_err("update should fail when current omo file write fails");
-
-            let saved = state
-                .db
-                .get_provider_by_id(&provider.id, AppType::OpenCode.as_str())
-                .unwrap_or_else(|err| panic!("query current omo provider: {err}"))
-                .unwrap_or_else(|| panic!("current omo provider should exist"));
-
-            assert_eq!(saved.name, provider.name);
-            assert_eq!(
-                saved.settings_config["agents"]["writer"]["model"],
-                provider.settings_config["agents"]["writer"]["model"],
-                "database should remain unchanged when file write fails"
-            );
-        });
-    }
-
-    #[test]
-    #[serial]
-    fn update_current_omo_variant_rolls_back_file_when_plugin_sync_fails() {
-        with_test_home(|state, home| {
-            let provider = opencode_omo_provider("omo-current", "omo");
-            state
-                .db
-                .save_provider(AppType::OpenCode.as_str(), &provider)
-                .unwrap_or_else(|err| panic!("seed current omo provider: {err}"));
-            state
-                .db
-                .set_omo_provider_current(AppType::OpenCode.as_str(), &provider.id, "omo")
-                .unwrap_or_else(|err| panic!("set current omo provider: {err}"));
-
-            let config_path = omo_config_path(home, "omo");
-            fs::create_dir_all(config_path.parent().expect("omo config parent"))
-                .expect("create omo config dir");
-            let previous_content = serde_json::to_string_pretty(&json!({
-                "theme": "legacy-live-theme",
-                "agents": {
-                    "writer": {
-                        "model": "legacy-live-model"
-                    }
-                },
-                "categories": {
-                    "default": ["writer"]
-                }
-            }))
-            .expect("serialize previous config");
-            fs::write(&config_path, &previous_content).expect("seed previous omo config");
-
-            let opencode_config_path = home.join(".config").join("opencode").join("opencode.json");
-            fs::write(&opencode_config_path, "{ invalid json").expect("seed malformed opencode");
-
-            let mut updated = provider.clone();
-            updated.name = "Current omo updated".to_string();
-            updated.settings_config["agents"]["writer"]["model"] =
-                Value::String("omo-saved-model".to_string());
-            updated.settings_config["otherFields"]["theme"] =
-                Value::String("omo-light".to_string());
-
-            ProviderService::update(state, AppType::OpenCode, None, updated)
-                .expect_err("update should fail when plugin sync fails");
-
-            let saved = state
-                .db
-                .get_provider_by_id(&provider.id, AppType::OpenCode.as_str())
-                .unwrap_or_else(|err| panic!("query current omo provider: {err}"))
-                .unwrap_or_else(|| panic!("current omo provider should exist"));
-
-            assert_eq!(saved.name, provider.name);
-            assert_eq!(
-                saved.settings_config["agents"]["writer"]["model"],
-                provider.settings_config["agents"]["writer"]["model"],
-                "database should remain unchanged when plugin sync fails"
-            );
-
-            let written =
-                fs::read_to_string(&config_path).expect("read rolled back omo config content");
-            assert_eq!(
-                written, previous_content,
-                "OMO config should roll back to its previous on-disk contents"
-            );
-        });
-    }
 }
 
 impl ProviderService {
@@ -2528,6 +2034,7 @@ impl ProviderService {
         state: &AppState,
         app_type: AppType,
     ) -> Result<IndexMap<String, Provider>, AppError> {
+        app_type.ensure_supported()?;
         state.db.get_all_providers(app_type.as_str())
     }
 
@@ -2535,10 +2042,11 @@ impl ProviderService {
     ///
     /// 使用有效的当前供应商 ID（验证过存在性）。
     /// 优先从本地 settings 读取，验证后 fallback 到数据库的 is_current 字段。
-    /// 这确保了云同步场景下多设备可以独立选择供应商，且返回的 ID 一定有效。
+    /// 这确保了配置导入后本地 ID 失效时仍能返回有效的供应商 ID。
     ///
-    /// 对于累加模式应用（OpenCode, OpenClaw），不存在"当前供应商"概念，直接返回空字符串。
+    /// 对于累加模式应用（OpenCode），不存在"当前供应商"概念，直接返回空字符串。
     pub fn current(state: &AppState, app_type: AppType) -> Result<String, AppError> {
+        app_type.ensure_supported()?;
         // Additive mode apps have no "current" provider concept
         if app_type.is_additive_mode() {
             return Ok(String::new());
@@ -2554,6 +2062,7 @@ impl ProviderService {
         provider: Provider,
         add_to_live: bool,
     ) -> Result<bool, AppError> {
+        app_type.ensure_supported()?;
         let mut provider = provider;
         // Normalize Claude model keys
         Self::normalize_provider_if_claude(&app_type, &mut provider);
@@ -2567,16 +2076,8 @@ impl ProviderService {
         // Save to database
         state.db.save_provider(app_type.as_str(), &provider)?;
 
-        // Additive mode apps (OpenCode, OpenClaw): optionally write to live config.
+        // Additive mode OpenCode optionally writes to live config.
         if app_type.is_additive_mode() {
-            // OMO / OMO Slim providers use exclusive mode and write to dedicated config file.
-            if matches!(app_type, AppType::OpenCode)
-                && matches!(provider.category.as_deref(), Some("omo") | Some("omo-slim"))
-            {
-                // Do not auto-enable newly added OMO / OMO Slim providers.
-                // Users must explicitly switch/apply an OMO provider to activate it.
-                return Ok(true);
-            }
             if !add_to_live {
                 return Ok(true);
             }
@@ -2604,6 +2105,7 @@ impl ProviderService {
         original_id: Option<&str>,
         provider: Provider,
     ) -> Result<bool, AppError> {
+        app_type.ensure_supported()?;
         let mut provider = provider;
         let original_id = original_id.unwrap_or(provider.id.as_str()).to_string();
         let provider_id_changed = original_id != provider.id;
@@ -2630,21 +2132,6 @@ impl ProviderService {
                     app_type.as_str()
                 )));
             };
-
-            // OMO / OMO Slim providers are activated via a dedicated current-state mechanism
-            // (set_omo_provider_current) that is NOT captured by provider_exists_in_live_config,
-            // which only checks opencode.json. A rename would orphan that current-state marker
-            // and silently break subsequent OMO file syncs. Block it unconditionally.
-            if matches!(app_type, AppType::OpenCode)
-                && matches!(
-                    existing_provider.category.as_deref(),
-                    Some("omo") | Some("omo-slim")
-                )
-            {
-                return Err(AppError::Message(
-                    "Provider key cannot be changed for OMO/OMO Slim providers".to_string(),
-                ));
-            }
 
             let original_in_live = Self::check_live_config_exists(
                 &app_type,
@@ -2687,43 +2174,9 @@ impl ProviderService {
             return Ok(true);
         }
 
-        // Additive mode apps (OpenCode, OpenClaw): only sync to live when the provider
+        // Additive mode OpenCode only syncs to live when the provider
         // already exists in live config. Editing a DB-only provider must not auto-add it.
         if app_type.is_additive_mode() {
-            let omo_variant = if matches!(app_type, AppType::OpenCode) {
-                match provider.category.as_deref() {
-                    Some("omo") => Some(&crate::services::omo::STANDARD),
-                    Some("omo-slim") => Some(&crate::services::omo::SLIM),
-                    _ => None,
-                }
-            } else {
-                None
-            };
-            if let Some(variant) = omo_variant {
-                let is_current = state.db.is_omo_provider_current(
-                    app_type.as_str(),
-                    &provider.id,
-                    variant.category,
-                )?;
-                if is_current {
-                    crate::services::OmoService::write_provider_config_to_file(&provider, variant)?;
-                }
-                if let Err(err) = state.db.save_provider(app_type.as_str(), &provider) {
-                    if is_current {
-                        if let Err(rollback_err) =
-                            crate::services::OmoService::write_config_to_file(state, variant)
-                        {
-                            log::warn!(
-                                "Failed to roll back {} config after DB save error: {}",
-                                variant.label,
-                                rollback_err
-                            );
-                        }
-                    }
-                    return Err(err);
-                }
-                return Ok(true);
-            }
             let live_config_managed = Self::check_live_config_exists(
                 &app_type,
                 &provider.id,
@@ -2827,35 +2280,15 @@ impl ProviderService {
     /// Delete a provider
     ///
     /// 同时检查本地 settings 和数据库的当前供应商，防止删除任一端正在使用的供应商。
-    /// 对于累加模式应用（OpenCode, OpenClaw），可以随时删除任意供应商，同时从 live 配置中移除。
+    /// 对于累加模式应用（OpenCode），可以随时删除任意供应商，同时从 live 配置中移除。
     pub fn delete(state: &AppState, app_type: AppType, id: &str) -> Result<(), AppError> {
+        app_type.ensure_supported()?;
         // Additive mode apps - no current provider concept
         if app_type.is_additive_mode() {
             // Single DB read shared across all additive-mode sub-paths below.
             let existing = state.db.get_provider_by_id(id, app_type.as_str())?;
 
-            if matches!(app_type, AppType::OpenCode) {
-                let provider_category = existing.as_ref().and_then(|p| p.category.clone());
-                let omo_variant = match provider_category.as_deref() {
-                    Some("omo") => Some(&crate::services::omo::STANDARD),
-                    Some("omo-slim") => Some(&crate::services::omo::SLIM),
-                    _ => None,
-                };
-                if let Some(variant) = omo_variant {
-                    let was_current = state.db.is_omo_provider_current(
-                        app_type.as_str(),
-                        id,
-                        variant.category,
-                    )?;
-                    state.db.delete_provider(app_type.as_str(), id)?;
-                    if was_current {
-                        crate::services::OmoService::delete_config_file(variant)?;
-                    }
-                    return Ok(());
-                }
-            }
-
-            // Non-OMO path for both OpenCode and OpenClaw:
+            // Additive path for OpenCode:
             // remove from live first (atomicity), then DB.
             //
             // Use check_live_config_exists rather than trusting the flag alone: the flag
@@ -2868,7 +2301,7 @@ impl ProviderService {
             if Self::check_live_config_exists(&app_type, id, live_managed)? {
                 match app_type {
                     AppType::OpenCode => remove_opencode_provider_from_live(id)?,
-                    AppType::OpenClaw => remove_openclaw_provider_from_live(id)?,
+                    AppType::OpenClaw => unreachable!("retired app rejected above"),
                     AppType::Hermes => remove_hermes_provider_from_live(id)?,
                     _ => {}
                 }
@@ -2890,7 +2323,7 @@ impl ProviderService {
         state.db.delete_provider(app_type.as_str(), id)
     }
 
-    /// Remove provider from live config only (for additive mode apps like OpenCode, OpenClaw)
+    /// Remove provider from live config only (for additive mode OpenCode)
     ///
     /// Does NOT delete from database - provider remains in the list.
     /// This is used when user wants to "remove" a provider from active config
@@ -2900,38 +2333,12 @@ impl ProviderService {
         app_type: AppType,
         id: &str,
     ) -> Result<(), AppError> {
+        app_type.ensure_supported()?;
         match app_type {
             AppType::OpenCode => {
-                let provider_category = state
-                    .db
-                    .get_provider_by_id(id, app_type.as_str())?
-                    .and_then(|p| p.category);
-
-                let omo_variant = match provider_category.as_deref() {
-                    Some("omo") => Some(&crate::services::omo::STANDARD),
-                    Some("omo-slim") => Some(&crate::services::omo::SLIM),
-                    _ => None,
-                };
-                if let Some(variant) = omo_variant {
-                    state
-                        .db
-                        .clear_omo_provider_current(app_type.as_str(), id, variant.category)?;
-                    let still_has_current = state
-                        .db
-                        .get_current_omo_provider("opencode", variant.category)?
-                        .is_some();
-                    if still_has_current {
-                        crate::services::OmoService::write_config_to_file(state, variant)?;
-                    } else {
-                        crate::services::OmoService::delete_config_file(variant)?;
-                    }
-                } else {
-                    remove_opencode_provider_from_live(id)?;
-                }
+                remove_opencode_provider_from_live(id)?;
             }
-            AppType::OpenClaw => {
-                remove_openclaw_provider_from_live(id)?;
-            }
+            AppType::OpenClaw => unreachable!("retired app rejected above"),
             AppType::Hermes => {
                 remove_hermes_provider_from_live(id)?;
             }
@@ -2964,23 +2371,12 @@ impl ProviderService {
     ///    d. Write target provider config to live files
     ///    e. Sync MCP configuration
     pub fn switch(state: &AppState, app_type: AppType, id: &str) -> Result<SwitchResult, AppError> {
+        app_type.ensure_supported()?;
         // Check if provider exists
         let providers = state.db.get_all_providers(app_type.as_str())?;
         let _provider = providers
             .get(id)
             .ok_or_else(|| AppError::Message(format!("供应商 {id} 不存在")))?;
-
-        // OMO providers are switched through their own exclusive path.
-        if matches!(app_type, AppType::OpenCode) && _provider.category.as_deref() == Some("omo") {
-            return Self::switch_normal(state, app_type, id, &providers);
-        }
-
-        // OMO Slim providers are switched through their own exclusive path.
-        if matches!(app_type, AppType::OpenCode)
-            && _provider.category.as_deref() == Some("omo-slim")
-        {
-            return Self::switch_normal(state, app_type, id, &providers);
-        }
 
         if matches!(app_type, AppType::ClaudeDesktop) {
             return Self::switch_normal(state, app_type, id, &providers);
@@ -3064,25 +2460,6 @@ impl ProviderService {
         let provider = providers
             .get(id)
             .ok_or_else(|| AppError::Message(format!("供应商 {id} 不存在")))?;
-
-        // OMO ↔ OMO Slim are mutually exclusive; activating one removes the other's config file.
-        if matches!(app_type, AppType::OpenCode) {
-            let omo_pair = match provider.category.as_deref() {
-                Some("omo") => Some((&crate::services::omo::STANDARD, &crate::services::omo::SLIM)),
-                Some("omo-slim") => {
-                    Some((&crate::services::omo::SLIM, &crate::services::omo::STANDARD))
-                }
-                _ => None,
-            };
-            if let Some((enable, disable)) = omo_pair {
-                state
-                    .db
-                    .set_omo_provider_current(app_type.as_str(), id, enable.category)?;
-                crate::services::OmoService::write_config_to_file(state, enable)?;
-                let _ = crate::services::OmoService::delete_config_file(disable);
-                return Ok(SwitchResult::default());
-            }
-        }
 
         let mut result = SwitchResult::default();
 
@@ -3201,7 +2578,7 @@ impl ProviderService {
             if let Err(e) = state.db.save_provider(app_type.as_str(), &updated) {
                 let rollback_result = match app_type {
                     AppType::OpenCode => remove_opencode_provider_from_live(&provider.id),
-                    AppType::OpenClaw => remove_openclaw_provider_from_live(&provider.id),
+                    AppType::OpenClaw => unreachable!("retired app rejected above"),
                     AppType::Hermes => remove_hermes_provider_from_live(&provider.id),
                     _ => Ok(()),
                 };
@@ -3487,7 +2864,7 @@ impl ProviderService {
             AppType::Gemini => Self::extract_gemini_common_config(&provider.settings_config),
             AppType::GrokBuild => Ok(String::new()),
             AppType::OpenCode => Self::extract_opencode_common_config(&provider.settings_config),
-            AppType::OpenClaw => Self::extract_openclaw_common_config(&provider.settings_config),
+            AppType::OpenClaw => AppType::OpenClaw.ensure_supported().map(|_| String::new()),
             AppType::Hermes => Ok(String::new()), // Hermes doesn't use common config snippets
         }
     }
@@ -3504,7 +2881,7 @@ impl ProviderService {
             AppType::Gemini => Self::extract_gemini_common_config(settings_config),
             AppType::GrokBuild => Ok(String::new()),
             AppType::OpenCode => Self::extract_opencode_common_config(settings_config),
-            AppType::OpenClaw => Self::extract_openclaw_common_config(settings_config),
+            AppType::OpenClaw => AppType::OpenClaw.ensure_supported().map(|_| String::new()),
             AppType::Hermes => Ok(String::new()), // Hermes doesn't use common config snippets
         }
     }
@@ -3806,9 +3183,8 @@ impl ProviderService {
     /// 清理后部分供应商会显示缺少 API Key，需用户重填——这是正确行为：那把密钥本就
     /// 不属于它们。（受害者原有的同名键在合并时已被覆盖，无法恢复。）动手前会往
     /// settings 的 `gemini_common_config_scrub_audit_v1` 写一条审计记录，内容是
-    /// **键名与受影响的供应商 id，不含值**：`settings` 会随 WebDAV/S3 同步上传，
-    /// 而这里处理的正是必须销毁的凭据，留值等于把一次清除换成一份跨设备扩散、
-    /// 没有界面入口、永不过期的明文副本。
+    /// **键名与受影响的供应商 id，不含值**。这里处理的是必须销毁的凭据，审计记录
+    /// 不能反过来成为一份没有界面入口、永不过期的明文副本。
     pub async fn scrub_leaked_gemini_common_config(state: &AppState) -> Result<(), AppError> {
         const FLAG: &str = "gemini_common_config_credentials_scrubbed_v1";
         const AUDIT_KEY: &str = "gemini_common_config_scrub_audit_v1";
@@ -3878,9 +3254,8 @@ impl ProviderService {
         //
         //    「按值相等定向删除」在一种合法场景下也会命中：用户有意在多个供应商里
         //    复用同一把 key。所以必须留下"删了什么、从哪删的"，否则用户只能靠翻
-        //    日志。但不能留值——`settings` 表不在 `SYNC_SKIP_TABLES` 里，会随
-        //    WebDAV/S3 同步上传，而这里处理的恰恰是必须销毁的泄漏凭据：留值等于
-        //    把一次清除换成一份没有界面入口、永不过期、还会跨设备扩散的明文副本。
+        //    日志。但不能留值——这里处理的恰恰是必须销毁的泄漏凭据：留值等于
+        //    把一次清除换成一份没有界面入口、永不过期的明文副本。
         //    密钥本来就该轮换，可恢复性不值这个代价。
         let removed_env_keys = |before: &Value, after: &Value| -> Vec<String> {
             let before_env = before.get("env").and_then(Value::as_object);
@@ -4006,27 +3381,6 @@ impl ProviderService {
                 options.remove("baseURL");
             }
             // Keep npm and models as they might be common
-        }
-
-        if config.is_null() || (config.is_object() && config.as_object().unwrap().is_empty()) {
-            return Ok("{}".to_string());
-        }
-
-        serde_json::to_string_pretty(&config)
-            .map_err(|e| AppError::Message(format!("Serialization failed: {e}")))
-    }
-
-    /// Extract common config for OpenClaw (JSON format)
-    fn extract_openclaw_common_config(settings: &Value) -> Result<String, AppError> {
-        // OpenClaw uses a different config structure with baseUrl, apiKey, api, models
-        // For common config, we exclude provider-specific fields like apiKey
-        let mut config = settings.clone();
-
-        // Remove provider-specific fields
-        if let Some(obj) = config.as_object_mut() {
-            obj.remove("apiKey");
-            obj.remove("baseUrl");
-            // Keep api and models as they might be common
         }
 
         if config.is_null() || (config.is_object() && config.as_object().unwrap().is_empty()) {
@@ -4250,17 +3604,7 @@ impl ProviderService {
                     ));
                 }
             }
-            AppType::OpenClaw => {
-                // OpenClaw uses config structure: { baseUrl, apiKey, api, models }
-                // Basic validation - must be an object
-                if !provider.settings_config.is_object() {
-                    return Err(AppError::localized(
-                        "provider.openclaw.settings.not_object",
-                        "OpenClaw 配置必须是 JSON 对象",
-                        "OpenClaw configuration must be a JSON object",
-                    ));
-                }
-            }
+            AppType::OpenClaw => AppType::OpenClaw.ensure_supported()?,
             AppType::Hermes => {
                 // Hermes: accept any JSON object for now
                 if !provider.settings_config.is_object() {
@@ -4475,15 +3819,19 @@ impl ProviderService {
 
                 Ok((api_key, base_url))
             }
-            AppType::OpenClaw | AppType::Hermes => {
-                // OpenClaw/Hermes use apiKey and baseUrl directly on the object
+            AppType::OpenClaw => {
+                AppType::OpenClaw.ensure_supported()?;
+                unreachable!("retired app rejected above")
+            }
+            AppType::Hermes => {
+                // Hermes uses apiKey and baseUrl directly on the object
                 let api_key = provider
                     .settings_config
                     .get("apiKey")
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| {
                         AppError::localized(
-                            "provider.openclaw.api_key.missing",
+                            "provider.hermes.api_key.missing",
                             "缺少 API Key",
                             "API key is missing",
                         )

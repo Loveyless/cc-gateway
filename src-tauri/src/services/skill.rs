@@ -270,7 +270,7 @@ const SKILL_BACKUP_RETAIN_COUNT: usize = 20;
 ///
 /// 归档字节由第三方完全控制（仓库可经 deeplink 添加，且 branch 可把下载落点
 /// 改写到攻击者自传的 release asset），没有上限时一个几 MB 的压缩炸弹就能塞满磁盘。
-/// 取值对齐 `webdav_sync/archive.rs` 里同款保护的量级。
+/// 归档解压保护预算。
 const MAX_ARCHIVE_ENTRIES: usize = 10_000;
 const MAX_ARCHIVE_TOTAL_BYTES: u64 = 512 * 1024 * 1024;
 /// symlink 目标就是一条路径，几十字节就够；给到 4 KiB 是宽松上限。
@@ -527,6 +527,7 @@ impl SkillService {
 
     /// 获取应用的 skills 目录
     pub fn get_app_skills_dir(app: &AppType) -> Result<PathBuf> {
+        app.ensure_supported()?;
         // 目录覆盖：优先使用用户在 settings.json 中配置的 override 目录
         match app {
             AppType::Claude => {
@@ -555,11 +556,7 @@ impl SkillService {
                     return Ok(custom.join("skills"));
                 }
             }
-            AppType::OpenClaw => {
-                if let Some(custom) = crate::settings::get_openclaw_override_dir() {
-                    return Ok(custom.join("skills"));
-                }
-            }
+            AppType::OpenClaw => unreachable!("retired app rejected above"),
             AppType::Hermes => {
                 if let Some(custom) = crate::settings::get_hermes_override_dir() {
                     return Ok(custom.join("skills"));
@@ -579,7 +576,7 @@ impl SkillService {
             AppType::Gemini => home.join(".gemini").join("skills"),
             AppType::GrokBuild => home.join(".grok").join("skills"),
             AppType::OpenCode => home.join(".config").join("opencode").join("skills"),
-            AppType::OpenClaw => home.join(".openclaw").join("skills"),
+            AppType::OpenClaw => unreachable!("retired app rejected above"),
             AppType::Hermes => crate::hermes_config::get_hermes_dir().join("skills"),
         })
     }
@@ -2714,7 +2711,7 @@ impl SkillService {
         };
 
         // 归档字节完全由第三方控制（仓库可经 deeplink 添加），所以解压必须限量，
-        // 否则一个几 MB 的压缩炸弹就能塞满磁盘。webdav_sync/archive.rs 早有同款
+        // 否则一个几 MB 的压缩炸弹就能塞满磁盘。
         // 双重上限，这条下载路径一直没有。
         if archive.len() > MAX_ARCHIVE_ENTRIES {
             let count = archive.len().to_string();
@@ -4459,8 +4456,8 @@ mod tests {
         let temp = tempdir().expect("tempdir");
         let _guard = TestHomeGuard::set(temp.path());
 
-        // 模拟同步导入灌进来的脏数据：directory 含路径穿越（save_skill 不校验，
-        // 与 import_sql_string_for_sync 的效果一致）。SSOT = {home}/.cc-gateway/skills，
+        // 模拟历史数据库中遗留的脏数据：directory 含路径穿越（save_skill 不校验）。
+        // SSOT = {home}/.cc-gateway/skills，
         // "../../victim-uninstall" 解析为 {home}/victim-uninstall。
         let victim = temp.path().join("victim-uninstall");
         fs::create_dir_all(&victim).expect("create victim dir");
@@ -4583,7 +4580,7 @@ mod tests {
     }
 
     #[test]
-    // serial：与 backup/s3_sync/deeplink 等同样读写进程级 CC_GATEWAY_TEST_HOME 的测试互斥，
+    // serial：与 backup/deeplink 等同样读写进程级 CC_GATEWAY_TEST_HOME 的测试互斥，
     // EnvGuard 只负责恢复不提供互斥。
     #[serial_test::serial]
     fn get_app_skills_dir_honors_test_home_override() {

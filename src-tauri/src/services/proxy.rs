@@ -731,9 +731,8 @@ impl ProxyService {
             .await
             .map(|c| c.enabled)
             .unwrap_or(false);
-        // OpenCode and OpenClaw don't support proxy features, always return false
+        // OpenCode does not support proxy features.
         let opencode_enabled = false;
-        let openclaw_enabled = false;
 
         Ok(ProxyTakeoverStatus {
             claude: claude_enabled,
@@ -741,7 +740,7 @@ impl ProxyService {
             gemini: gemini_enabled,
             grokbuild: grokbuild_enabled,
             opencode: opencode_enabled,
-            openclaw: openclaw_enabled,
+            openclaw: false,
         })
     }
 

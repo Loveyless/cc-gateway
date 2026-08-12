@@ -3,9 +3,8 @@ import {
   OPENCODE_PRESET_MODEL_VARIANTS,
   opencodeProviderPresets,
 } from "@/config/opencodeProviderPresets";
-import { openclawProviderPresets } from "@/config/openclawProviderPresets";
 
-describe("TheRouter OpenCode and OpenClaw presets", () => {
+describe("TheRouter OpenCode presets", () => {
   it("uses OpenAI-compatible config for OpenCode", () => {
     const preset = opencodeProviderPresets.find(
       (item) => item.name === "TheRouter",
@@ -25,42 +24,6 @@ describe("TheRouter OpenCode and OpenClaw presets", () => {
     expect(models).toHaveProperty("anthropic/claude-sonnet-5");
     expect(models).toHaveProperty("google/gemini-3.6-flash");
     expect(models["google/gemini-3.6-flash"]?.name).toBe("Gemini 3.6 Flash");
-  });
-
-  it("uses OpenAI completions config for OpenClaw", () => {
-    const preset = openclawProviderPresets.find(
-      (item) => item.name === "TheRouter",
-    );
-    const openClawModels = preset?.settingsConfig.models ?? [];
-    const modelIds = openClawModels.map((model) => model.id);
-
-    expect(preset).toBeDefined();
-    expect(preset?.websiteUrl).toBe("https://therouter.ai");
-    expect(preset?.apiKeyUrl).toBe("https://dashboard.therouter.ai");
-    expect(preset?.category).toBe("aggregator");
-    expect(preset?.settingsConfig.baseUrl).toBe("https://api.therouter.ai/v1");
-    expect(preset?.settingsConfig.api).toBe("openai-completions");
-    expect(modelIds).toEqual(
-      expect.arrayContaining([
-        "anthropic/claude-sonnet-5",
-        "openai/gpt-5.3-codex",
-        "openai/gpt-5.2",
-        "google/gemini-3.6-flash",
-      ]),
-    );
-    expect(
-      openClawModels.find((model) => model.id === "google/gemini-3.6-flash"),
-    ).toMatchObject({
-      name: "Gemini 3.6 Flash",
-      cost: { input: 1.5, output: 9, cacheRead: 0.15 },
-    });
-    expect(preset?.suggestedDefaults?.model).toEqual({
-      primary: "therouter/anthropic/claude-sonnet-5",
-      fallbacks: [
-        "therouter/openai/gpt-5.2",
-        "therouter/google/gemini-3.6-flash",
-      ],
-    });
   });
 
   it("keeps Google OpenCode preset model ids unique", () => {

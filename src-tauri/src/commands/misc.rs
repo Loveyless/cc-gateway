@@ -111,9 +111,7 @@ pub struct ToolVersion {
     wsl_distro: Option<String>,
 }
 
-const VALID_TOOLS: [&str; 7] = [
-    "claude", "codex", "gemini", "grok", "opencode", "openclaw", "hermes",
-];
+const VALID_TOOLS: [&str; 6] = ["claude", "codex", "gemini", "grok", "opencode", "hermes"];
 
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -431,7 +429,6 @@ fn tool_display_name(tool: &str) -> &'static str {
         "gemini" => "Gemini CLI",
         "grok" => "Grok Build",
         "opencode" => "OpenCode",
-        "openclaw" => "OpenClaw",
         "hermes" => "Hermes",
         _ => "Unknown",
     }
@@ -512,7 +509,6 @@ fn npm_install_command_for(tool: &str) -> Option<&'static str> {
         "gemini" => Some("npm i -g @google/gemini-cli@latest"),
         "grok" => Some("npm i -g @xai-official/grok@latest"),
         "opencode" => Some("npm i -g opencode-ai@latest"),
-        "openclaw" => Some("npm i -g openclaw@latest"),
         _ => None,
     }
 }
@@ -520,7 +516,6 @@ fn npm_install_command_for(tool: &str) -> Option<&'static str> {
 fn official_update_args(tool: &str) -> Option<&'static str> {
     match tool {
         "claude" | "codex" | "grok" | "hermes" => Some("update"),
-        "openclaw" => Some("update --yes"),
         "opencode" => Some("upgrade"),
         _ => None,
     }
@@ -805,7 +800,6 @@ async fn get_single_tool_version_impl(
                 fetch_github_latest_version(&client, "anomalyco/opencode").await
             }
         }
-        "openclaw" => fetch_npm_latest_for_tool(&client, "openclaw", tool, local).await,
         "hermes" => fetch_pypi_latest_version(&client, "hermes-agent").await,
         _ => None,
     };
@@ -827,7 +821,7 @@ async fn get_single_tool_version_impl(
 /// 返回空切片表示该工具只看 `latest`、不补查。
 ///
 /// 为何不通用覆盖所有工具:各家预发布 tag 命名互不统一(codex=alpha/beta/native、
-/// gemini=nightly/preview、openclaw=alpha/beta),且 codex 的 beta/native 是
+/// gemini=nightly/preview),且 codex 的 beta/native 是
 /// `0.1.x` 时间戳式版本、gemini 有误发的 `false` tag —— 这些脏值虽会被
 /// `pick_latest_version` 的版本比较挡掉,但维护成本与误报风险不值当,故暂只为
 /// Claude Code 启用。
@@ -1759,7 +1753,7 @@ fn scan_cli_version(tool: &str) -> ShellProbe {
         .unwrap_or_default();
 
     // 记录"可执行文件存在、但 `--version` 非零退出"时的首个诊断信息。
-    // 典型场景：工具已安装但当前环境跑不起来（如 openclaw 要求 Node v22.19+）。
+    // 典型场景：工具已安装但当前环境因运行时版本不匹配而无法启动。
     // 这类信息比笼统的 "not installed" 有用得多，循环结束未探到版本时回传。
     let mut exec_diagnostic: Option<String> = None;
 
@@ -2112,7 +2106,6 @@ fn npm_package_for(tool: &str) -> Option<&'static str> {
         "gemini" => Some("@google/gemini-cli"),
         "grok" => Some("@xai-official/grok"),
         "opencode" => Some("opencode-ai"),
-        "openclaw" => Some("openclaw"),
         _ => None,
     }
 }
@@ -2389,7 +2382,7 @@ fn grok_native_update_command(update: String) -> String {
 fn prefers_official_update(tool: &str, shell: LifecycleCommandShell) -> bool {
     match shell {
         LifecycleCommandShell::Posix => {
-            matches!(tool, "claude" | "opencode" | "openclaw")
+            matches!(tool, "claude" | "opencode")
         }
         LifecycleCommandShell::WindowsBatch => {
             matches!(
@@ -2398,7 +2391,7 @@ fn prefers_official_update(tool: &str, shell: LifecycleCommandShell) -> bool {
                 // 安装方式探测失败弹交互 prompt（spawn npm.cmd 没传 shell:true）；静默
                 // lifecycle 没有 stdin 会挂死，Windows 先锚到包管理器路径，等上游修了
                 // 再把 opencode 加回这里。
-                "claude" | "openclaw"
+                "claude"
             )
         }
     }
@@ -3291,7 +3284,6 @@ fn wsl_distro_for_tool(tool: &str) -> Option<String> {
         "gemini" => crate::settings::get_gemini_override_dir(),
         "grok" => crate::settings::get_grok_override_dir(),
         "opencode" => crate::settings::get_opencode_override_dir(),
-        "openclaw" => crate::settings::get_openclaw_override_dir(),
         "hermes" => crate::settings::get_hermes_override_dir(),
         _ => None,
     }?;
@@ -4574,8 +4566,8 @@ mod tests {
             // Windows 上 `Path::join` 与字符串拼接可能产出混合分隔符;取**两种之中最右
             // 出现**的位置,而非"优先 `\`"——后者在混合时会取错父目录。
             assert_eq!(
-                parent_dir("C:\\Users\\me/Code/openclaw\\codex.cmd"),
-                "C:\\Users\\me/Code/openclaw"
+                parent_dir("C:\\Users\\me/Code/tools\\codex.cmd"),
+                "C:\\Users\\me/Code/tools"
             );
         }
 
@@ -5328,38 +5320,6 @@ mod tests {
         }
 
         #[test]
-        fn homebrew_npm_global_package_anchors_not_brew() {
-            // openclaw 装在 Homebrew node 的全局目录(lib/node_modules，非 Cellar)：
-            // 是 npm 全局包，官方 update 失败后走 npm 锚定而非 brew upgrade。
-            let cmd = anchored_command_from_paths(
-                "openclaw",
-                "/opt/homebrew/bin/openclaw",
-                "/opt/homebrew/lib/node_modules/openclaw/openclaw.mjs",
-            );
-            assert_eq!(
-                cmd.as_deref(),
-                Some("/opt/homebrew/bin/openclaw update --yes || PATH='/opt/homebrew/bin':\"$PATH\" /opt/homebrew/bin/npm i -g openclaw@latest")
-            );
-        }
-
-        #[test]
-        fn volta_self_update_chain_anchors_to_volta() {
-            // `~/.volta/bin` 通常不在 GUI 非登录 `bash -c` 的 PATH 里,且用户可能
-            // PATH 上还有另一份 volta → 必须绝对路径锚定到命令行命中的这一份。
-            // 用 openclaw（仍在 prefers_official_update）覆盖 volta 分支的 self-update 链;
-            // codex 已改为不 self-update（见 codex_volta_anchors_to_volta_install）。
-            let cmd = anchored_command_from_paths(
-                "openclaw",
-                "/Users/me/.volta/bin/openclaw",
-                "/Users/me/.volta/tools/image/packages/openclaw/lib/node_modules/openclaw",
-            );
-            assert_eq!(
-                cmd.as_deref(),
-                Some("/Users/me/.volta/bin/openclaw update --yes || /Users/me/.volta/bin/volta install openclaw")
-            );
-        }
-
-        #[test]
         fn codex_volta_anchors_to_volta_install() {
             // codex 锚定到命令行命中的那份 volta，但不 self-update：纯 `volta install`。
             let cmd = anchored_command_from_paths(
@@ -5576,7 +5536,7 @@ mod tests {
             );
             // node 全局包不在 Cellar 下 → 不是 formula。
             assert_eq!(
-                brew_formula_from_path("/opt/homebrew/lib/node_modules/openclaw/openclaw.mjs"),
+                brew_formula_from_path("/opt/homebrew/lib/node_modules/example/cli.mjs"),
                 None
             );
             assert_eq!(
@@ -5604,12 +5564,12 @@ mod tests {
         #[test]
         fn default_install_prefers_path_default() {
             let installs = vec![
-                inst("/opt/homebrew/bin/openclaw", false),
-                inst("/Users/me/.nvm/versions/node/v22/bin/openclaw", true),
+                inst("/opt/homebrew/bin/gemini", false),
+                inst("/Users/me/.nvm/versions/node/v22/bin/gemini", true),
             ];
             assert_eq!(
                 default_install(&installs).map(|i| i.path.as_str()),
-                Some("/Users/me/.nvm/versions/node/v22/bin/openclaw")
+                Some("/Users/me/.nvm/versions/node/v22/bin/gemini")
             );
         }
 
@@ -5625,8 +5585,8 @@ mod tests {
         #[test]
         fn default_install_none_when_ambiguous() {
             let installs = vec![
-                inst("/opt/homebrew/bin/openclaw", false),
-                inst("/Users/me/.nvm/versions/node/v22/bin/openclaw", false),
+                inst("/opt/homebrew/bin/gemini", false),
+                inst("/Users/me/.nvm/versions/node/v22/bin/gemini", false),
             ];
             assert!(default_install(&installs).is_none());
         }
@@ -5867,12 +5827,6 @@ mod tests {
         }
 
         #[test]
-        fn openclaw_install_keeps_static_npm() {
-            let cmd = install_command_for("openclaw");
-            assert_eq!(cmd, "npm i -g openclaw@latest");
-        }
-
-        #[test]
         fn update_fallbacks_use_official_cli_only_when_supported() {
             assert_eq!(
                 static_fallback_command("claude"),
@@ -5896,10 +5850,6 @@ mod tests {
             assert_eq!(
                 static_fallback_command("opencode"),
                 "opencode upgrade || npm i -g opencode-ai@latest"
-            );
-            assert_eq!(
-                static_fallback_command("openclaw"),
-                "openclaw update --yes || npm i -g openclaw@latest"
             );
         }
 

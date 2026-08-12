@@ -52,7 +52,6 @@ import type {
   ProviderCategory,
   ProviderMeta,
 } from "@/types";
-import type { OpenClawSuggestedDefaults } from "@/config/openclawProviderPresets";
 import {
   CLAUDE_DESKTOP_ROLE_ROUTE_IDS,
   claudeDesktopProviderPresets,
@@ -77,7 +76,6 @@ export type ClaudeDesktopProviderFormValues = ProviderFormData & {
   presetCategory?: ProviderCategory;
   meta?: ProviderMeta;
   providerKey?: string;
-  suggestedDefaults?: OpenClawSuggestedDefaults;
 };
 
 type ApiKeyField = "ANTHROPIC_AUTH_TOKEN" | "ANTHROPIC_API_KEY";
@@ -401,16 +399,14 @@ export function ClaudeDesktopProviderForm({
 
   // API Key 获取/邀请链接（与 Claude Code 表单同款，见 ClaudeFormFields）
   const apiKeyLinkCategory = activePreset?.category ?? initialData?.category;
-  const {
-    shouldShowApiKeyLink,
-    websiteUrl: apiKeyLinkWebsiteUrl,
-  } = useApiKeyLink({
-    appId: "claude-desktop",
-    category: apiKeyLinkCategory,
-    selectedPresetId,
-    presetEntries,
-    formWebsiteUrl: form.watch("websiteUrl") || "",
-  });
+  const { shouldShowApiKeyLink, websiteUrl: apiKeyLinkWebsiteUrl } =
+    useApiKeyLink({
+      appId: "claude-desktop",
+      category: apiKeyLinkCategory,
+      selectedPresetId,
+      presetEntries,
+      formWebsiteUrl: form.watch("websiteUrl") || "",
+    });
 
   const applyDesktopPreset = (preset: ClaudeDesktopProviderPreset) => {
     form.setValue("name", preset.nameKey ? t(preset.nameKey) : preset.name);

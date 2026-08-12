@@ -7,8 +7,6 @@ use serde_json::{json, Map, Value};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
-const STANDARD_OMO_PLUGIN_PREFIXES: [&str; 2] = ["oh-my-openagent", "oh-my-opencode"];
-const SLIM_OMO_PLUGIN_PREFIXES: [&str; 1] = ["oh-my-opencode-slim"];
 fn opencode_config_lock() -> &'static Mutex<()> {
     static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
     LOCK.get_or_init(|| Mutex::new(()))
@@ -262,9 +260,6 @@ pub fn add_plugin(path: &Path, plugin_name: &str) -> Result<(), AppError> {
     let _guard = opencode_config_lock().lock()?;
     let mut config = read_opencode_config_from_path(path)?;
     let normalized_plugin_name = canonicalize_plugin_name(plugin_name);
-    let target_is_omo =
-        matches_any_plugin_prefix(&normalized_plugin_name, &STANDARD_OMO_PLUGIN_PREFIXES)
-            || matches_any_plugin_prefix(&normalized_plugin_name, &SLIM_OMO_PLUGIN_PREFIXES);
     let mut changed = false;
 
     let plugins = config.get_mut("plugin").and_then(|v| v.as_array_mut());
@@ -285,14 +280,6 @@ pub fn add_plugin(path: &Path, plugin_name: &str) -> Result<(), AppError> {
                     return true;
                 }
 
-                // Standard OMO and OMO Slim are mutually exclusive.
-                if target_is_omo
-                    && (matches_any_plugin_prefix(existing_name, &STANDARD_OMO_PLUGIN_PREFIXES)
-                        || matches_any_plugin_prefix(existing_name, &SLIM_OMO_PLUGIN_PREFIXES))
-                {
-                    changed = true;
-                    return false;
-                }
                 true
             });
 

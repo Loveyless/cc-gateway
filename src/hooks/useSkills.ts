@@ -13,7 +13,7 @@ import {
   type SkillUpdateInfo,
   type SkillsShSearchResult,
 } from "@/lib/api/skills";
-import type { AppId } from "@/lib/api/types";
+import type { AppId, RuntimeAppId } from "@/lib/api/types";
 import { mergeImportedSkills } from "@/hooks/useSkills.helpers";
 import { runSequentialBulkAction } from "@/lib/utils/sequentialBulkAction";
 
@@ -166,7 +166,7 @@ export function useToggleSkillApp() {
       enabled,
     }: {
       id: string;
-      app: AppId;
+      app: RuntimeAppId;
       enabled: boolean;
     }) => skillsApi.toggleApp(id, app, enabled),
     onSuccess: () =>
@@ -184,7 +184,7 @@ export function useBulkToggleSkillApp() {
       enabled,
     }: {
       ids: string[];
-      app: AppId;
+      app: RuntimeAppId;
       enabled: boolean;
     }) =>
       runSequentialBulkAction(ids, (id) =>

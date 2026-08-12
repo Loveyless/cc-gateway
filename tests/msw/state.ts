@@ -8,13 +8,10 @@ import type {
 } from "@/types";
 import { deepClone } from "@/utils/deepClone";
 
-type ProvidersByApp = Record<AppId, Record<string, Provider>>;
-type CurrentProviderState = Record<AppId, string>;
-type McpConfigState = Record<AppId, Record<string, McpServer>>;
-type LiveProviderIdsByApp = Record<
-  "opencode" | "openclaw" | "hermes",
-  string[]
->;
+type ProvidersByApp = Partial<Record<AppId, Record<string, Provider>>>;
+type CurrentProviderState = Partial<Record<AppId, string>>;
+type McpConfigState = Partial<Record<AppId, Record<string, McpServer>>>;
+type LiveProviderIdsByApp = Record<"opencode" | "hermes", string[]>;
 
 const createDefaultProviders = (): ProvidersByApp => ({
   claude: {
@@ -71,7 +68,6 @@ const createDefaultProviders = (): ProvidersByApp => ({
   },
   grokbuild: {},
   opencode: {},
-  openclaw: {},
   hermes: {},
 });
 
@@ -82,7 +78,6 @@ const createDefaultCurrent = (): CurrentProviderState => ({
   gemini: "gemini-1",
   grokbuild: "",
   opencode: "",
-  openclaw: "",
   hermes: "",
 });
 
@@ -90,7 +85,6 @@ let providers = createDefaultProviders();
 let current = createDefaultCurrent();
 let liveProviderIds: LiveProviderIdsByApp = {
   opencode: [],
-  openclaw: [],
   hermes: [],
 };
 let settingsState: Settings = {
@@ -163,7 +157,6 @@ let mcpConfigs: McpConfigState = {
         codex: false,
         gemini: false,
         opencode: false,
-        openclaw: false,
         hermes: false,
       },
       server: {
@@ -183,7 +176,6 @@ let mcpConfigs: McpConfigState = {
         codex: true,
         gemini: false,
         opencode: false,
-        openclaw: false,
         hermes: false,
       },
       server: {
@@ -195,7 +187,6 @@ let mcpConfigs: McpConfigState = {
   gemini: {},
   grokbuild: {},
   opencode: {},
-  openclaw: {},
   hermes: {},
 };
 
@@ -207,7 +198,6 @@ export const resetProviderState = () => {
   current = createDefaultCurrent();
   liveProviderIds = {
     opencode: [],
-    openclaw: [],
     hermes: [],
   };
   sessionsState = createDefaultSessions();
@@ -232,7 +222,6 @@ export const resetProviderState = () => {
           codex: false,
           gemini: false,
           opencode: false,
-          openclaw: false,
           hermes: false,
         },
         server: {
@@ -252,7 +241,6 @@ export const resetProviderState = () => {
           codex: true,
           gemini: false,
           opencode: false,
-          openclaw: false,
           hermes: false,
         },
         server: {
@@ -264,7 +252,6 @@ export const resetProviderState = () => {
     gemini: {},
     grokbuild: {},
     opencode: {},
-    openclaw: {},
     hermes: {},
   };
 };
@@ -274,12 +261,12 @@ export const getProviders = (appType: AppId) =>
 
 export const getCurrentProviderId = (appType: AppId) => current[appType] ?? "";
 
-export const getLiveProviderIds = (
-  appType: "opencode" | "openclaw" | "hermes",
-) => [...liveProviderIds[appType]];
+export const getLiveProviderIds = (appType: "opencode" | "hermes") => [
+  ...liveProviderIds[appType],
+];
 
 export const setLiveProviderIds = (
-  appType: "opencode" | "openclaw" | "hermes",
+  appType: "opencode" | "hermes",
   ids: string[],
 ) => {
   liveProviderIds[appType] = [...ids];
@@ -312,17 +299,17 @@ export const addProvider = (appType: AppId, provider: Provider) => {
 
 export const updateProvider = (appType: AppId, provider: Provider) => {
   if (!providers[appType]) return;
-  providers[appType][provider.id] = {
-    ...providers[appType][provider.id],
+  providers[appType]![provider.id] = {
+    ...providers[appType]![provider.id],
     ...provider,
   };
 };
 
 export const deleteProvider = (appType: AppId, providerId: string) => {
   if (!providers[appType]) return;
-  delete providers[appType][providerId];
+  delete providers[appType]![providerId];
   if (current[appType] === providerId) {
-    const fallback = Object.keys(providers[appType])[0] ?? "";
+    const fallback = Object.keys(providers[appType]!).at(0) ?? "";
     current[appType] = fallback;
   }
 };
@@ -333,9 +320,9 @@ export const updateSortOrder = (
 ) => {
   if (!providers[appType]) return;
   updates.forEach(({ id, sortIndex }) => {
-    const provider = providers[appType][id];
+    const provider = providers[appType]![id];
     if (provider) {
-      providers[appType][id] = { ...provider, sortIndex };
+      providers[appType]![id] = { ...provider, sortIndex };
     }
   });
 };

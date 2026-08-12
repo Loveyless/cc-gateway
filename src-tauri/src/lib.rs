@@ -22,7 +22,7 @@ mod lightweight;
 mod linux_fix;
 mod mcp;
 mod model_capabilities;
-mod openclaw_config;
+// Kept as an internal compatibility parser for legacy serialized settings.
 mod opencode_config;
 mod panic_hook;
 mod prompt;
@@ -786,9 +786,9 @@ pub fn run() {
                 log::info!("✓ First-run welcome notice pending");
             }
 
-            // 1.6. 自动同步 OpenCode / OpenClaw 的 live providers 到数据库
+            // 1.6. 自动同步 OpenCode 的 live providers 到数据库
             //
-            // additive 模式（OpenCode / OpenClaw）的 import 函数按 id 幂等——
+            // additive 模式（OpenCode）的 import 函数按 id 幂等——
             // 新 id 执行导入，已有 id 则更新 settings 和 display name，所以每次
             // 启动都跑是安全的：既保证新装用户开箱可见 live 中的供应商，也让外部
             // 修改的 live 文件能在重启后同步到数据库（与之前依赖前端"导入当前配置"
@@ -803,70 +803,12 @@ pub fn run() {
                 Ok(_) => log::debug!("○ No OpenCode provider changes from live config"),
                 Err(e) => log::warn!("✗ Failed to import OpenCode providers: {e}"),
             }
-            match crate::services::provider::import_openclaw_providers_from_live(&app_state) {
-                Ok(count) if count > 0 => {
-                    log::info!("✓ Synced {count} OpenClaw provider(s) from live config");
-                }
-                Ok(_) => log::debug!("○ No OpenClaw provider changes from live config"),
-                Err(e) => log::warn!("✗ Failed to import OpenClaw providers: {e}"),
-            }
             match crate::services::provider::import_hermes_providers_from_live(&app_state) {
                 Ok(count) if count > 0 => {
                     log::info!("✓ Synced {count} Hermes provider(s) from live config");
                 }
                 Ok(_) => log::debug!("○ No Hermes provider changes from live config"),
                 Err(e) => log::warn!("✗ Failed to import Hermes providers: {e}"),
-            }
-
-            // 2. OMO 配置导入（当数据库中无 OMO provider 时，从本地文件导入）
-            {
-                let has_omo = app_state
-                    .db
-                    .get_all_providers("opencode")
-                    .map(|providers| providers.values().any(|p| p.category.as_deref() == Some("omo")))
-                    .unwrap_or(false);
-                if !has_omo {
-                    match crate::services::OmoService::import_from_local(&app_state, &crate::services::omo::STANDARD) {
-                        Ok(provider) => {
-                            log::info!("✓ Imported OMO config from local as provider '{}'", provider.name);
-                        }
-                        Err(AppError::OmoConfigNotFound) => {
-                            log::debug!("○ No OMO config to import");
-                        }
-                        Err(e) => {
-                            log::warn!("✗ Failed to import OMO config from local: {e}");
-                        }
-                    }
-                }
-            }
-
-            // 2.3 OMO Slim config import (when no omo-slim provider in DB, import from local)
-            {
-                let has_omo_slim = app_state
-                    .db
-                    .get_all_providers("opencode")
-                    .map(|providers| {
-                        providers
-                            .values()
-                            .any(|p| p.category.as_deref() == Some("omo-slim"))
-                    })
-                    .unwrap_or(false);
-                if !has_omo_slim {
-                    match crate::services::OmoService::import_from_local(&app_state, &crate::services::omo::SLIM) {
-                        Ok(provider) => {
-                            log::info!(
-                                "✓ Imported OMO Slim config from local as provider '{}'",
-                                provider.name
-                            );
-                        }
-                        Err(AppError::OmoConfigNotFound) => {
-                            log::debug!("○ No OMO Slim config to import");
-                        }
-                        Err(e) => {
-                            log::warn!("✗ Failed to import OMO Slim config from local: {e}");
-                        }
-                    }
-                }
             }
 
             // 3. 导入 MCP 服务器配置（表空时触发）
@@ -932,7 +874,6 @@ pub fn run() {
                     crate::app_config::AppType::Gemini,
                     crate::app_config::AppType::GrokBuild,
                     crate::app_config::AppType::OpenCode,
-                    crate::app_config::AppType::OpenClaw,
                     crate::app_config::AppType::Hermes,
                 ] {
                     match crate::services::prompt::PromptService::import_from_file_on_first_launch(
@@ -1066,14 +1007,6 @@ pub fn run() {
             }
 
             let _tray = tray_builder.build(app)?;
-            crate::services::webdav_auto_sync::start_worker(
-                app_state.db.clone(),
-                app.handle().clone(),
-            );
-            crate::services::s3_auto_sync::start_worker(
-                app_state.db.clone(),
-                app.handle().clone(),
-            );
             // 将同一个实例注入到全局状态，避免重复创建导致的不一致
             app.manage(app_state);
 
@@ -1420,16 +1353,6 @@ pub fn run() {
             // theirs: config import/export and dialogs
             commands::export_config_to_file,
             commands::import_config_from_file,
-            commands::webdav_test_connection,
-            commands::webdav_sync_upload,
-            commands::webdav_sync_download,
-            commands::webdav_sync_save_settings,
-            commands::webdav_sync_fetch_remote_info,
-            commands::s3_test_connection,
-            commands::s3_sync_upload,
-            commands::s3_sync_download,
-            commands::s3_sync_save_settings,
-            commands::s3_sync_fetch_remote_info,
             commands::save_file_dialog,
             commands::open_file_dialog,
             commands::open_zip_file_dialog,
@@ -1557,21 +1480,6 @@ pub fn run() {
             // OpenCode specific
             commands::import_opencode_providers_from_live,
             commands::get_opencode_live_provider_ids,
-            // OpenClaw specific
-            commands::import_openclaw_providers_from_live,
-            commands::get_openclaw_live_provider_ids,
-            commands::get_openclaw_live_provider,
-            commands::scan_openclaw_config_health,
-            commands::get_openclaw_default_model,
-            commands::set_openclaw_default_model,
-            commands::get_openclaw_model_catalog,
-            commands::set_openclaw_model_catalog,
-            commands::get_openclaw_agents_defaults,
-            commands::set_openclaw_agents_defaults,
-            commands::get_openclaw_env,
-            commands::set_openclaw_env,
-            commands::get_openclaw_tools,
-            commands::set_openclaw_tools,
             // Hermes specific
             commands::import_hermes_providers_from_live,
             commands::get_hermes_live_provider_ids,
@@ -1615,23 +1523,6 @@ pub fn run() {
             commands::copilot_get_models_for_account,
             commands::copilot_get_usage,
             commands::copilot_get_usage_for_account,
-            // OMO commands
-            commands::read_omo_local_file,
-            commands::get_current_omo_provider_id,
-            commands::disable_current_omo,
-            commands::read_omo_slim_local_file,
-            commands::get_current_omo_slim_provider_id,
-            commands::disable_current_omo_slim,
-            // Workspace files (OpenClaw)
-            commands::read_workspace_file,
-            commands::write_workspace_file,
-            // Daily memory files (OpenClaw workspace)
-            commands::list_daily_memory_files,
-            commands::read_daily_memory_file,
-            commands::write_daily_memory_file,
-            commands::delete_daily_memory_file,
-            commands::search_daily_memory_files,
-            commands::open_workspace_directory,
             // lightweight mode (for testing or low-resource environments)
             commands::enter_lightweight_mode,
             commands::exit_lightweight_mode,

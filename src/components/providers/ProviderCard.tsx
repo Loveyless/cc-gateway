@@ -42,14 +42,10 @@ interface ProviderCardProps {
   isCurrent: boolean;
   appId: AppId;
   isInConfig?: boolean; // OpenCode: 是否已添加到 opencode.json
-  isOmo?: boolean;
-  isOmoSlim?: boolean;
   onSwitch: (provider: Provider) => void;
   onEdit: (provider: Provider) => void;
   onDelete: (provider: Provider) => void;
   onRemoveFromConfig?: (provider: Provider) => void;
-  onDisableOmo?: () => void;
-  onDisableOmoSlim?: () => void;
   onConfigureUsage: (provider: Provider) => void;
   onOpenWebsite: (url: string) => void;
   onDuplicate: (provider: Provider) => void;
@@ -64,7 +60,7 @@ interface ProviderCardProps {
   isInFailoverQueue?: boolean; // 是否在故障转移队列中
   onToggleFailover?: (enabled: boolean) => void; // 切换故障转移队列
   activeProviderId?: string; // 代理当前实际使用的供应商 ID（用于故障转移模式下标注绿色边框）
-  // OpenClaw: default model
+  // Hermes current provider marker
   isDefaultModel?: boolean;
   onSetAsDefault?: () => void;
 }
@@ -141,14 +137,10 @@ export function ProviderCard({
   isCurrent,
   appId,
   isInConfig = true,
-  isOmo = false,
-  isOmoSlim = false,
   onSwitch,
   onEdit,
   onDelete,
   onRemoveFromConfig,
-  onDisableOmo,
-  onDisableOmoSlim,
   onConfigureUsage,
   onOpenWebsite,
   onDuplicate,
@@ -163,16 +155,12 @@ export function ProviderCard({
   isInFailoverQueue = false,
   onToggleFailover,
   activeProviderId,
-  // OpenClaw: default model
   isDefaultModel,
   onSetAsDefault,
 }: ProviderCardProps) {
   const { t } = useTranslation();
 
-  // OMO and OMO Slim share the same card behavior
-  const isAnyOmo = isOmo || isOmoSlim;
-  const handleDisableAnyOmo = isOmoSlim ? onDisableOmoSlim : onDisableOmo;
-  const isAdditiveMode = appId === "opencode" && !isAnyOmo;
+  const isAdditiveMode = appId === "opencode" || appId === "hermes";
 
   const { data: health } = useProviderHealth(provider.id, appId);
 
@@ -235,11 +223,9 @@ export function ProviderCard({
   const codexNeedsRouting =
     appId === "codex" && providerNeedsRouting(appId, provider);
   // 获取用量数据以判断是否有多套餐
-  // 累加模式应用（OpenCode/OpenClaw/Hermes）：使用 isInConfig 代替 isCurrent
+  // 累加模式应用（OpenCode/Hermes）：使用 isInConfig 代替 isCurrent
   const shouldAutoQuery =
-    appId === "opencode" || appId === "openclaw" || appId === "hermes"
-      ? isInConfig
-      : isCurrent;
+    appId === "opencode" || appId === "hermes" ? isInConfig : isCurrent;
   const autoQueryInterval = shouldAutoQuery
     ? provider.meta?.usage_script?.autoQueryInterval || 0
     : 0;
@@ -270,28 +256,21 @@ export function ProviderCard({
   };
 
   // 判断是否是"当前使用中"的供应商
-  // - OMO/OMO Slim 供应商：使用 isCurrent
-  // - OpenClaw：使用默认模型归属的 provider 作为当前项（蓝色边框）
-  // - OpenCode（非 OMO）：不存在"当前"概念，返回 false
+  // - 独占模式供应商：使用 isCurrent
+  // - OpenCode：不存在"当前"概念，返回 false
   // - 故障转移模式：代理实际使用的供应商（activeProviderId）
   // - 普通模式：isCurrent
-  const isActiveProvider = isAnyOmo
-    ? isCurrent
-    : appId === "openclaw"
-      ? Boolean(isDefaultModel)
-      : appId === "opencode"
-        ? false
-        : isAutoFailoverEnabled
-          ? activeProviderId === provider.id
-          : isCurrent;
+  const isActiveProvider =
+    appId === "opencode"
+      ? false
+      : isAutoFailoverEnabled
+        ? activeProviderId === provider.id
+        : isCurrent;
 
-  const shouldUseGreen = !isAnyOmo && isProxyTakeover && isActiveProvider;
+  const shouldUseGreen = isProxyTakeover && isActiveProvider;
   const hasPersistentConfigHighlight = isAdditiveMode && isInConfig;
   const shouldUseBlue =
-    (isAnyOmo && isActiveProvider) ||
-    (!isAnyOmo &&
-      !isProxyTakeover &&
-      (isActiveProvider || hasPersistentConfigHighlight));
+    !isProxyTakeover && (isActiveProvider || hasPersistentConfigHighlight);
 
   return (
     <div
@@ -355,18 +334,6 @@ export function ProviderCard({
               <h3 className="text-base font-semibold leading-none">
                 {provider.name}
               </h3>
-
-              {isOmo && (
-                <span className="inline-flex items-center rounded-md bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">
-                  OMO
-                </span>
-              )}
-
-              {isOmoSlim && (
-                <span className="inline-flex items-center rounded-md bg-indigo-100 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
-                  Slim
-                </span>
-              )}
 
               {appId === "claude-desktop" &&
                 providerNeedsRouting(appId, provider) && (
@@ -553,7 +520,6 @@ export function ProviderCard({
               isProxyTakeover={isProxyTakeover}
               isOfficialBlockedByProxy={isOfficialBlockedByProxy}
               isReadOnly={isHermesReadOnly}
-              isOmo={isAnyOmo}
               onSwitch={() => onSwitch(provider)}
               onEdit={() => onEdit(provider)}
               onDuplicate={() => onDuplicate(provider)}
@@ -581,14 +547,12 @@ export function ProviderCard({
                   ? () => onRemoveFromConfig(provider)
                   : undefined
               }
-              onDisableOmo={handleDisableAnyOmo}
               onOpenTerminal={
                 onOpenTerminal ? () => onOpenTerminal(provider) : undefined
               }
               isAutoFailoverEnabled={isAutoFailoverEnabled}
               isInFailoverQueue={isInFailoverQueue}
               onToggleFailover={onToggleFailover}
-              // OpenClaw: default model
               isDefaultModel={isDefaultModel}
               onSetAsDefault={onSetAsDefault}
             />

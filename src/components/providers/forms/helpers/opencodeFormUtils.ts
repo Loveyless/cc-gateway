@@ -56,17 +56,6 @@ export const OPENCODE_KNOWN_OPTION_KEYS = [
 export const OPENCODE_HEADER_DRAFT_PREFIX = "draft-header:";
 export const OPENCODE_EXTRA_OPTION_DRAFT_PREFIX = "draft-option:";
 
-export const OPENCLAW_DEFAULT_CONFIG = JSON.stringify(
-  {
-    baseUrl: "",
-    apiKey: "",
-    api: "openai-completions",
-    models: [],
-  },
-  null,
-  2,
-);
-
 // ── Pure functions ───────────────────────────────────────────────────
 
 export function isKnownOpencodeOptionKey(key: string): boolean {
@@ -156,8 +145,6 @@ export function toOpencodeExtraOptions(
   }
   return extra;
 }
-
-export { buildOmoProfilePreview } from "@/types/omo";
 
 export const normalizePricingSource = (
   value?: string,

@@ -5,17 +5,6 @@ use indexmap::IndexMap;
 use rusqlite::params;
 use std::collections::{HashMap, HashSet};
 
-type OmoProviderRow = (
-    String,
-    String,
-    String,
-    Option<String>,
-    Option<i64>,
-    Option<usize>,
-    Option<String>,
-    String,
-);
-
 impl Database {
     pub fn get_all_providers(
         &self,
@@ -24,7 +13,9 @@ impl Database {
         let conn = lock_conn!(self.conn);
         let mut stmt = conn.prepare(
             "SELECT id, name, settings_config, website_url, category, created_at, sort_index, notes, icon, icon_color, meta, in_failover_queue
-             FROM providers WHERE app_type = ?1
+             FROM providers
+             WHERE app_type = ?1
+               AND NOT (app_type = 'opencode' AND category IN ('omo', 'omo-slim'))
              ORDER BY COALESCE(sort_index, 999999), created_at ASC, id ASC"
         ).map_err(|e| AppError::Database(e.to_string()))?;
 
@@ -135,7 +126,9 @@ impl Database {
         let conn = lock_conn!(self.conn);
         let result = conn.query_row(
             "SELECT name, settings_config, website_url, category, created_at, sort_index, notes, icon, icon_color, meta, in_failover_queue
-             FROM providers WHERE id = ?1 AND app_type = ?2",
+             FROM providers
+             WHERE id = ?1 AND app_type = ?2
+               AND NOT (app_type = 'opencode' AND category IN ('omo', 'omo-slim'))",
             params![id, app_type],
             |row| {
                 let name: String = row.get(0)?;
@@ -360,148 +353,6 @@ impl Database {
         Ok(())
     }
 
-    pub fn set_omo_provider_current(
-        &self,
-        app_type: &str,
-        provider_id: &str,
-        category: &str,
-    ) -> Result<(), AppError> {
-        let mut conn = lock_conn!(self.conn);
-        let tx = conn
-            .transaction()
-            .map_err(|e| AppError::Database(e.to_string()))?;
-        tx.execute(
-            "UPDATE providers SET is_current = 0 WHERE app_type = ?1 AND category = ?2",
-            params![app_type, category],
-        )
-        .map_err(|e| AppError::Database(e.to_string()))?;
-        // OMO ↔ OMO Slim mutually exclusive: deactivate the opposite category
-        let opposite = match category {
-            "omo" => Some("omo-slim"),
-            "omo-slim" => Some("omo"),
-            _ => None,
-        };
-        if let Some(opp) = opposite {
-            tx.execute(
-                "UPDATE providers SET is_current = 0 WHERE app_type = ?1 AND category = ?2",
-                params![app_type, opp],
-            )
-            .map_err(|e| AppError::Database(e.to_string()))?;
-        }
-        let updated = tx
-            .execute(
-                "UPDATE providers SET is_current = 1 WHERE id = ?1 AND app_type = ?2 AND category = ?3",
-                params![provider_id, app_type, category],
-            )
-            .map_err(|e| AppError::Database(e.to_string()))?;
-        if updated != 1 {
-            return Err(AppError::Database(format!(
-                "Failed to set {category} provider current: provider '{provider_id}' not found in app '{app_type}'"
-            )));
-        }
-        tx.commit().map_err(|e| AppError::Database(e.to_string()))?;
-        Ok(())
-    }
-
-    pub fn is_omo_provider_current(
-        &self,
-        app_type: &str,
-        provider_id: &str,
-        category: &str,
-    ) -> Result<bool, AppError> {
-        let conn = lock_conn!(self.conn);
-        match conn.query_row(
-            "SELECT is_current FROM providers
-             WHERE id = ?1 AND app_type = ?2 AND category = ?3",
-            params![provider_id, app_type, category],
-            |row| row.get(0),
-        ) {
-            Ok(is_current) => Ok(is_current),
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(false),
-            Err(e) => Err(AppError::Database(e.to_string())),
-        }
-    }
-
-    pub fn clear_omo_provider_current(
-        &self,
-        app_type: &str,
-        provider_id: &str,
-        category: &str,
-    ) -> Result<(), AppError> {
-        let conn = lock_conn!(self.conn);
-        conn.execute(
-            "UPDATE providers SET is_current = 0
-             WHERE id = ?1 AND app_type = ?2 AND category = ?3",
-            params![provider_id, app_type, category],
-        )
-        .map_err(|e| AppError::Database(e.to_string()))?;
-        Ok(())
-    }
-
-    pub fn get_current_omo_provider(
-        &self,
-        app_type: &str,
-        category: &str,
-    ) -> Result<Option<Provider>, AppError> {
-        let conn = lock_conn!(self.conn);
-        let row_data: Result<OmoProviderRow, rusqlite::Error> = conn.query_row(
-            "SELECT id, name, settings_config, category, created_at, sort_index, notes, meta
-             FROM providers
-             WHERE app_type = ?1 AND category = ?2 AND is_current = 1
-             LIMIT 1",
-            params![app_type, category],
-            |row| {
-                Ok((
-                    row.get(0)?,
-                    row.get(1)?,
-                    row.get(2)?,
-                    row.get(3)?,
-                    row.get(4)?,
-                    row.get(5)?,
-                    row.get(6)?,
-                    row.get(7)?,
-                ))
-            },
-        );
-
-        let (id, name, settings_config_str, _row_category, created_at, sort_index, notes, meta_str) =
-            match row_data {
-                Ok(v) => v,
-                Err(rusqlite::Error::QueryReturnedNoRows) => return Ok(None),
-                Err(e) => return Err(AppError::Database(e.to_string())),
-            };
-
-        let settings_config = serde_json::from_str(&settings_config_str).map_err(|e| {
-            AppError::Database(format!(
-                "Failed to parse {category} provider settings_config (provider_id={id}): {e}"
-            ))
-        })?;
-        let meta: crate::provider::ProviderMeta = if meta_str.trim().is_empty() {
-            crate::provider::ProviderMeta::default()
-        } else {
-            serde_json::from_str(&meta_str).map_err(|e| {
-                AppError::Database(format!(
-                    "Failed to parse {category} provider meta (provider_id={id}): {e}"
-                ))
-            })?
-        };
-
-        Ok(Some(Provider {
-            id,
-            name,
-            settings_config,
-            website_url: None,
-            category: Some(category.to_string()),
-            created_at,
-            sort_index,
-            notes,
-            meta: Some(meta),
-            icon: None,
-            icon_color: None,
-            in_failover_queue: false,
-        }))
-    }
-
     /// 判断 providers 表是否为空（全 app_type 一起算）。
     ///
     /// 用于区分"全新安装"和"升级用户"：在启动流程 import/seed 之前调用。
@@ -523,7 +374,11 @@ impl Database {
     pub fn get_provider_ids(&self, app_type: &str) -> Result<HashSet<String>, AppError> {
         let conn = lock_conn!(self.conn);
         let mut stmt = conn
-            .prepare("SELECT id FROM providers WHERE app_type = ?1")
+            .prepare(
+                "SELECT id FROM providers
+                 WHERE app_type = ?1
+                   AND NOT (app_type = 'opencode' AND category IN ('omo', 'omo-slim'))",
+            )
             .map_err(|e| AppError::Database(e.to_string()))?;
         let rows = stmt
             .query_map(params![app_type], |row| row.get::<_, String>(0))
@@ -543,7 +398,11 @@ impl Database {
         let conn = lock_conn!(self.conn);
         let exists: bool = conn
             .query_row(
-                "SELECT EXISTS(SELECT 1 FROM providers WHERE app_type = ?1)",
+                "SELECT EXISTS(
+                    SELECT 1 FROM providers
+                    WHERE app_type = ?1
+                      AND NOT (app_type = 'opencode' AND category IN ('omo', 'omo-slim'))
+                 )",
                 params![app_type],
                 |row| row.get(0),
             )
@@ -559,7 +418,11 @@ impl Database {
         use crate::database::dao::providers_seed::is_official_seed_id;
         let conn = lock_conn!(self.conn);
         let mut stmt = conn
-            .prepare("SELECT id FROM providers WHERE app_type = ?1")
+            .prepare(
+                "SELECT id FROM providers
+                 WHERE app_type = ?1
+                   AND NOT (app_type = 'opencode' AND category IN ('omo', 'omo-slim'))",
+            )
             .map_err(|e| AppError::Database(e.to_string()))?;
         let mut rows = stmt
             .query(params![app_type])
@@ -824,5 +687,45 @@ mod ensure_official_seed_tests {
         let result =
             db.ensure_official_seed_by_id(CLAUDE_DESKTOP_OFFICIAL_PROVIDER_ID, AppType::Claude);
         assert!(result.is_err(), "(id, app_type) mismatch should be Err");
+    }
+}
+
+#[cfg(test)]
+mod retired_omo_provider_tests {
+    use crate::database::Database;
+    use crate::provider::Provider;
+    use serde_json::json;
+
+    #[test]
+    fn retired_omo_rows_are_preserved_but_hidden_from_provider_queries() {
+        let db = Database::memory().expect("memory db");
+        let mut provider = Provider::with_id(
+            "legacy-omo".to_string(),
+            "Legacy OMO".to_string(),
+            json!({"npm": "@ai-sdk/openai-compatible"}),
+            None,
+        );
+        provider.category = Some("omo".to_string());
+        db.save_provider("opencode", &provider)
+            .expect("seed retired OMO row");
+
+        assert!(db
+            .get_all_providers("opencode")
+            .expect("list providers")
+            .is_empty());
+        assert!(db
+            .get_provider_by_id("legacy-omo", "opencode")
+            .expect("query provider")
+            .is_none());
+        assert!(!db
+            .get_provider_ids("opencode")
+            .expect("query provider ids")
+            .contains("legacy-omo"));
+        assert!(!db
+            .has_any_provider_for_app("opencode")
+            .expect("check provider existence"));
+        assert!(!db
+            .has_non_official_seed_provider("opencode")
+            .expect("check non-official provider existence"));
     }
 }

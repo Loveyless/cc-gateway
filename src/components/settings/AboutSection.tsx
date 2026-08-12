@@ -64,7 +64,6 @@ const TOOL_NAMES = [
   "gemini",
   "grok",
   "opencode",
-  "openclaw",
   "hermes",
 ] as const;
 type ToolName = (typeof TOOL_NAMES)[number];
@@ -134,8 +133,6 @@ npm i -g @google/gemini-cli@latest
 npm i -g @xai-official/grok@latest
 # OpenCode
 ${posixScriptInstallCommand("https://opencode.ai/install")} || npm i -g opencode-ai@latest
-# OpenClaw
-npm i -g openclaw@latest
 # Hermes
 ${posixScriptInstallCommand("https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh")}`;
 
@@ -149,8 +146,6 @@ npm i -g @google/gemini-cli@latest
 npm i -g @xai-official/grok@latest
 # OpenCode
 npm i -g opencode-ai@latest
-# OpenClaw
-npm i -g openclaw@latest
 # Hermes
 ${HERMES_WINDOWS_INSTALL_COMMAND}`;
 
@@ -164,7 +159,6 @@ const TOOL_DISPLAY_NAMES: Record<ToolName, string> = {
   gemini: "Gemini CLI",
   grok: "Grok Build",
   opencode: "OpenCode",
-  openclaw: "OpenClaw",
   hermes: "Hermes",
 };
 
@@ -180,7 +174,6 @@ const TOOL_APP_IDS: Record<ToolName, AppId> = {
   gemini: "gemini",
   grok: "grokbuild",
   opencode: "opencode",
-  openclaw: "openclaw",
   hermes: "hermes",
 };
 
@@ -637,7 +630,7 @@ export function AboutSection({ isPortable }: AboutSectionProps) {
             }
           } else {
             // 命令退出码为 0、但刷新后仍探不到版本：多半是"装上了却跑不起来"
-            // （如 openclaw 要求更高的 Node 版本）。refreshToolVersions 的 merge 已把
+            // （如工具要求更高的 Node 版本）。refreshToolVersions 的 merge 已把
             // version 置空并写入后端 error，这里只需归类为软失败并展示原因。
             const detail = tool?.error?.trim() || t("settings.toolNotRunnable");
             failures.push({

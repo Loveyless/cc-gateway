@@ -23,7 +23,6 @@ interface ProviderActionsProps {
   isInConfig?: boolean;
   isTesting?: boolean;
   isProxyTakeover?: boolean;
-  isOmo?: boolean;
   onSwitch: () => void;
   onEdit: () => void;
   onDuplicate: () => void;
@@ -31,7 +30,6 @@ interface ProviderActionsProps {
   onConfigureUsage?: () => void;
   onDelete: () => void;
   onRemoveFromConfig?: () => void;
-  onDisableOmo?: () => void;
   onOpenTerminal?: () => void;
   isAutoFailoverEnabled?: boolean;
   isInFailoverQueue?: boolean;
@@ -39,7 +37,7 @@ interface ProviderActionsProps {
   isOfficialBlockedByProxy?: boolean;
   // Hermes v12+ providers: dict overlay — edit/delete must go through Web UI
   isReadOnly?: boolean;
-  // OpenClaw: default model
+  // Hermes current provider marker
   isDefaultModel?: boolean;
   onSetAsDefault?: () => void;
 }
@@ -62,7 +60,6 @@ export function ProviderActions({
   isInConfig = false,
   isTesting,
   isProxyTakeover = false,
-  isOmo = false,
   onSwitch,
   onEdit,
   onDuplicate,
@@ -70,38 +67,28 @@ export function ProviderActions({
   onConfigureUsage,
   onDelete,
   onRemoveFromConfig,
-  onDisableOmo,
   onOpenTerminal,
   isAutoFailoverEnabled = false,
   isInFailoverQueue = false,
   onToggleFailover,
   isOfficialBlockedByProxy = false,
   isReadOnly = false,
-  // OpenClaw: default model
+  // Hermes current provider marker
   isDefaultModel = false,
   onSetAsDefault,
 }: ProviderActionsProps) {
   const { t } = useTranslation();
   const iconButtonClass = "h-8 w-8 p-1";
 
-  // 累加模式应用（OpenCode 非 OMO / OpenClaw / Hermes）
-  const isAdditiveMode =
-    (appId === "opencode" && !isOmo) ||
-    appId === "openclaw" ||
-    appId === "hermes";
+  // 累加模式应用（OpenCode / Hermes）
+  const isAdditiveMode = appId === "opencode" || appId === "hermes";
 
-  // 故障转移模式下的按钮逻辑（累加模式和 OMO 应用不支持故障转移）
+  // 故障转移模式下的按钮逻辑（累加模式不支持故障转移）
   const isFailoverMode =
-    !isAdditiveMode && !isOmo && isAutoFailoverEnabled && onToggleFailover;
+    !isAdditiveMode && isAutoFailoverEnabled && onToggleFailover;
 
   const handleMainButtonClick = () => {
-    if (isOmo) {
-      if (isCurrent) {
-        onDisableOmo?.();
-      } else {
-        onSwitch();
-      }
-    } else if (isAdditiveMode) {
+    if (isAdditiveMode) {
       // 累加模式：切换配置状态（添加/移除）
       if (isInConfig) {
         if (onRemoveFromConfig) {
@@ -120,27 +107,7 @@ export function ProviderActions({
   };
 
   const getMainButtonState = (): MainButtonState => {
-    if (isOmo) {
-      if (isCurrent) {
-        return {
-          disabled: false,
-          variant: "secondary" as const,
-          className:
-            "bg-gray-200 text-muted-foreground hover:bg-gray-200 hover:text-muted-foreground dark:bg-gray-700 dark:hover:bg-gray-700",
-          icon: <Check className="h-4 w-4" />,
-          text: t("provider.inUse"),
-        };
-      }
-      return {
-        disabled: false,
-        variant: "default" as const,
-        className: "",
-        icon: <Play className="h-4 w-4" />,
-        text: t("provider.enable"),
-      };
-    }
-
-    // 累加模式（OpenCode 非 OMO / OpenClaw）
+    // 累加模式（OpenCode / Hermes）
     if (isAdditiveMode) {
       if (isInConfig) {
         return {
@@ -220,26 +187,19 @@ export function ProviderActions({
 
   const buttonState = getMainButtonState();
 
-  const canDelete =
-    !isReadOnly && (isOmo || isAdditiveMode ? true : !isCurrent);
+  const canDelete = !isReadOnly && (isAdditiveMode ? true : !isCurrent);
   const readOnlyHint = t("provider.managedByHermesHint", {
     defaultValue: "由 Hermes 管理，请在 Hermes Web UI 中编辑",
   });
 
   return (
     <div className="flex items-center gap-1.5">
-      {(appId === "openclaw" || appId === "hermes") &&
+      {appId === "hermes" &&
         isInConfig &&
         onSetAsDefault &&
         (() => {
-          const activeLabel =
-            appId === "hermes"
-              ? t("provider.inUse", { defaultValue: "已在用" })
-              : t("provider.isDefault", { defaultValue: "当前默认" });
-          const inactiveLabel =
-            appId === "hermes"
-              ? t("provider.enable", { defaultValue: "启用" })
-              : t("provider.setAsDefault", { defaultValue: "设为默认" });
+          const activeLabel = t("provider.inUse", { defaultValue: "已在用" });
+          const inactiveLabel = t("provider.enable", { defaultValue: "启用" });
           return (
             <Button
               size="sm"

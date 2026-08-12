@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { mcpApi } from "@/lib/api/mcp";
 import type { McpServer } from "@/types";
-import type { AppId } from "@/lib/api/types";
+import type { RuntimeAppId } from "@/lib/api/types";
 import { runSequentialBulkAction } from "@/lib/utils/sequentialBulkAction";
 
 /**
@@ -38,7 +38,7 @@ export function useBulkToggleMcpApp() {
       enabled,
     }: {
       serverIds: string[];
-      app: AppId;
+      app: RuntimeAppId;
       enabled: boolean;
     }) =>
       runSequentialBulkAction(serverIds, (serverId) =>
@@ -61,7 +61,7 @@ export function useToggleMcpApp() {
       enabled,
     }: {
       serverId: string;
-      app: AppId;
+      app: RuntimeAppId;
       enabled: boolean;
     }) => mcpApi.toggleApp(serverId, app, enabled),
     // The backend may update the database before a live-config write fails.

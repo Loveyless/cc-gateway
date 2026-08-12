@@ -7,14 +7,7 @@ export interface DeepLinkImportRequest {
   resource: ResourceType;
 
   // Common fields
-  app?:
-    | "claude"
-    | "codex"
-    | "gemini"
-    | "grokbuild"
-    | "opencode"
-    | "openclaw"
-    | "hermes";
+  app?: "claude" | "codex" | "gemini" | "grokbuild" | "opencode" | "hermes";
   name?: string;
   enabled?: boolean;
 

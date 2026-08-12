@@ -67,13 +67,16 @@ const McpFormModal: React.FC<McpFormModalProps> = ({
     gemini: boolean;
     grokbuild: boolean;
     opencode: boolean;
-    openclaw: boolean;
     hermes: boolean;
   }>(() => {
     if (initialData?.apps) {
       return {
-        ...initialData.apps,
+        claude: initialData.apps.claude ?? false,
+        codex: initialData.apps.codex ?? false,
+        gemini: initialData.apps.gemini ?? false,
         grokbuild: initialData.apps.grokbuild ?? false,
+        opencode: initialData.apps.opencode ?? false,
+        hermes: initialData.apps.hermes ?? false,
       };
     }
     return {
@@ -82,7 +85,6 @@ const McpFormModal: React.FC<McpFormModalProps> = ({
       gemini: defaultEnabledApps.includes("gemini"),
       grokbuild: defaultEnabledApps.includes("grokbuild"),
       opencode: defaultEnabledApps.includes("opencode"),
-      openclaw: defaultEnabledApps.includes("openclaw"),
       hermes: defaultEnabledApps.includes("hermes"),
     };
   });

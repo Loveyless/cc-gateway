@@ -3,7 +3,6 @@ import { claudeDesktopProviderPresets } from "@/config/claudeDesktopProviderPres
 import { providerPresets } from "@/config/claudeProviderPresets";
 import { codexProviderPresets } from "@/config/codexProviderPresets";
 import { hermesProviderPresets } from "@/config/hermesProviderPresets";
-import { openclawProviderPresets } from "@/config/openclawProviderPresets";
 import { opencodeProviderPresets } from "@/config/opencodeProviderPresets";
 
 const LONGCAT_MODEL = "LongCat-2.0";
@@ -89,35 +88,6 @@ describe("Longcat provider presets", () => {
     });
   });
 
-  it("uses the official LongCat 2.0 model for OpenClaw", () => {
-    const preset = findLongcatPreset(openclawProviderPresets);
-
-    expect(preset.settingsConfig.baseUrl).toBe(LONGCAT_OPENAI_BASE_URL);
-    expect(preset.templateValues?.baseUrl.defaultValue).toBe(
-      LONGCAT_OPENAI_BASE_URL,
-    );
-    expect(preset.templateValues?.baseUrl.placeholder).toBe(
-      LONGCAT_OPENAI_BASE_URL,
-    );
-    expect(preset.settingsConfig.models).toEqual([
-      expect.objectContaining({
-        id: LONGCAT_MODEL,
-        name: LONGCAT_DISPLAY_NAME,
-        reasoning: false,
-        input: ["text"],
-        contextWindow: 1048576,
-        maxTokens: 131072,
-        compat: { maxTokensField: "max_tokens" },
-      }),
-    ]);
-    expect(preset.suggestedDefaults?.model).toEqual({
-      primary: `longcat/${LONGCAT_MODEL}`,
-    });
-    expect(preset.suggestedDefaults?.modelCatalog).toEqual({
-      [`longcat/${LONGCAT_MODEL}`]: { alias: "LongCat" },
-    });
-  });
-
   it("uses the official LongCat 2.0 model for Codex", () => {
     const preset = findLongcatPreset(codexProviderPresets);
 
@@ -137,7 +107,6 @@ describe("Longcat provider presets", () => {
       findLongcatPreset(claudeDesktopProviderPresets),
       findLongcatPreset(hermesProviderPresets),
       findLongcatPreset(opencodeProviderPresets),
-      findLongcatPreset(openclawProviderPresets),
       findLongcatPreset(codexProviderPresets),
     ];
     const serializedPresets = JSON.stringify(longcatPresets);

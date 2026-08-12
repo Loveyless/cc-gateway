@@ -45,14 +45,14 @@ import type {
   PromptCacheRoutingMode,
   ProviderCategory,
 } from "@/types";
-import type { AppId } from "@/lib/api";
+import type { RuntimeAppId } from "@/lib/api";
 
 interface EndpointCandidate {
   url: string;
 }
 
 interface CodexFormFieldsProps {
-  appId?: AppId;
+  appId?: RuntimeAppId;
   providerId?: string;
   // xAI OAuth 托管预设（Grok 订阅）：隐藏 API Key / 端点输入，挂账号选择区块
   isXaiOauthPreset?: boolean;

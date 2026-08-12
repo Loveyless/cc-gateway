@@ -10,7 +10,6 @@ import type { CodexProviderPreset } from "@/config/codexProviderPresets";
 import type { GeminiProviderPreset } from "@/config/geminiProviderPresets";
 import type { ClaudeDesktopProviderPreset } from "@/config/claudeDesktopProviderPresets";
 import type { OpenCodeProviderPreset } from "@/config/opencodeProviderPresets";
-import type { OpenClawProviderPreset } from "@/config/openclawProviderPresets";
 import type { HermesProviderPreset } from "@/config/hermesProviderPresets";
 import type { ProviderCategory } from "@/types";
 import {
@@ -35,7 +34,6 @@ export type AnyPreset =
   | GeminiProviderPreset
   | ClaudeDesktopProviderPreset
   | OpenCodeProviderPreset
-  | OpenClawProviderPreset
   | HermesProviderPreset;
 
 export type PresetEntry = {
@@ -209,11 +207,6 @@ export function ProviderPresetSelector({
       case "custom":
         return t("providerForm.customApiKeyHint", {
           defaultValue: "💡 自定义配置需手动填写所有必要字段",
-        });
-      case "omo":
-        return t("providerForm.omoHint", {
-          defaultValue:
-            "💡 OMO 配置管理 Agent 模型分配，兼容 oh-my-openagent.jsonc / oh-my-opencode.jsonc",
         });
       default:
         return t("providerPreset.hint", {

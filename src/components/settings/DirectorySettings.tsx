@@ -3,10 +3,10 @@ import { FolderSearch, Undo2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
-import type { AppId } from "@/lib/api";
+import type { RuntimeAppId } from "@/lib/api";
 import type { ResolvedDirectories } from "@/hooks/useSettings";
 
-type DirectoryAppId = Exclude<AppId, "claude-desktop">;
+type DirectoryAppId = Exclude<RuntimeAppId, "claude-desktop">;
 
 interface DirectorySettingsProps {
   appConfigDir?: string;
@@ -19,7 +19,6 @@ interface DirectorySettingsProps {
   geminiDir?: string;
   grokDir?: string;
   opencodeDir?: string;
-  openclawDir?: string;
   hermesDir?: string;
   onDirectoryChange: (app: DirectoryAppId, value?: string) => void;
   onBrowseDirectory: (app: DirectoryAppId) => Promise<void>;
@@ -37,7 +36,6 @@ export function DirectorySettings({
   geminiDir,
   grokDir,
   opencodeDir,
-  openclawDir,
   hermesDir,
   onDirectoryChange,
   onBrowseDirectory,
@@ -148,17 +146,6 @@ export function DirectorySettings({
           onChange={(val) => onDirectoryChange("opencode", val)}
           onBrowse={() => onBrowseDirectory("opencode")}
           onReset={() => onResetDirectory("opencode")}
-        />
-
-        <DirectoryInput
-          label={t("settings.openclawConfigDir")}
-          description={undefined}
-          value={openclawDir}
-          resolvedValue={resolvedDirs.openclaw}
-          placeholder={t("settings.browsePlaceholderOpenclaw")}
-          onChange={(val) => onDirectoryChange("openclaw", val)}
-          onBrowse={() => onBrowseDirectory("openclaw")}
-          onReset={() => onResetDirectory("openclaw")}
         />
 
         <DirectoryInput

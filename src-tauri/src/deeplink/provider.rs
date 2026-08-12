@@ -150,7 +150,11 @@ pub(crate) fn build_provider_from_request(
         AppType::Gemini => build_gemini_settings(request),
         AppType::GrokBuild => build_grokbuild_settings(request),
         AppType::OpenCode => build_opencode_settings(request),
-        AppType::OpenClaw => build_additive_app_settings(request),
+        AppType::OpenClaw => {
+            return Err(AppError::InvalidInput(
+                "OpenClaw support has been permanently discontinued".to_string(),
+            ))
+        }
         AppType::Hermes => build_hermes_settings(request),
     };
 
@@ -515,39 +519,12 @@ fn build_opencode_settings(request: &DeepLinkImportRequest) -> serde_json::Value
     })
 }
 
-/// Build settings for OpenClaw (camelCase live config).
-/// Format: { baseUrl, apiKey, api, models }
-fn build_additive_app_settings(request: &DeepLinkImportRequest) -> serde_json::Value {
-    let endpoint = get_primary_endpoint(request);
-
-    let mut config = serde_json::Map::new();
-
-    if !endpoint.is_empty() {
-        config.insert("baseUrl".to_string(), json!(endpoint));
-    }
-
-    if let Some(api_key) = &request.api_key {
-        config.insert("apiKey".to_string(), json!(api_key));
-    }
-
-    config.insert("api".to_string(), json!("openai-completions"));
-
-    if let Some(model) = &request.model {
-        config.insert(
-            "models".to_string(),
-            json!([{ "id": model, "name": model }]),
-        );
-    }
-
-    json!(config)
-}
-
 /// Build Hermes provider settings (snake_case YAML-native fields).
 ///
 /// Hermes' `custom_providers:` entries use `base_url` / `api_key` / `api_mode`
 /// (see `_VALID_CUSTOM_PROVIDER_FIELDS` in upstream `hermes_cli/config.py`).
-/// Emitting camelCase here — as the OpenClaw path does — would poison the
-/// YAML with unknown root fields the Hermes runtime ignores.
+/// Emitting camelCase would poison the YAML with unknown root fields the
+/// Hermes runtime ignores.
 ///
 /// `api_mode` is always written explicitly. Deeplinks have no field to carry
 /// it, so we default to `chat_completions` (the most widely compatible
@@ -646,7 +623,7 @@ pub fn parse_and_merge_config(
         "gemini" => merge_gemini_config(&mut merged, &config_value)?,
         "grokbuild" => merge_grokbuild_config(&mut merged, &config_value)?,
         // Additive mode apps use JSON config directly; pass through as-is
-        "openclaw" | "opencode" | "hermes" => {
+        "opencode" | "hermes" => {
             merge_additive_config(&mut merged, &config_value)?;
         }
         "" => {
@@ -894,7 +871,7 @@ fn merge_grokbuild_config(
     Ok(())
 }
 
-/// Merge configuration for additive mode apps (OpenClaw, OpenCode)
+/// Merge configuration for additive mode apps (OpenCode, Hermes)
 ///
 /// These apps use JSON config directly, so we only extract common fields
 /// (api_key, endpoint, model) from the config if not already set in URL params.
@@ -1162,21 +1139,4 @@ mod tests {
         );
     }
 
-    #[test]
-    fn openclaw_still_uses_camel_case() {
-        // OpenClaw's live config natively uses camelCase; guard against a
-        // refactor accidentally flipping it to snake_case.
-        let request = DeepLinkImportRequest {
-            resource: "provider".to_string(),
-            app: Some("openclaw".to_string()),
-            name: Some("c".to_string()),
-            endpoint: Some("https://api.example.com".to_string()),
-            api_key: Some("k".to_string()),
-            ..Default::default()
-        };
-        let settings = build_additive_app_settings(&request);
-        let obj = settings.as_object().unwrap();
-        assert!(obj.contains_key("baseUrl"));
-        assert!(obj.contains_key("apiKey"));
-    }
 }

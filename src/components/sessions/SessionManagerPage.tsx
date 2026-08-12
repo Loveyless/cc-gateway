@@ -86,7 +86,6 @@ type ProviderFilter =
   | "grokbuild"
   | "claude"
   | "opencode"
-  | "openclaw"
   | "gemini"
   | "hermes";
 
@@ -1106,16 +1105,6 @@ export function SessionManagerPage({ appId }: { appId: string }) {
                                   size={14}
                                 />
                                 <span>OpenCode</span>
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="openclaw">
-                              <div className="flex items-center gap-2">
-                                <ProviderIcon
-                                  icon="openclaw"
-                                  name="openclaw"
-                                  size={14}
-                                />
-                                <span>OpenClaw</span>
                               </div>
                             </SelectItem>
                             <SelectItem value="gemini">

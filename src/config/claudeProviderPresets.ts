@@ -352,8 +352,7 @@ export const providerPresets: ProviderPreset[] = [
   {
     name: "TeamoRouter",
     websiteUrl: "https://teamorouter.com",
-    apiKeyUrl:
-      "https://teamorouter.com/",
+    apiKeyUrl: "https://teamorouter.com/",
     settingsConfig: {
       env: {
         ANTHROPIC_BASE_URL: "https://api.teamorouter.com",
@@ -378,10 +377,8 @@ export const providerPresets: ProviderPreset[] = [
   },
   {
     name: "火山Agentplan",
-    websiteUrl:
-      "https://www.volcengine.com/activity/codingplan",
-    apiKeyUrl:
-      "https://www.volcengine.com/activity/codingplan",
+    websiteUrl: "https://www.volcengine.com/activity/codingplan",
+    apiKeyUrl: "https://www.volcengine.com/activity/codingplan",
     settingsConfig: {
       env: {
         ANTHROPIC_BASE_URL: "https://ark.cn-beijing.volces.com/api/coding",
@@ -398,10 +395,8 @@ export const providerPresets: ProviderPreset[] = [
   },
   {
     name: "BytePlus",
-    websiteUrl:
-      "https://www.byteplus.com/en/product/modelark",
-    apiKeyUrl:
-      "https://www.byteplus.com/en/product/modelark",
+    websiteUrl: "https://www.byteplus.com/en/product/modelark",
+    apiKeyUrl: "https://www.byteplus.com/en/product/modelark",
     settingsConfig: {
       env: {
         ANTHROPIC_BASE_URL:
@@ -510,8 +505,7 @@ export const providerPresets: ProviderPreset[] = [
     name: "Compshare",
     nameKey: "providerForm.presets.ucloud",
     websiteUrl: "https://www.compshare.cn",
-    apiKeyUrl:
-      "https://www.compshare.cn/coding-plan",
+    apiKeyUrl: "https://www.compshare.cn/coding-plan",
     settingsConfig: {
       env: {
         ANTHROPIC_BASE_URL: "https://api.modelverse.cn",
@@ -527,8 +521,7 @@ export const providerPresets: ProviderPreset[] = [
     name: "Compshare Coding Plan",
     nameKey: "providerForm.presets.ucloudCoding",
     websiteUrl: "https://www.compshare.cn",
-    apiKeyUrl:
-      "https://www.compshare.cn/coding-plan",
+    apiKeyUrl: "https://www.compshare.cn/coding-plan",
     settingsConfig: {
       env: {
         ANTHROPIC_BASE_URL: "https://cp.compshare.cn",
@@ -667,8 +660,7 @@ export const providerPresets: ProviderPreset[] = [
   {
     name: "SudoCode.chat",
     websiteUrl: "https://sudocode.chat",
-    apiKeyUrl:
-      "https://sudocode.chat/sign-up",
+    apiKeyUrl: "https://sudocode.chat/sign-up",
     settingsConfig: {
       env: {
         ANTHROPIC_BASE_URL: "https://api.sudocode.chat",

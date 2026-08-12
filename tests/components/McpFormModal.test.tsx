@@ -393,6 +393,8 @@ type = "stdio"
       codex: false,
       gemini: false,
       grokbuild: false,
+      opencode: false,
+      hermes: false,
     });
     expect(onSave).toHaveBeenCalledTimes(1);
     expect(onSave).toHaveBeenCalledWith();
@@ -443,7 +445,6 @@ type = "stdio"
       gemini: false,
       grokbuild: false,
       opencode: false,
-      openclaw: false,
       hermes: false,
     });
     expect(onSave).toHaveBeenCalledTimes(1);

@@ -20,10 +20,6 @@ import {
   Download,
   FolderArchive,
   Search,
-  FolderOpen,
-  KeyRound,
-  Shield,
-  Cpu,
   LayoutDashboard,
   Loader2,
   RefreshCw,
@@ -36,11 +32,11 @@ import {
   providersApi,
   settingsApi,
   type AppId,
+  type RuntimeAppId,
   type ProviderSwitchEvent,
 } from "@/lib/api";
 import { checkAllEnvConflicts, checkEnvConflicts } from "@/lib/api/env";
 import { useProviderActions } from "@/hooks/useProviderActions";
-import { openclawKeys, useOpenClawHealth } from "@/hooks/useOpenClaw";
 import { hermesKeys, useOpenHermesWebUI } from "@/hooks/useHermes";
 import { hermesApi } from "@/lib/api/hermes";
 import { useProxyStatus } from "@/hooks/useProxyStatus";
@@ -88,15 +84,6 @@ import { UniversalProviderPanel } from "@/components/universal";
 import { McpIcon } from "@/components/BrandIcons";
 import { Button } from "@/components/ui/button";
 import { SessionManagerPage } from "@/components/sessions/SessionManagerPage";
-import {
-  useDisableCurrentOmo,
-  useDisableCurrentOmoSlim,
-} from "@/lib/query/omo";
-import WorkspaceFilesPanel from "@/components/workspace/WorkspaceFilesPanel";
-import EnvPanel from "@/components/openclaw/EnvPanel";
-import ToolsPanel from "@/components/openclaw/ToolsPanel";
-import AgentsDefaultsPanel from "@/components/openclaw/AgentsDefaultsPanel";
-import OpenClawHealthBanner from "@/components/openclaw/OpenClawHealthBanner";
 import HermesMemoryPanel from "@/components/hermes/HermesMemoryPanel";
 
 type View =
@@ -109,35 +96,24 @@ type View =
   | "agents"
   | "universal"
   | "sessions"
-  | "workspace"
-  | "openclawEnv"
-  | "openclawTools"
-  | "openclawAgents"
   | "hermesMemory";
-
-interface SyncStatusUpdatedPayload {
-  source?: string;
-  status?: string;
-  error?: string;
-}
 
 const DEFAULT_DRAG_BAR_HEIGHT = isWindows() || isLinux() ? 0 : 28; // px
 const HEADER_HEIGHT = 64; // px
 
 const STORAGE_KEY = "cc-gateway-last-app";
-const VALID_APPS: AppId[] = [
+const VALID_APPS: RuntimeAppId[] = [
   "claude",
   "claude-desktop",
   "codex",
   "gemini",
   "grokbuild",
   "opencode",
-  "openclaw",
   "hermes",
 ];
 
-const getInitialApp = (): AppId => {
-  const saved = localStorage.getItem(STORAGE_KEY) as AppId | null;
+const getInitialApp = (): RuntimeAppId => {
+  const saved = localStorage.getItem(STORAGE_KEY) as RuntimeAppId | null;
   if (saved && VALID_APPS.includes(saved)) {
     return saved;
   }
@@ -155,10 +131,6 @@ const VALID_VIEWS: View[] = [
   "agents",
   "universal",
   "sessions",
-  "workspace",
-  "openclawEnv",
-  "openclawTools",
-  "openclawAgents",
   "hermesMemory",
 ];
 
@@ -174,7 +146,7 @@ function App() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
-  const [activeApp, setActiveApp] = useState<AppId>(getInitialApp);
+  const [activeApp, setActiveApp] = useState<RuntimeAppId>(getInitialApp);
   const sharedFeatureApp: AppId =
     activeApp === "claude-desktop" ? "claude" : activeApp;
   const [currentView, setCurrentView] = useState<View>(getInitialView);
@@ -210,18 +182,16 @@ function App() {
     gemini: true,
     grokbuild: true,
     opencode: true,
-    openclaw: true,
     hermes: true,
   };
 
-  const getFirstVisibleApp = (): AppId => {
+  const getFirstVisibleApp = (): RuntimeAppId => {
     if (visibleApps.claude) return "claude";
     if (visibleApps["claude-desktop"]) return "claude-desktop";
     if (visibleApps.codex) return "codex";
     if (visibleApps.gemini) return "gemini";
     if (visibleApps.grokbuild) return "grokbuild";
     if (visibleApps.opencode) return "opencode";
-    if (visibleApps.openclaw) return "openclaw";
     if (visibleApps.hermes) return "hermes";
     return "claude"; // fallback
   };
@@ -240,7 +210,6 @@ function App() {
       sharedFeatureApp !== "codex" &&
       sharedFeatureApp !== "grokbuild" &&
       sharedFeatureApp !== "opencode" &&
-      sharedFeatureApp !== "openclaw" &&
       sharedFeatureApp !== "gemini" &&
       sharedFeatureApp !== "hermes"
     ) {
@@ -291,23 +260,12 @@ function App() {
   });
   const providers = useMemo(() => data?.providers ?? {}, [data]);
   const currentProviderId = data?.currentProviderId ?? "";
-  const isOpenClawView =
-    activeApp === "openclaw" &&
-    (currentView === "providers" ||
-      currentView === "workspace" ||
-      currentView === "sessions" ||
-      currentView === "openclawEnv" ||
-      currentView === "openclawTools" ||
-      currentView === "openclawAgents");
-  const { data: openclawHealthWarnings = [] } =
-    useOpenClawHealth(isOpenClawView);
-  const hasSkillsSupport = sharedFeatureApp !== "openclaw";
+  const hasSkillsSupport = true;
   const hasSessionSupport =
     sharedFeatureApp === "claude" ||
     sharedFeatureApp === "codex" ||
     sharedFeatureApp === "grokbuild" ||
     sharedFeatureApp === "opencode" ||
-    sharedFeatureApp === "openclaw" ||
     sharedFeatureApp === "gemini" ||
     sharedFeatureApp === "hermes";
 
@@ -317,46 +275,11 @@ function App() {
     switchProvider,
     deleteProvider,
     saveUsageScript,
-    setAsDefaultModel,
   } = useProviderActions(
     activeApp,
     isProxyRunning,
     isProxyRunning && isCurrentAppTakeoverActive,
   );
-
-  const disableOmoMutation = useDisableCurrentOmo();
-  const handleDisableOmo = () => {
-    disableOmoMutation.mutate(undefined, {
-      onSuccess: () => {
-        toast.success(t("omo.disabled", { defaultValue: "OMO 已停用" }));
-      },
-      onError: (error: Error) => {
-        toast.error(
-          t("omo.disableFailed", {
-            defaultValue: "停用 OMO 失败: {{error}}",
-            error: extractErrorMessage(error),
-          }),
-        );
-      },
-    });
-  };
-
-  const disableOmoSlimMutation = useDisableCurrentOmoSlim();
-  const handleDisableOmoSlim = () => {
-    disableOmoSlimMutation.mutate(undefined, {
-      onSuccess: () => {
-        toast.success(t("omo.disabled", { defaultValue: "OMO 已停用" }));
-      },
-      onError: (error: Error) => {
-        toast.error(
-          t("omo.disableFailed", {
-            defaultValue: "停用 OMO 失败: {{error}}",
-            error: extractErrorMessage(error),
-          }),
-        );
-      },
-    });
-  };
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
@@ -411,38 +334,6 @@ function App() {
       queryKey: ["providers", "claude-desktop"],
     });
   });
-
-  useTauriEvent<SyncStatusUpdatedPayload | null | undefined>(
-    "webdav-sync-status-updated",
-    async (payload) => {
-      const statusPayload = payload ?? {};
-      await queryClient.invalidateQueries({ queryKey: ["settings"] });
-      if (statusPayload.source !== "auto" || statusPayload.status !== "error") {
-        return;
-      }
-      toast.error(
-        t("settings.webdavSync.autoSyncFailedToast", {
-          error: statusPayload.error || t("common.unknown"),
-        }),
-      );
-    },
-  );
-
-  useTauriEvent<SyncStatusUpdatedPayload | null | undefined>(
-    "s3-sync-status-updated",
-    async (payload) => {
-      const statusPayload = payload ?? {};
-      await queryClient.invalidateQueries({ queryKey: ["settings"] });
-      if (statusPayload.source !== "auto" || statusPayload.status !== "error") {
-        return;
-      }
-      toast.error(
-        t("settings.s3Sync.autoSyncFailedToast", {
-          error: statusPayload.error || t("common.unknown"),
-        }),
-      );
-    },
-  );
 
   useTauriEvent<{ appType: string; providerName: string }>(
     "proxy-official-warning",
@@ -679,20 +570,13 @@ function App() {
     const { provider, action } = confirmAction;
 
     if (action === "remove") {
-      // Remove from live config only (for additive mode apps like OpenCode/OpenClaw)
+      // Remove from live config only for additive mode apps.
       // Does NOT delete from database - provider remains in the list
       await providersApi.removeFromLiveConfig(provider.id, activeApp);
       // Invalidate queries to refresh the isInConfig state
       if (activeApp === "opencode") {
         await queryClient.invalidateQueries({
           queryKey: ["opencodeLiveProviderIds"],
-        });
-      } else if (activeApp === "openclaw") {
-        await queryClient.invalidateQueries({
-          queryKey: openclawKeys.liveProviderIds,
-        });
-        await queryClient.invalidateQueries({
-          queryKey: openclawKeys.health,
         });
       } else if (activeApp === "hermes") {
         await queryClient.invalidateQueries({
@@ -746,11 +630,7 @@ function App() {
       iconColor: provider.iconColor,
     };
 
-    if (
-      activeApp === "opencode" ||
-      activeApp === "openclaw" ||
-      activeApp === "hermes"
-    ) {
+    if (activeApp === "opencode" || activeApp === "hermes") {
       let liveProviderIds: string[] = [];
       try {
         liveProviderIds =
@@ -759,15 +639,10 @@ function App() {
                 queryKey: ["opencodeLiveProviderIds"],
                 queryFn: () => providersApi.getOpenCodeLiveProviderIds(),
               })
-            : activeApp === "openclaw"
-              ? await queryClient.ensureQueryData({
-                  queryKey: openclawKeys.liveProviderIds,
-                  queryFn: () => providersApi.getOpenClawLiveProviderIds(),
-                })
-              : await queryClient.ensureQueryData({
-                  queryKey: hermesKeys.liveProviderIds,
-                  queryFn: () => providersApi.getHermesLiveProviderIds(),
-                });
+            : await queryClient.ensureQueryData({
+                queryKey: hermesKeys.liveProviderIds,
+                queryFn: () => providersApi.getHermesLiveProviderIds(),
+              });
       } catch (error) {
         console.error(
           "[App] Failed to load live provider IDs for duplication",
@@ -945,18 +820,14 @@ function App() {
               onInteractionBlockedChange={setSkillsManagementBusy}
               onNavigationBlockedChange={setSkillsNavigationBusy}
               onCheckUpdatesStateChange={setSkillsCheckUpdatesState}
-              currentApp={
-                sharedFeatureApp === "openclaw" ? "claude" : sharedFeatureApp
-              }
+              currentApp={sharedFeatureApp}
             />
           );
         case "skillsDiscovery":
           return (
             <SkillsPage
               ref={skillsPageRef}
-              initialApp={
-                sharedFeatureApp === "openclaw" ? "claude" : sharedFeatureApp
-              }
+              initialApp={sharedFeatureApp}
               onSourceChange={setSkillsDiscoverySource}
             />
           );
@@ -986,14 +857,6 @@ function App() {
               appId={sharedFeatureApp}
             />
           );
-        case "workspace":
-          return <WorkspaceFilesPanel />;
-        case "openclawEnv":
-          return <EnvPanel />;
-        case "openclawTools":
-          return <ToolsPanel />;
-        case "openclawAgents":
-          return <AgentsDefaultsPanel />;
         default:
           return (
             <div className="px-6 flex flex-col flex-1 min-h-0 overflow-hidden">
@@ -1025,19 +888,9 @@ function App() {
                         setConfirmAction({ provider, action: "delete" })
                       }
                       onRemoveFromConfig={
-                        activeApp === "opencode" ||
-                        activeApp === "openclaw" ||
-                        activeApp === "hermes"
+                        activeApp === "opencode" || activeApp === "hermes"
                           ? (provider) =>
                               setConfirmAction({ provider, action: "remove" })
-                          : undefined
-                      }
-                      onDisableOmo={
-                        activeApp === "opencode" ? handleDisableOmo : undefined
-                      }
-                      onDisableOmoSlim={
-                        activeApp === "opencode"
-                          ? handleDisableOmoSlim
                           : undefined
                       }
                       onDuplicate={handleDuplicateProvider}
@@ -1047,13 +900,6 @@ function App() {
                         activeApp === "claude" ? handleOpenTerminal : undefined
                       }
                       onCreate={() => setIsAddOpen(true)}
-                      onSetAsDefault={
-                        activeApp === "openclaw"
-                          ? setAsDefaultModel
-                          : activeApp === "hermes"
-                            ? switchProvider
-                            : undefined
-                      }
                     />
                   </motion.div>
                 </AnimatePresence>
@@ -1214,11 +1060,6 @@ function App() {
                       defaultValue: "统一供应商",
                     })}
                   {currentView === "sessions" && t("sessionManager.title")}
-                  {currentView === "workspace" && t("workspace.title")}
-                  {currentView === "openclawEnv" && t("openclaw.env.title")}
-                  {currentView === "openclawTools" && t("openclaw.tools.title")}
-                  {currentView === "openclawAgents" &&
-                    t("openclaw.agents.title")}
                   {currentView === "hermesMemory" && t("hermes.memory.title")}
                 </h1>
               </div>
@@ -1280,7 +1121,6 @@ function App() {
           <div className="flex flex-1 min-w-0 items-center justify-end gap-1.5">
             {currentView === "providers" &&
               activeApp !== "opencode" &&
-              activeApp !== "openclaw" &&
               activeApp !== "hermes" && (
                 <div
                   className="flex shrink-0 items-center gap-1.5"
@@ -1473,13 +1313,11 @@ function App() {
                       <AnimatePresence mode="wait">
                         <motion.div
                           key={
-                            activeApp === "openclaw"
-                              ? "openclaw"
-                              : activeApp === "hermes"
-                                ? "hermes"
-                                : activeApp === "grokbuild"
-                                  ? "grokbuild"
-                                  : "default"
+                            activeApp === "hermes"
+                              ? "hermes"
+                              : activeApp === "grokbuild"
+                                ? "grokbuild"
+                                : "default"
                           }
                           className="flex items-center gap-1"
                           initial={{ opacity: 0 }}
@@ -1524,54 +1362,6 @@ function App() {
                                 title={t("mcp.title")}
                               >
                                 <McpIcon size={16} />
-                              </Button>
-                            </>
-                          ) : activeApp === "openclaw" ? (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setCurrentView("workspace")}
-                                className="text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 w-8 px-2"
-                                title={t("workspace.manage")}
-                              >
-                                <FolderOpen className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setCurrentView("openclawEnv")}
-                                className="text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 w-8 px-2"
-                                title={t("openclaw.env.title")}
-                              >
-                                <KeyRound className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setCurrentView("openclawTools")}
-                                className="text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 w-8 px-2"
-                                title={t("openclaw.tools.title")}
-                              >
-                                <Shield className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setCurrentView("openclawAgents")}
-                                className="text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 w-8 px-2"
-                                title={t("openclaw.agents.title")}
-                              >
-                                <Cpu className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setCurrentView("sessions")}
-                                className="text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 w-8 px-2"
-                                title={t("sessionManager.title")}
-                              >
-                                <History className="w-4 h-4" />
                               </Button>
                             </>
                           ) : (
@@ -1646,9 +1436,6 @@ function App() {
       </header>
 
       <main className="flex-1 min-h-0 flex flex-col overflow-y-auto animate-fade-in">
-        {isOpenClawView && openclawHealthWarnings.length > 0 && (
-          <OpenClawHealthBanner warnings={openclawHealthWarnings} />
-        )}
         {renderContent()}
       </main>
 

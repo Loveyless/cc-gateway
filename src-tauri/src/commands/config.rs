@@ -47,7 +47,7 @@ fn validate_common_config_snippet(app_type: &str, snippet: &str) -> Result<(), S
     }
 
     match app_type {
-        "claude" | "gemini" | "omo" | "omo-slim" => {
+        "claude" | "gemini" => {
             serde_json::from_str::<serde_json::Value>(snippet)
                 .map_err(invalid_json_format_error)?;
         }
@@ -117,15 +117,7 @@ pub async fn get_config_status(
 
             Ok(ConfigStatus { exists, path })
         }
-        AppType::OpenClaw => {
-            let config_path = crate::openclaw_config::get_openclaw_config_path();
-            let exists = config_path.exists();
-            let path = crate::openclaw_config::get_openclaw_dir()
-                .to_string_lossy()
-                .to_string();
-
-            Ok(ConfigStatus { exists, path })
-        }
+        AppType::OpenClaw => Err("OpenClaw support has been permanently discontinued".to_string()),
         AppType::Hermes => {
             let config_path = crate::hermes_config::get_hermes_config_path();
             let exists = config_path.exists();
@@ -154,7 +146,9 @@ pub async fn get_config_dir(app: String) -> Result<String, String> {
         AppType::Gemini => crate::gemini_config::get_gemini_dir(),
         AppType::GrokBuild => crate::grok_config::get_grok_config_dir(),
         AppType::OpenCode => crate::opencode_config::get_opencode_dir(),
-        AppType::OpenClaw => crate::openclaw_config::get_openclaw_dir(),
+        AppType::OpenClaw => {
+            return Err("OpenClaw support has been permanently discontinued".to_string())
+        }
         AppType::Hermes => crate::hermes_config::get_hermes_dir(),
     };
 
@@ -172,7 +166,9 @@ pub async fn open_config_folder(handle: AppHandle, app: String) -> Result<bool, 
         AppType::Gemini => crate::gemini_config::get_gemini_dir(),
         AppType::GrokBuild => crate::grok_config::get_grok_config_dir(),
         AppType::OpenCode => crate::opencode_config::get_opencode_dir(),
-        AppType::OpenClaw => crate::openclaw_config::get_openclaw_dir(),
+        AppType::OpenClaw => {
+            return Err("OpenClaw support has been permanently discontinued".to_string())
+        }
         AppType::Hermes => crate::hermes_config::get_hermes_dir(),
     };
 
@@ -352,32 +348,6 @@ pub async fn set_common_config_snippet(
         .map_err(|e| e.to_string())?;
     }
 
-    if app_type == "omo"
-        && state
-            .db
-            .get_current_omo_provider("opencode", "omo")
-            .map_err(|e| e.to_string())?
-            .is_some()
-    {
-        crate::services::OmoService::write_config_to_file(
-            state.inner(),
-            &crate::services::omo::STANDARD,
-        )
-        .map_err(|e| e.to_string())?;
-    }
-    if app_type == "omo-slim"
-        && state
-            .db
-            .get_current_omo_provider("opencode", "omo-slim")
-            .map_err(|e| e.to_string())?
-            .is_some()
-    {
-        crate::services::OmoService::write_config_to_file(
-            state.inner(),
-            &crate::services::omo::SLIM,
-        )
-        .map_err(|e| e.to_string())?;
-    }
     Ok(())
 }
 

@@ -9,7 +9,6 @@ export type AppType =
   | "gemini"
   | "grokbuild"
   | "opencode"
-  | "openclaw"
   | "hermes";
 
 /** Skill 应用启用状态 */
@@ -20,7 +19,6 @@ export interface SkillApps {
   gemini: boolean;
   grokbuild?: boolean;
   opencode: boolean;
-  openclaw: boolean;
   hermes: boolean;
 }
 

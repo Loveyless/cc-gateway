@@ -75,6 +75,7 @@ impl McpService {
         app: AppType,
         enabled: bool,
     ) -> Result<(), AppError> {
+        app.ensure_supported()?;
         if let Some(server) = state
             .db
             .update_mcp_server_app_enabled(server_id, &app, enabled)?
@@ -137,11 +138,7 @@ impl McpService {
                     &server.server,
                 )?;
             }
-            AppType::OpenClaw => {
-                // OpenClaw MCP support is still in development (Issue #4834)
-                // Skip for now
-                log::debug!("OpenClaw MCP support is still in development, skipping sync");
-            }
+            AppType::OpenClaw => unreachable!("retired app rejected by public entry points"),
             AppType::Hermes => {
                 mcp::sync_single_server_to_hermes(&Default::default(), &server.id, &server.server)?;
             }
@@ -174,10 +171,7 @@ impl McpService {
             AppType::OpenCode => {
                 mcp::remove_server_from_opencode(id)?;
             }
-            AppType::OpenClaw => {
-                // OpenClaw MCP support is still in development
-                log::debug!("OpenClaw MCP support is still in development, skipping remove");
-            }
+            AppType::OpenClaw => unreachable!("retired app rejected by public entry points"),
             AppType::Hermes => {
                 mcp::remove_server_from_hermes(id)?;
             }
@@ -225,7 +219,8 @@ impl McpService {
         servers: &IndexMap<String, McpServer>,
         app: &AppType,
     ) -> Result<(), AppError> {
-        if matches!(app, AppType::OpenClaw | AppType::ClaudeDesktop) {
+        app.ensure_supported()?;
+        if matches!(app, AppType::ClaudeDesktop) {
             return Ok(());
         }
 

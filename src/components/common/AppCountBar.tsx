@@ -1,17 +1,17 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Badge, badgeVariants } from "@/components/ui/badge";
-import type { AppId } from "@/lib/api/types";
+import type { RuntimeAppId } from "@/lib/api/types";
 import { APP_IDS, APP_ICON_MAP } from "@/config/appConfig";
 import { cn } from "@/lib/utils";
 
 interface AppCountBarProps {
   totalLabel: string;
-  counts: Partial<Record<AppId, number>>;
-  appIds?: AppId[];
+  counts: Partial<Record<RuntimeAppId, number>>;
+  appIds?: RuntimeAppId[];
   totalCount?: number;
-  onToggleAll?: (app: AppId, enabled: boolean) => void | Promise<void>;
-  pendingApp?: AppId | null;
+  onToggleAll?: (app: RuntimeAppId, enabled: boolean) => void | Promise<void>;
+  pendingApp?: RuntimeAppId | null;
   disabled?: boolean;
 }
 

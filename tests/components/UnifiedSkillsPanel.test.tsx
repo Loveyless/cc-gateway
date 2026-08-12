@@ -121,7 +121,6 @@ const makeInstalledSkill = (
     gemini: false,
     grokbuild: false,
     opencode: false,
-    openclaw: false,
     hermes: false,
   };
   const { apps, ...skillOverrides } = overrides;

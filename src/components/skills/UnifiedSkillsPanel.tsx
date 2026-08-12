@@ -29,7 +29,7 @@ import {
   type InstalledSkill,
   type SkillUpdateInfo,
 } from "@/hooks/useSkills";
-import type { AppId } from "@/lib/api/types";
+import type { AppId, RuntimeAppId } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { settingsApi, skillsApi } from "@/lib/api";
@@ -215,7 +215,6 @@ const UnifiedSkillsPanel = React.forwardRef<
       gemini: 0,
       grokbuild: 0,
       opencode: 0,
-      openclaw: 0,
       hermes: 0,
     };
     if (!skills) return counts;
@@ -258,7 +257,11 @@ const UnifiedSkillsPanel = React.forwardRef<
       ? toggleAppMutation.variables?.app
       : null;
 
-  const handleToggleApp = async (id: string, app: AppId, enabled: boolean) => {
+  const handleToggleApp = async (
+    id: string,
+    app: RuntimeAppId,
+    enabled: boolean,
+  ) => {
     if (!beginWrite()) return;
 
     try {
@@ -270,7 +273,7 @@ const UnifiedSkillsPanel = React.forwardRef<
     }
   };
 
-  const handleToggleAll = async (app: AppId, enabled: boolean) => {
+  const handleToggleAll = async (app: RuntimeAppId, enabled: boolean) => {
     if (!skills || !beginWrite()) return;
 
     const ids = skills
@@ -736,7 +739,7 @@ interface InstalledSkillListItemProps {
   hasUpdate?: boolean;
   isUpdating?: boolean;
   actionsDisabled?: boolean;
-  onToggleApp: (id: string, app: AppId, enabled: boolean) => void;
+  onToggleApp: (id: string, app: RuntimeAppId, enabled: boolean) => void;
   onUninstall: () => void;
   onUpdate?: () => void;
   isLast?: boolean;
@@ -1017,7 +1020,6 @@ const ImportSkillsDialog: React.FC<ImportSkillsDialogProps> = ({
           gemini: skill.foundIn.includes("gemini"),
           grokbuild: skill.foundIn.includes("grokbuild"),
           opencode: skill.foundIn.includes("opencode"),
-          openclaw: false,
           hermes: skill.foundIn.includes("hermes"),
         },
       ]),
@@ -1044,7 +1046,6 @@ const ImportSkillsDialog: React.FC<ImportSkillsDialogProps> = ({
           gemini: false,
           grokbuild: false,
           opencode: false,
-          openclaw: false,
           hermes: false,
         },
       })),
@@ -1088,7 +1089,6 @@ const ImportSkillsDialog: React.FC<ImportSkillsDialogProps> = ({
                           gemini: false,
                           grokbuild: false,
                           opencode: false,
-                          openclaw: false,
                           hermes: false,
                         }
                       }
@@ -1102,7 +1102,6 @@ const ImportSkillsDialog: React.FC<ImportSkillsDialogProps> = ({
                               gemini: false,
                               grokbuild: false,
                               opencode: false,
-                              openclaw: false,
                               hermes: false,
                             }),
                             [app]: enabled,

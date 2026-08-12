@@ -1,5 +1,5 @@
 import React from "react";
-import type { AppId } from "@/lib/api/types";
+import type { AppId, RuntimeAppId } from "@/lib/api/types";
 import {
   ClaudeIcon,
   CodexIcon,
@@ -15,19 +15,18 @@ export interface AppConfig {
   badgeClass: string;
 }
 
-export const APP_IDS: AppId[] = [
+export const APP_IDS: RuntimeAppId[] = [
   "claude",
   "claude-desktop",
   "codex",
   "gemini",
   "grokbuild",
   "opencode",
-  "openclaw",
   "hermes",
 ];
 
-/** App IDs shown in Skills panels (excludes OpenClaw — it doesn't support Skills) */
-export const SKILLS_APP_IDS: AppId[] = [
+/** App IDs shown in Skills panels. */
+export const SKILLS_APP_IDS: RuntimeAppId[] = [
   "claude",
   "codex",
   "gemini",
@@ -36,8 +35,8 @@ export const SKILLS_APP_IDS: AppId[] = [
   "hermes",
 ];
 
-/** App IDs shown in MCP panels (excludes OpenClaw) */
-export const MCP_APP_IDS: AppId[] = [...SKILLS_APP_IDS];
+/** App IDs shown in MCP panels. */
+export const MCP_APP_IDS: RuntimeAppId[] = [...SKILLS_APP_IDS];
 
 export const APP_ICON_MAP: Record<AppId, AppConfig> = {
   claude: {
@@ -102,6 +101,7 @@ export const APP_ICON_MAP: Record<AppId, AppConfig> = {
     badgeClass:
       "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-500/20 border-0 gap-1.5",
   },
+  // Legacy usage/session rows can still carry this app id.
   openclaw: {
     label: "OpenClaw",
     icon: <OpenClawIcon size={14} />,

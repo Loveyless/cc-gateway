@@ -21,7 +21,6 @@ import { claudeDesktopProviderPresets } from "@/config/claudeDesktopProviderPres
 import { extractCodexBaseUrl } from "@/utils/providerConfigUtils";
 import { extractGrokBuildBaseUrl } from "@/utils/grokBuildConfig";
 import { GROKBUILD_OFFICIAL_PROVIDER_ID } from "@/utils/providerCapabilities";
-import type { OpenClawSuggestedDefaults } from "@/config/openclawProviderPresets";
 import type { UniversalProviderPreset } from "@/config/universalProviderPresets";
 
 interface AddProviderDialogProps {
@@ -31,7 +30,6 @@ interface AddProviderDialogProps {
   onSubmit: (
     provider: Omit<Provider, "id"> & {
       providerKey?: string;
-      suggestedDefaults?: OpenClawSuggestedDefaults;
       ensureClaudeDesktopOfficialSeed?: boolean;
       ensureCodexOfficialSeed?: boolean;
       ensureGrokBuildOfficialSeed?: boolean;
@@ -46,10 +44,9 @@ export function AddProviderDialog({
   onSubmit,
 }: AddProviderDialogProps) {
   const { t } = useTranslation();
-  // OpenCode and OpenClaw don't support universal providers
+  // OpenCode and Hermes don't support universal providers
   const showUniversalTab =
     appId !== "opencode" &&
-    appId !== "openclaw" &&
     appId !== "hermes" &&
     appId !== "grokbuild" &&
     appId !== "claude-desktop";
@@ -119,7 +116,6 @@ export function AddProviderDialog({
       // 构造基础提交数据
       const providerData: Omit<Provider, "id"> & {
         providerKey?: string;
-        suggestedDefaults?: OpenClawSuggestedDefaults;
         ensureClaudeDesktopOfficialSeed?: boolean;
         ensureCodexOfficialSeed?: boolean;
         ensureGrokBuildOfficialSeed?: boolean;
@@ -158,11 +154,8 @@ export function AddProviderDialog({
           values.presetId === GROKBUILD_OFFICIAL_PROVIDER_ID;
       }
 
-      // OpenCode/OpenClaw: pass providerKey for ID generation
-      if (
-        (appId === "opencode" || appId === "openclaw" || appId === "hermes") &&
-        values.providerKey
-      ) {
+      // Additive apps use providerKey for ID generation.
+      if ((appId === "opencode" || appId === "hermes") && values.providerKey) {
         providerData.providerKey = values.providerKey;
       }
 
@@ -170,7 +163,7 @@ export function AddProviderDialog({
         providerData.meta?.custom_endpoints &&
         Object.keys(providerData.meta.custom_endpoints).length > 0;
 
-      if (!hasCustomEndpoints && values.presetCategory !== "omo") {
+      if (!hasCustomEndpoints) {
         const urlSet = new Set<string>();
 
         const addUrl = (rawUrl?: string) => {
@@ -278,11 +271,6 @@ export function AddProviderDialog({
           if (options?.baseURL) {
             addUrl(options.baseURL);
           }
-        } else if (appId === "openclaw") {
-          // OpenClaw uses baseUrl directly
-          if (parsedConfig.baseUrl) {
-            addUrl(parsedConfig.baseUrl as string);
-          }
         } else if (appId === "hermes") {
           if (parsedConfig.base_url) {
             addUrl(parsedConfig.base_url as string);
@@ -306,11 +294,6 @@ export function AddProviderDialog({
             custom_endpoints: customEndpoints,
           };
         }
-      }
-
-      // OpenClaw: pass suggestedDefaults for model registration
-      if (appId === "openclaw" && values.suggestedDefaults) {
-        providerData.suggestedDefaults = values.suggestedDefaults;
       }
 
       await onSubmit(providerData);
@@ -399,7 +382,7 @@ export function AddProviderDialog({
           </TabsContent>
         </Tabs>
       ) : (
-        // OpenCode/OpenClaw: directly show form without tabs
+        // OpenCode: directly show the app-specific form without tabs.
         <ProviderForm
           appId={appId}
           submitLabel={t("common.add")}

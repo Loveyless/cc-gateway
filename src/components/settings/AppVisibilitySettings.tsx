@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { ProviderIcon } from "@/components/ProviderIcon";
 import type { SettingsFormState } from "@/hooks/useSettings";
 import type { VisibleApps } from "@/types";
-import type { AppId } from "@/lib/api";
+import type { RuntimeAppId } from "@/lib/api";
 
 interface AppVisibilitySettingsProps {
   settings: SettingsFormState;
@@ -14,7 +14,7 @@ interface AppVisibilitySettingsProps {
 }
 
 const APP_CONFIG: Array<{
-  id: AppId;
+  id: RuntimeAppId;
   icon: string;
   nameKey: string;
 }> = [
@@ -28,7 +28,6 @@ const APP_CONFIG: Array<{
   { id: "gemini", icon: "gemini", nameKey: "apps.gemini" },
   { id: "grokbuild", icon: "grok", nameKey: "apps.grokbuild" },
   { id: "opencode", icon: "opencode", nameKey: "apps.opencode" },
-  { id: "openclaw", icon: "openclaw", nameKey: "apps.openclaw" },
   { id: "hermes", icon: "hermes", nameKey: "apps.hermes" },
 ];
 
@@ -45,14 +44,13 @@ export function AppVisibilitySettings({
     gemini: true,
     grokbuild: true,
     opencode: true,
-    openclaw: true,
     hermes: true,
   };
 
   // Count how many apps are currently visible
   const visibleCount = Object.values(visibleApps).filter(Boolean).length;
 
-  const handleToggle = (appId: AppId) => {
+  const handleToggle = (appId: RuntimeAppId) => {
     const isCurrentlyVisible = visibleApps[appId];
     // Prevent disabling the last visible app
     if (isCurrentlyVisible && visibleCount <= 1) return;

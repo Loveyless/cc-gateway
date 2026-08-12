@@ -2,17 +2,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { homeDir, join } from "@tauri-apps/api/path";
-import { settingsApi, type AppId } from "@/lib/api";
+import { settingsApi, type RuntimeAppId } from "@/lib/api";
 import type { SettingsFormState } from "./useSettingsForm";
 
-export type DirectoryAppId = Exclude<AppId, "claude-desktop">;
+export type DirectoryAppId = Exclude<RuntimeAppId, "claude-desktop">;
 type AppDirectoryKey =
   | "claude"
   | "codex"
   | "gemini"
   | "grokbuild"
   | "opencode"
-  | "openclaw"
   | "hermes";
 type DirectoryKey = "appConfig" | AppDirectoryKey;
 
@@ -23,7 +22,6 @@ export interface ResolvedDirectories {
   gemini: string;
   grokbuild: string;
   opencode: string;
-  openclaw: string;
   hermes: string;
 }
 
@@ -37,7 +35,6 @@ const APP_DIRECTORY_META: Record<
   gemini: { key: "gemini", defaultFolder: ".gemini" },
   grokbuild: { key: "grokbuild", defaultFolder: ".grok" },
   opencode: { key: "opencode", defaultFolder: ".config/opencode" },
-  openclaw: { key: "openclaw", defaultFolder: ".openclaw" },
   hermes: { key: "hermes", defaultFolder: ".hermes" },
 };
 
@@ -50,7 +47,6 @@ const DIRECTORY_KEY_TO_SETTINGS_FIELD: Record<
   gemini: "geminiConfigDir",
   grokbuild: "grokConfigDir",
   opencode: "opencodeConfigDir",
-  openclaw: "openclawConfigDir",
   hermes: "hermesConfigDir",
 };
 
@@ -136,7 +132,6 @@ export function useDirectorySettings({
     gemini: "",
     grokbuild: "",
     opencode: "",
-    openclaw: "",
     hermes: "",
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -148,7 +143,6 @@ export function useDirectorySettings({
     gemini: "",
     grokbuild: "",
     opencode: "",
-    openclaw: "",
     hermes: "",
   });
   const initialAppConfigDirRef = useRef<string | undefined>(undefined);
@@ -167,7 +161,6 @@ export function useDirectorySettings({
           geminiDir,
           grokDir,
           opencodeDir,
-          openclawDir,
           hermesDir,
           defaultAppConfig,
           defaultClaudeDir,
@@ -175,7 +168,6 @@ export function useDirectorySettings({
           defaultGeminiDir,
           defaultGrokDir,
           defaultOpencodeDir,
-          defaultOpenclawDir,
           defaultHermesDir,
         ] = await Promise.all([
           settingsApi.getAppConfigDirOverride(),
@@ -184,7 +176,6 @@ export function useDirectorySettings({
           settingsApi.getConfigDir("gemini"),
           settingsApi.getConfigDir("grokbuild"),
           settingsApi.getConfigDir("opencode"),
-          settingsApi.getConfigDir("openclaw"),
           settingsApi.getConfigDir("hermes"),
           computeDefaultAppConfigDir(),
           computeDefaultConfigDir("claude"),
@@ -192,7 +183,6 @@ export function useDirectorySettings({
           computeDefaultConfigDir("gemini"),
           computeDefaultConfigDir("grokbuild"),
           computeDefaultConfigDir("opencode"),
-          computeDefaultConfigDir("openclaw"),
           computeDefaultConfigDir("hermes"),
         ]);
 
@@ -207,7 +197,6 @@ export function useDirectorySettings({
           gemini: defaultGeminiDir ?? "",
           grokbuild: defaultGrokDir ?? "",
           opencode: defaultOpencodeDir ?? "",
-          openclaw: defaultOpenclawDir ?? "",
           hermes: defaultHermesDir ?? "",
         };
 
@@ -221,7 +210,6 @@ export function useDirectorySettings({
           gemini: geminiDir || defaultsRef.current.gemini,
           grokbuild: grokDir || defaultsRef.current.grokbuild,
           opencode: opencodeDir || defaultsRef.current.opencode,
-          openclaw: openclawDir || defaultsRef.current.openclaw,
           hermes: hermesDir || defaultsRef.current.hermes,
         });
       } catch (error) {
@@ -363,7 +351,6 @@ export function useDirectorySettings({
         gemini: overrides?.gemini ?? defaultsRef.current.gemini,
         grokbuild: overrides?.grokbuild ?? defaultsRef.current.grokbuild,
         opencode: overrides?.opencode ?? defaultsRef.current.opencode,
-        openclaw: overrides?.openclaw ?? defaultsRef.current.openclaw,
         hermes: overrides?.hermes ?? defaultsRef.current.hermes,
       });
     },

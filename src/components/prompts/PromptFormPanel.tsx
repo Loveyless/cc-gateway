@@ -24,17 +24,16 @@ const PromptFormPanel: React.FC<PromptFormPanelProps> = ({
 }) => {
   const { t } = useTranslation();
   const appName = t(`apps.${appId}`);
-  const filenameMap: Record<AppId, string> = {
+  const filenameMap: Partial<Record<AppId, string>> = {
     claude: "CLAUDE.md",
     "claude-desktop": "CLAUDE.md",
     codex: "AGENTS.md",
     gemini: "GEMINI.md",
     grokbuild: "AGENTS.md",
     opencode: "AGENTS.md",
-    openclaw: "AGENTS.md",
     hermes: "SOUL.md",
   };
-  const filename = filenameMap[appId];
+  const filename = filenameMap[appId] ?? "AGENTS.md";
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [content, setContent] = useState("");

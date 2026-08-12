@@ -71,7 +71,6 @@ describe("useDirectorySettings", () => {
       if (app === "gemini") return "/remote/gemini";
       if (app === "grokbuild") return "/remote/grok";
       if (app === "opencode") return "/remote/opencode";
-      if (app === "openclaw") return "/remote/openclaw";
       return "/remote/hermes";
     });
     selectConfigDirectoryMock.mockReset();
@@ -94,7 +93,6 @@ describe("useDirectorySettings", () => {
       gemini: "/remote/gemini",
       grokbuild: "/remote/grok",
       opencode: "/remote/opencode",
-      openclaw: "/remote/openclaw",
       hermes: "/remote/hermes",
     });
   });
@@ -215,30 +213,9 @@ describe("useDirectorySettings", () => {
     });
     expect(result.current.resolvedDirs.claude).toBe("/home/mock/.claude");
     expect(result.current.resolvedDirs.codex).toBe("/home/mock/.codex");
-    expect(result.current.resolvedDirs.appConfig).toBe("/home/mock/.cc-gateway");
-  });
-
-  it("updates openclaw directory when browsing succeeds", async () => {
-    selectConfigDirectoryMock.mockResolvedValue("/picked/openclaw");
-
-    const { result } = renderHook(() =>
-      useDirectorySettings({
-        settings: createSettings({ openclawConfigDir: undefined }),
-        onUpdateSettings,
-      }),
+    expect(result.current.resolvedDirs.appConfig).toBe(
+      "/home/mock/.cc-gateway",
     );
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    await act(async () => {
-      await result.current.browseDirectory("openclaw");
-    });
-
-    expect(selectConfigDirectoryMock).toHaveBeenCalledWith("/remote/openclaw");
-    expect(onUpdateSettings).toHaveBeenCalledWith({
-      openclawConfigDir: "/picked/openclaw",
-    });
-    expect(result.current.resolvedDirs.openclaw).toBe("/picked/openclaw");
   });
 
   it("resetAllDirectories applies provided resolved values", async () => {
@@ -254,7 +231,6 @@ describe("useDirectorySettings", () => {
         gemini: "/server/gemini",
         grokbuild: "/server/grok",
         opencode: "/server/opencode",
-        openclaw: "/server/openclaw",
       });
     });
 
@@ -263,6 +239,5 @@ describe("useDirectorySettings", () => {
     expect(result.current.resolvedDirs.gemini).toBe("/server/gemini");
     expect(result.current.resolvedDirs.grokbuild).toBe("/server/grok");
     expect(result.current.resolvedDirs.opencode).toBe("/server/opencode");
-    expect(result.current.resolvedDirs.openclaw).toBe("/server/openclaw");
   });
 });

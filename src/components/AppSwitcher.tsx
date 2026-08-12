@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { AppId } from "@/lib/api";
+import type { RuntimeAppId } from "@/lib/api";
 import type { VisibleApps } from "@/types";
 import { ProviderIcon } from "@/components/ProviderIcon";
 import {
@@ -12,61 +12,58 @@ import { cn } from "@/lib/utils";
 import { Monitor, MoreHorizontal, Terminal } from "lucide-react";
 
 const APP_BADGE_ICON: Partial<
-  Record<AppId, { icon: typeof Terminal; offsetY?: number }>
+  Record<RuntimeAppId, { icon: typeof Terminal; offsetY?: number }>
 > = {
   claude: { icon: Terminal },
   "claude-desktop": { icon: Monitor, offsetY: 0.5 },
 };
 
 interface AppSwitcherProps {
-  activeApp: AppId;
-  onSwitch: (app: AppId) => void;
+  activeApp: RuntimeAppId;
+  onSwitch: (app: RuntimeAppId) => void;
   visibleApps?: VisibleApps;
 }
 
-const ALL_APPS: AppId[] = [
+const ALL_APPS: RuntimeAppId[] = [
   "claude",
   "claude-desktop",
   "codex",
   "gemini",
   "grokbuild",
   "opencode",
-  "openclaw",
   "hermes",
 ];
 const STORAGE_KEY = "cc-gateway-last-app";
 
-const APP_ICON_NAME: Record<AppId, string> = {
+const APP_ICON_NAME: Partial<Record<RuntimeAppId, string>> = {
   claude: "claude",
   "claude-desktop": "claude",
   codex: "openai",
   gemini: "gemini",
   grokbuild: "grok",
   opencode: "opencode",
-  openclaw: "openclaw",
   hermes: "hermes",
 };
 
-const APP_DISPLAY_NAME: Record<AppId, string> = {
+const APP_DISPLAY_NAME: Partial<Record<RuntimeAppId, string>> = {
   claude: "Claude Code",
   "claude-desktop": "Claude Desktop",
   codex: "Codex",
   gemini: "Gemini",
   grokbuild: "Grok Build",
   opencode: "OpenCode",
-  openclaw: "OpenClaw",
   hermes: "Hermes",
 };
 
 /** 应用图标 + 角标（Claude Code / Desktop 用角标区分终端与桌面） */
-function AppGlyph({ app, isActive }: { app: AppId; isActive: boolean }) {
+function AppGlyph({ app, isActive }: { app: RuntimeAppId; isActive: boolean }) {
   const badgeConfig = APP_BADGE_ICON[app];
   const BadgeIcon = badgeConfig?.icon;
   return (
     <span className="relative inline-flex shrink-0">
       <ProviderIcon
         icon={APP_ICON_NAME[app]}
-        name={APP_DISPLAY_NAME[app]}
+        name={APP_DISPLAY_NAME[app] ?? app}
         size={20}
       />
       {BadgeIcon && (
@@ -103,7 +100,7 @@ export function AppSwitcher({
   const rootRef = useRef<HTMLDivElement>(null);
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const handleSwitch = (app: AppId) => {
+  const handleSwitch = (app: RuntimeAppId) => {
     if (app === activeApp) return;
     localStorage.setItem(STORAGE_KEY, app);
     onSwitch(app);

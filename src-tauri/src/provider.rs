@@ -202,12 +202,8 @@ impl Provider {
                 str_at(settings.get("base_url")),
                 str_at(settings.get("api_key")),
             ),
-            // OpenClaw (openclaw.json) flattens credentials at the top level, camelCase.
-            AppType::OpenClaw => (
-                str_at(settings.get("baseUrl")),
-                str_at(settings.get("apiKey")),
-            ),
-            // OpenCode (OMO) nests credentials under `options` (the SDK options object).
+            AppType::OpenClaw => (String::new(), String::new()),
+            // OpenCode nests credentials under `options` (the SDK options object).
             AppType::OpenCode => {
                 let options = settings.get("options");
                 (
@@ -1515,23 +1511,8 @@ mod tests {
     }
 
     #[test]
-    fn resolve_credentials_openclaw_camel_case() {
-        let p = provider_with(json!({
-            "baseUrl": "https://api.deepseek.com",
-            "apiKey": "sk-openclaw",
-        }));
-        assert_eq!(
-            p.resolve_usage_credentials(&AppType::OpenClaw),
-            (
-                "https://api.deepseek.com".to_string(),
-                "sk-openclaw".to_string()
-            )
-        );
-    }
-
-    #[test]
     fn resolve_credentials_opencode_options() {
-        // OpenCode (OMO) nests creds under options.{baseURL,apiKey}; useOpencodeFormState
+        // OpenCode nests creds under options.{baseURL,apiKey}; useOpencodeFormState
         // writes config.options.apiKey, so the stored provider keeps them there.
         let p = provider_with(json!({
             "npm": "@ai-sdk/openai-compatible",

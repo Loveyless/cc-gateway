@@ -21,6 +21,10 @@ fn default_true() -> bool {
     true
 }
 
+fn default_false() -> bool {
+    false
+}
+
 /// 主页面显示的应用配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -42,7 +46,8 @@ pub struct VisibleApps {
     pub grokbuild: bool,
     #[serde(default = "default_true")]
     pub opencode: bool,
-    #[serde(default = "default_true")]
+    /// Retired legacy field; accepted on read but never shown or written.
+    #[serde(default = "default_false", skip_serializing)]
     pub openclaw: bool,
     #[serde(default)]
     pub hermes: bool,
@@ -57,7 +62,7 @@ impl Default for VisibleApps {
             gemini: true,
             grokbuild: true,
             opencode: true,
-            openclaw: true,
+            openclaw: false,
             hermes: false, // 默认不显示，需用户手动启用
         }
     }
@@ -73,13 +78,13 @@ impl VisibleApps {
             AppType::Gemini => self.gemini,
             AppType::GrokBuild => self.grokbuild,
             AppType::OpenCode => self.opencode,
-            AppType::OpenClaw => self.openclaw,
+            AppType::OpenClaw => false,
             AppType::Hermes => self.hermes,
         }
     }
 }
 
-/// WebDAV 同步状态（持久化同步进度信息）
+/// 旧 WebDAV/S3 同步状态，仅用于反序列化历史 settings。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct WebDavSyncStatus {
@@ -104,7 +109,7 @@ fn default_profile() -> String {
     "default".to_string()
 }
 
-/// WebDAV 同步设置
+/// 旧 WebDAV 同步设置，仅用于反序列化历史 settings，不再写回。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WebDavSyncSettings {
@@ -141,45 +146,7 @@ impl Default for WebDavSyncSettings {
     }
 }
 
-impl WebDavSyncSettings {
-    pub fn validate(&self) -> Result<(), crate::error::AppError> {
-        if self.base_url.trim().is_empty() {
-            return Err(crate::error::AppError::localized(
-                "webdav.base_url.required",
-                "WebDAV 地址不能为空",
-                "WebDAV URL is required.",
-            ));
-        }
-        if self.username.trim().is_empty() {
-            return Err(crate::error::AppError::localized(
-                "webdav.username.required",
-                "WebDAV 用户名不能为空",
-                "WebDAV username is required.",
-            ));
-        }
-        Ok(())
-    }
-
-    pub fn normalize(&mut self) {
-        self.base_url = self.base_url.trim().to_string();
-        self.username = self.username.trim().to_string();
-        self.remote_root = self.remote_root.trim().to_string();
-        self.profile = self.profile.trim().to_string();
-        if self.remote_root.is_empty() {
-            self.remote_root = default_remote_root();
-        }
-        if self.profile.is_empty() {
-            self.profile = default_profile();
-        }
-    }
-
-    /// Returns true if all credential fields are blank (no config to persist).
-    fn is_empty(&self) -> bool {
-        self.base_url.is_empty() && self.username.is_empty() && self.password.is_empty()
-    }
-}
-
-/// S3 同步设置
+/// 旧 S3 同步设置，仅用于反序列化历史 settings，不再写回。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct S3SyncSettings {
@@ -219,63 +186,6 @@ impl Default for S3SyncSettings {
             profile: default_profile(),
             status: WebDavSyncStatus::default(),
         }
-    }
-}
-
-impl S3SyncSettings {
-    pub fn validate(&self) -> Result<(), crate::error::AppError> {
-        if self.bucket.trim().is_empty() {
-            return Err(crate::error::AppError::localized(
-                "s3.bucket.required",
-                "S3 存储桶不能为空",
-                "S3 bucket is required.",
-            ));
-        }
-        if self.region.trim().is_empty() {
-            return Err(crate::error::AppError::localized(
-                "s3.region.required",
-                "S3 区域不能为空",
-                "S3 region is required.",
-            ));
-        }
-        if self.access_key_id.trim().is_empty() {
-            return Err(crate::error::AppError::localized(
-                "s3.access_key_id.required",
-                "S3 Access Key ID 不能为空",
-                "S3 Access Key ID is required.",
-            ));
-        }
-        if self.secret_access_key.trim().is_empty() {
-            return Err(crate::error::AppError::localized(
-                "s3.secret_access_key.required",
-                "S3 Secret Access Key 不能为空",
-                "S3 Secret Access Key is required.",
-            ));
-        }
-        Ok(())
-    }
-
-    pub fn normalize(&mut self) {
-        self.region = self.region.trim().to_string();
-        self.bucket = self.bucket.trim().to_string();
-        self.access_key_id = self.access_key_id.trim().to_string();
-        self.endpoint = self.endpoint.trim().to_string();
-        self.remote_root = self.remote_root.trim().to_string();
-        self.profile = self.profile.trim().to_string();
-        if self.remote_root.is_empty() {
-            self.remote_root = default_remote_root();
-        }
-        if self.profile.is_empty() {
-            self.profile = default_profile();
-        }
-    }
-
-    /// Returns true if all credential fields are blank (no config to persist).
-    fn is_empty(&self) -> bool {
-        self.bucket.is_empty()
-            && self.region.is_empty()
-            && self.access_key_id.is_empty()
-            && self.secret_access_key.is_empty()
     }
 }
 
@@ -336,8 +246,7 @@ pub struct CodexOfficialHistoryUnifyMigration {
 
 /// 应用设置结构
 ///
-/// 存储设备级别设置，保存在本地 `~/.cc-gateway/settings.json`，不随数据库同步。
-/// 这确保了云同步场景下多设备可以独立运作。
+/// 存储设备级别设置，保存在本地 `~/.cc-gateway/settings.json`。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
@@ -418,7 +327,7 @@ pub struct AppSettings {
     pub grok_config_dir: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub opencode_config_dir: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing)]
     pub openclaw_config_dir: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hermes_config_dir: Option<String>,
@@ -443,7 +352,7 @@ pub struct AppSettings {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub current_provider_opencode: Option<String>,
     /// 当前 OpenClaw 供应商 ID（本地存储，对 OpenClaw 可能无意义，但保持结构一致）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing)]
     pub current_provider_openclaw: Option<String>,
     /// 当前 Hermes 供应商 ID（本地存储，保持结构一致）
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -457,16 +366,16 @@ pub struct AppSettings {
     #[serde(default)]
     pub skill_storage_location: SkillStorageLocation,
 
-    // ===== WebDAV 同步设置 =====
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    // ===== 旧 WebDAV 同步设置（仅反序列化兼容）=====
+    #[serde(default, skip_serializing)]
     pub webdav_sync: Option<WebDavSyncSettings>,
 
-    // ===== S3 同步设置 =====
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    // ===== 旧 S3 同步设置（仅反序列化兼容）=====
+    #[serde(default, skip_serializing)]
     pub s3_sync: Option<S3SyncSettings>,
 
-    // ===== WebDAV 备份设置（旧版，保留向后兼容）=====
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    // ===== 旧 WebDAV 备份设置（仅反序列化兼容）=====
+    #[serde(default, skip_serializing)]
     pub webdav_backup: Option<serde_json::Value>,
 
     // ===== 备份策略设置 =====
@@ -600,13 +509,6 @@ impl AppSettings {
             .filter(|s| !s.is_empty())
             .map(|s| s.to_string());
 
-        self.openclaw_config_dir = self
-            .openclaw_config_dir
-            .as_ref()
-            .map(|s| s.trim())
-            .filter(|s| !s.is_empty())
-            .map(|s| s.to_string());
-
         self.hermes_config_dir = self
             .hermes_config_dir
             .as_ref()
@@ -621,19 +523,6 @@ impl AppSettings {
             .filter(|s| matches!(*s, "en" | "zh" | "zh-TW" | "ja"))
             .map(|s| s.to_string());
 
-        if let Some(sync) = &mut self.webdav_sync {
-            sync.normalize();
-            if sync.is_empty() {
-                self.webdav_sync = None;
-            }
-        }
-
-        if let Some(s3) = &mut self.s3_sync {
-            s3.normalize();
-            if s3.is_empty() {
-                self.s3_sync = None;
-            }
-        }
     }
 
     fn load_from_file() -> Self {
@@ -735,12 +624,9 @@ pub fn get_settings() -> AppSettings {
 
 pub fn get_settings_for_frontend() -> AppSettings {
     let mut settings = get_settings();
-    if let Some(sync) = &mut settings.webdav_sync {
-        sync.password.clear();
-    }
-    if let Some(s3) = &mut settings.s3_sync {
-        s3.secret_access_key.clear();
-    }
+    // Retired cloud-sync credentials are never exposed to the frontend.
+    settings.webdav_sync = None;
+    settings.s3_sync = None;
     settings.webdav_backup = None;
     settings
 }
@@ -917,14 +803,6 @@ pub fn get_opencode_override_dir() -> Option<PathBuf> {
         .map(|p| resolve_override_path(p))
 }
 
-pub fn get_openclaw_override_dir() -> Option<PathBuf> {
-    let settings = settings_store().read().ok()?;
-    settings
-        .openclaw_config_dir
-        .as_ref()
-        .map(|p| resolve_override_path(p))
-}
-
 pub fn get_hermes_override_dir() -> Option<PathBuf> {
     let settings = settings_store().read().ok()?;
     settings
@@ -960,6 +838,9 @@ pub fn unify_codex_session_history() -> bool {
 /// 这是设备级别的设置，不随数据库同步。
 /// 如果本地没有设置，调用者应该 fallback 到数据库的 `is_current` 字段。
 pub fn get_current_provider(app_type: &AppType) -> Option<String> {
+    if app_type.ensure_supported().is_err() {
+        return None;
+    }
     let settings = settings_store().read().ok()?;
     match app_type {
         AppType::Claude => settings.current_provider_claude.clone(),
@@ -968,7 +849,7 @@ pub fn get_current_provider(app_type: &AppType) -> Option<String> {
         AppType::Gemini => settings.current_provider_gemini.clone(),
         AppType::GrokBuild => settings.current_provider_grokbuild.clone(),
         AppType::OpenCode => settings.current_provider_opencode.clone(),
-        AppType::OpenClaw => settings.current_provider_openclaw.clone(),
+        AppType::OpenClaw => None,
         AppType::Hermes => settings.current_provider_hermes.clone(),
     }
 }
@@ -978,6 +859,7 @@ pub fn get_current_provider(app_type: &AppType) -> Option<String> {
 /// 这是设备级别的设置，不随数据库同步。
 /// 传入 `None` 会清除当前供应商设置。
 pub fn set_current_provider(app_type: &AppType, id: Option<&str>) -> Result<(), AppError> {
+    app_type.ensure_supported()?;
     let id_owned = id.map(|s| s.to_string());
     mutate_settings(|settings| match app_type {
         AppType::Claude => settings.current_provider_claude = id_owned.clone(),
@@ -986,7 +868,7 @@ pub fn set_current_provider(app_type: &AppType, id: Option<&str>) -> Result<(), 
         AppType::Gemini => settings.current_provider_gemini = id_owned.clone(),
         AppType::GrokBuild => settings.current_provider_grokbuild = id_owned.clone(),
         AppType::OpenCode => settings.current_provider_opencode = id_owned.clone(),
-        AppType::OpenClaw => settings.current_provider_openclaw = id_owned.clone(),
+        AppType::OpenClaw => unreachable!("retired app rejected above"),
         AppType::Hermes => settings.current_provider_hermes = id_owned.clone(),
     })
 }
@@ -999,11 +881,12 @@ pub fn set_current_provider(app_type: &AppType, id: Option<&str>) -> Result<(), 
 /// 3. 如果不存在则清理本地 settings，fallback 到数据库的 is_current
 ///
 /// 这确保了返回的 ID 一定是有效的（在数据库中存在）。
-/// 多设备云同步场景下，配置导入后本地 ID 可能失效，此函数会自动修复。
+/// 配置导入后本地 ID 可能失效，此函数会自动修复。
 pub fn get_effective_current_provider(
     db: &crate::database::Database,
     app_type: &AppType,
 ) -> Result<Option<String>, AppError> {
+    app_type.ensure_supported()?;
     // 1. 从本地 settings 读取
     if let Some(local_id) = get_current_provider(app_type) {
         // 2. 验证该 ID 在数据库中存在
@@ -1098,49 +981,6 @@ pub fn get_preferred_terminal() -> Option<String> {
         })
         .preferred_terminal
         .clone()
-}
-
-// ===== WebDAV 同步设置管理函数 =====
-
-/// 获取 WebDAV 同步设置
-pub fn get_webdav_sync_settings() -> Option<WebDavSyncSettings> {
-    settings_store().read().ok()?.webdav_sync.clone()
-}
-
-/// 保存 WebDAV 同步设置
-pub fn set_webdav_sync_settings(settings: Option<WebDavSyncSettings>) -> Result<(), AppError> {
-    mutate_settings(|current| {
-        current.webdav_sync = settings;
-    })
-}
-
-/// 仅更新 WebDAV 同步状态，避免覆写 credentials/root/profile 等字段
-pub fn update_webdav_sync_status(status: WebDavSyncStatus) -> Result<(), AppError> {
-    mutate_settings(|current| {
-        if let Some(sync) = current.webdav_sync.as_mut() {
-            sync.status = status;
-        }
-    })
-}
-
-// ===== S3 同步设置管理函数 =====
-
-pub fn get_s3_sync_settings() -> Option<S3SyncSettings> {
-    settings_store().read().ok()?.s3_sync.clone()
-}
-
-pub fn set_s3_sync_settings(settings: Option<S3SyncSettings>) -> Result<(), AppError> {
-    mutate_settings(|current| {
-        current.s3_sync = settings;
-    })
-}
-
-pub fn update_s3_sync_status(status: WebDavSyncStatus) -> Result<(), AppError> {
-    mutate_settings(|current| {
-        if let Some(s3) = current.s3_sync.as_mut() {
-            s3.status = status;
-        }
-    })
 }
 
 #[cfg(test)]

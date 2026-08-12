@@ -16,7 +16,7 @@ const isPlainObject = (value: unknown): value is Record<string, any> => {
  * `JSON.parse('{"__proto__":{…}}')` 产生的 `__proto__` 是**自有可枚举属性**，
  * 会被 `Object.entries` 取出；而 `isPlainObject(target["__proto__"])` 对
  * `Object.prototype` 返回 true，于是递归直接写进全局原型。通用配置片段
- * (`settings.common_config_*`) 会被 WebDAV/S3 同步的远端覆盖，所以这条路径
+ * (`settings.common_config_*`) 可能来自旧版远端同步数据，所以这条路径
  * 不需要 XSS 就可达。
  *
  * 正常流程里片段在入口已经过 `sanitizeSnippet`，下面三个遍历函数

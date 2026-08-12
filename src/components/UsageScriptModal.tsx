@@ -284,14 +284,8 @@ const UsageScriptModal: React.FC<UsageScriptModalProps> = ({
             apiKey: (config as any).api_key,
             baseUrl: (config as any).base_url,
           };
-        } else if (appId === "openclaw") {
-          // OpenClaw: settingsConfig 顶层扁平（camelCase，对应 openclaw.json）
-          return {
-            apiKey: (config as any).apiKey,
-            baseUrl: (config as any).baseUrl,
-          };
         } else if (appId === "opencode") {
-          // OpenCode (OMO): 凭据嵌在 options.{baseURL, apiKey}（SDK options 对象）
+          // OpenCode 凭据嵌在 options.{baseURL, apiKey}（SDK options 对象）
           const options = (config as any).options || {};
           return {
             apiKey: options.apiKey,
@@ -471,8 +465,7 @@ const UsageScriptModal: React.FC<UsageScriptModalProps> = ({
     setShowUsageConfirm(false);
     try {
       if (settingsData) {
-        const { webdavSync: _, ...rest } = settingsData;
-        await settingsApi.save({ ...rest, usageConfirmed: true });
+        await settingsApi.save({ ...settingsData, usageConfirmed: true });
         await queryClient.invalidateQueries({ queryKey: ["settings"] });
       }
     } catch (error) {

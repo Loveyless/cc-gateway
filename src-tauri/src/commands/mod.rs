@@ -15,8 +15,6 @@ mod import_export;
 mod mcp;
 mod misc;
 mod model_fetch;
-mod omo;
-mod openclaw;
 mod plugin;
 mod profile;
 mod prompt;
@@ -31,10 +29,7 @@ mod sync_support;
 mod xai_oauth;
 
 mod lightweight;
-mod s3_sync;
 mod usage;
-mod webdav_sync;
-mod workspace;
 
 pub use auth::*;
 pub use balance::*;
@@ -51,8 +46,6 @@ pub use import_export::*;
 pub use mcp::*;
 pub use misc::*;
 pub use model_fetch::*;
-pub use omo::*;
-pub use openclaw::*;
 pub use plugin::*;
 pub use profile::*;
 pub use prompt::*;
@@ -66,7 +59,4 @@ pub use subscription::*;
 pub use xai_oauth::*;
 
 pub use lightweight::*;
-pub use s3_sync::*;
 pub use usage::*;
-pub use webdav_sync::*;
-pub use workspace::*;

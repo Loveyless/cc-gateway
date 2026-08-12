@@ -30,7 +30,7 @@ impl McpApps {
             AppType::Gemini => self.gemini,
             AppType::GrokBuild => self.grokbuild,
             AppType::OpenCode => self.opencode,
-            AppType::OpenClaw => false, // OpenClaw doesn't support MCP
+            AppType::OpenClaw => false, // legacy deserialization only
             AppType::Hermes => self.hermes,
             AppType::ClaudeDesktop => false,
         }
@@ -44,7 +44,7 @@ impl McpApps {
             AppType::Gemini => self.gemini = enabled,
             AppType::GrokBuild => self.grokbuild = enabled,
             AppType::OpenCode => self.opencode = enabled,
-            AppType::OpenClaw => {} // OpenClaw doesn't support MCP, ignore
+            AppType::OpenClaw => {} // legacy deserialization only
             AppType::Hermes => self.hermes = enabled,
             AppType::ClaudeDesktop => {} // Claude Desktop 3P provider config doesn't support MCP here
         }
@@ -112,7 +112,7 @@ impl SkillApps {
             AppType::GrokBuild => self.grokbuild,
             AppType::OpenCode => self.opencode,
             AppType::Hermes => self.hermes,
-            AppType::OpenClaw => false, // OpenClaw doesn't support Skills
+            AppType::OpenClaw => false, // legacy deserialization only
             AppType::ClaudeDesktop => false,
         }
     }
@@ -126,7 +126,7 @@ impl SkillApps {
             AppType::GrokBuild => self.grokbuild = enabled,
             AppType::OpenCode => self.opencode = enabled,
             AppType::Hermes => self.hermes = enabled,
-            AppType::OpenClaw => {} // OpenClaw doesn't support Skills, ignore
+            AppType::OpenClaw => {} // legacy deserialization only
             AppType::ClaudeDesktop => {} // Claude Desktop 3P profiles don't use CC Gateway skill sync
         }
     }
@@ -300,8 +300,8 @@ pub struct McpRoot {
     /// OpenCode MCP 配置（v4.0.0+，实际使用 opencode.json）
     #[serde(default, skip_serializing_if = "McpConfig::is_empty")]
     pub opencode: McpConfig,
-    /// OpenClaw MCP 配置（v4.1.0+，实际使用 openclaw.json）
-    #[serde(default, skip_serializing_if = "McpConfig::is_empty")]
+    /// OpenClaw MCP 配置，legacy deserialization only。
+    #[serde(default, skip_serializing)]
     pub openclaw: McpConfig,
     /// Hermes MCP 配置（实际使用 config.yaml）
     #[serde(default, skip_serializing_if = "McpConfig::is_empty")]
@@ -354,6 +354,7 @@ pub struct PromptRoot {
     #[serde(default)]
     pub opencode: PromptConfig,
     #[serde(default)]
+    #[serde(skip_serializing)]
     pub openclaw: PromptConfig,
     #[serde(default)]
     pub hermes: PromptConfig,
@@ -397,14 +398,26 @@ impl AppType {
         }
     }
 
+    /// OpenClaw is retained only so historical serialized data can still be read.
+    pub fn ensure_supported(&self) -> Result<(), AppError> {
+        if matches!(self, AppType::OpenClaw) {
+            return Err(AppError::localized(
+                "app.openclaw_retired",
+                "OpenClaw 支持已永久停止",
+                "OpenClaw support has been permanently discontinued",
+            ));
+        }
+        Ok(())
+    }
+
     /// Check if this app uses additive mode
     ///
     /// - Switch mode (false): Only the current provider is written to live config (Claude, Codex, Gemini)
-    /// - Additive mode (true): All providers are written to live config (OpenCode, OpenClaw, Hermes)
+    /// - Additive mode (true): All providers are written to live config (OpenCode, Hermes)
     pub fn is_additive_mode(&self) -> bool {
         matches!(
             self,
-            AppType::OpenCode | AppType::OpenClaw | AppType::Hermes
+            AppType::OpenCode | AppType::Hermes
         )
     }
 
@@ -417,7 +430,6 @@ impl AppType {
             AppType::Gemini,
             AppType::GrokBuild,
             AppType::OpenCode,
-            AppType::OpenClaw,
             AppType::Hermes,
         ]
         .into_iter()
@@ -436,12 +448,11 @@ impl FromStr for AppType {
             "gemini" => Ok(AppType::Gemini),
             "grokbuild" | "grok-build" | "grok_build" | "grok" => Ok(AppType::GrokBuild),
             "opencode" => Ok(AppType::OpenCode),
-            "openclaw" => Ok(AppType::OpenClaw),
             "hermes" => Ok(AppType::Hermes),
             other => Err(AppError::localized(
                 "unsupported_app",
-                format!("不支持的应用标识: '{other}'。可选值: claude, claude-desktop, codex, gemini, grokbuild, opencode, openclaw, hermes。"),
-                format!("Unsupported app id: '{other}'. Allowed: claude, claude-desktop, codex, gemini, grokbuild, opencode, openclaw, hermes."),
+                format!("不支持的应用标识: '{other}'。可选值: claude, claude-desktop, codex, gemini, grokbuild, opencode, hermes。"),
+                format!("Unsupported app id: '{other}'. Allowed: claude, claude-desktop, codex, gemini, grokbuild, opencode, hermes."),
             )),
         }
     }
@@ -462,7 +473,7 @@ pub struct CommonConfigSnippets {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub opencode: Option<String>,
 
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing)]
     pub openclaw: Option<String>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -537,7 +548,6 @@ impl Default for MultiAppConfig {
         apps.insert("gemini".to_string(), ProviderManager::default());
         apps.insert("grokbuild".to_string(), ProviderManager::default());
         apps.insert("opencode".to_string(), ProviderManager::default());
-        apps.insert("openclaw".to_string(), ProviderManager::default());
         apps.insert("hermes".to_string(), ProviderManager::default());
 
         Self {
@@ -669,7 +679,14 @@ impl MultiAppConfig {
             }
         }
 
-        write_json_file(&config_path, self)?;
+        // Old OpenClaw provider rows may still be loaded from the flattened
+        // app map, but retired data must never be written back to config.json.
+        let mut serialized = serde_json::to_value(self)
+            .map_err(|e| AppError::Message(format!("序列化配置失败: {e}")))?;
+        if let Some(object) = serialized.as_object_mut() {
+            object.remove("openclaw");
+        }
+        write_json_file(&config_path, &serialized)?;
         Ok(())
     }
 
@@ -731,7 +748,6 @@ impl MultiAppConfig {
         Self::auto_import_prompt_if_exists(&mut config, AppType::Gemini)?;
         Self::auto_import_prompt_if_exists(&mut config, AppType::GrokBuild)?;
         Self::auto_import_prompt_if_exists(&mut config, AppType::OpenCode)?;
-        Self::auto_import_prompt_if_exists(&mut config, AppType::OpenClaw)?;
         Self::auto_import_prompt_if_exists(&mut config, AppType::Hermes)?;
 
         Ok(config)
@@ -770,7 +786,6 @@ impl MultiAppConfig {
             AppType::Gemini,
             AppType::GrokBuild,
             AppType::OpenCode,
-            AppType::OpenClaw,
             AppType::Hermes,
         ] {
             // 复用已有的单应用导入逻辑
@@ -887,7 +902,7 @@ impl MultiAppConfig {
                 AppType::Gemini => &self.mcp.gemini.servers,
                 AppType::GrokBuild => continue,
                 AppType::OpenCode => &self.mcp.opencode.servers,
-                AppType::OpenClaw => continue, // OpenClaw MCP is still in development, skip
+                AppType::OpenClaw => continue, // Retired legacy data is excluded from migration
                 AppType::Hermes => continue,   // Hermes didn't exist in v3.6.x, skip
             };
 
@@ -1019,6 +1034,56 @@ mod tests {
             AppType::ClaudeDesktop
         );
         assert_eq!(AppType::ClaudeDesktop.as_str(), "claude-desktop");
+    }
+
+    #[test]
+    #[serial]
+    fn save_drops_retired_openclaw_config_fields() {
+        let _home = TempHome::new();
+        let mut config = MultiAppConfig::default();
+        config.apps.insert(
+            "openclaw".to_string(),
+            ProviderManager {
+                providers: Default::default(),
+                current: "legacy".to_string(),
+            },
+        );
+        config.mcp.openclaw.servers.insert(
+            "legacy-mcp".to_string(),
+            serde_json::json!({"server": {"command": "legacy"}}),
+        );
+        config.prompts.openclaw.prompts.insert(
+            "legacy-prompt".to_string(),
+            crate::prompt::Prompt {
+                id: "legacy-prompt".to_string(),
+                name: "Legacy".to_string(),
+                content: "legacy".to_string(),
+                description: None,
+                enabled: true,
+                created_at: None,
+                updated_at: None,
+            },
+        );
+        config.common_config_snippets.openclaw = Some("legacy".to_string());
+
+        config.save().expect("save config");
+        let serialized: serde_json::Value = serde_json::from_str(
+            &fs::read_to_string(crate::config::get_app_config_path()).expect("read config"),
+        )
+        .expect("parse saved config");
+        assert!(serialized.get("openclaw").is_none());
+        assert!(serialized
+            .get("mcp")
+            .and_then(|value| value.get("openclaw"))
+            .is_none());
+        assert!(serialized
+            .get("prompts")
+            .and_then(|value| value.get("openclaw"))
+            .is_none());
+        assert!(serialized
+            .get("commonConfigSnippets")
+            .and_then(|value| value.get("openclaw"))
+            .is_none());
     }
 
     struct TempHome {

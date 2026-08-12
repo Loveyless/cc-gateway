@@ -41,17 +41,10 @@ import {
   type OpenCodeProviderPreset,
 } from "@/config/opencodeProviderPresets";
 import {
-  openclawProviderPresets,
-  rebaseOpenClawSuggestedDefaults,
-  type OpenClawProviderPreset,
-  type OpenClawSuggestedDefaults,
-} from "@/config/openclawProviderPresets";
-import {
   hermesProviderPresets,
   type HermesProviderPreset,
 } from "@/config/hermesProviderPresets";
 import { OpenCodeFormFields } from "./OpenCodeFormFields";
-import { OpenClawFormFields } from "./OpenClawFormFields";
 import { HermesFormFields } from "./HermesFormFields";
 import type { UniversalProviderPreset } from "@/config/universalProviderPresets";
 import {
@@ -80,8 +73,6 @@ import { ClaudeDesktopProviderForm } from "./ClaudeDesktopProviderForm";
 import { GrokBuildProviderForm } from "./GrokBuildProviderForm";
 import { CodexFormFields } from "./CodexFormFields";
 import { GeminiFormFields } from "./GeminiFormFields";
-import { OmoFormFields } from "./OmoFormFields";
-import { parseOmoOtherFieldsObject } from "@/types/omo";
 import {
   ProviderAdvancedConfig,
   type PricingModelSourceOption,
@@ -100,10 +91,7 @@ import {
   useCodexTomlValidation,
   useGeminiConfigState,
   useGeminiCommonConfig,
-  useOmoModelSource,
   useOpencodeFormState,
-  useOmoDraftState,
-  useOpenclawFormState,
   useHermesFormState,
   useCopilotAuth,
   useCodexOauth,
@@ -116,12 +104,10 @@ import {
   CODEX_DEFAULT_CONFIG,
   GEMINI_DEFAULT_CONFIG,
   OPENCODE_DEFAULT_CONFIG,
-  OPENCLAW_DEFAULT_CONFIG,
   normalizePricingSource,
 } from "./helpers/opencodeFormUtils";
 import { HERMES_DEFAULT_CONFIG } from "./hooks/useHermesFormState";
 import { resolveManagedAccountId } from "@/lib/authBinding";
-import { useOpenClawLiveProviderIds } from "@/hooks/useOpenClaw";
 import { useHermesLiveProviderIds } from "@/hooks/useHermes";
 
 type PresetEntry = {
@@ -131,7 +117,6 @@ type PresetEntry = {
     | CodexProviderPreset
     | GeminiProviderPreset
     | OpenCodeProviderPreset
-    | OpenClawProviderPreset
     | HermesProviderPreset;
 };
 
@@ -280,8 +265,10 @@ function ProviderFormFull({
   const handleCommonConfigConfirm = async () => {
     try {
       if (settingsData) {
-        const { webdavSync: _, ...rest } = settingsData;
-        await settingsApi.save({ ...rest, commonConfigConfirmed: true });
+        await settingsApi.save({
+          ...settingsData,
+          commonConfigConfirmed: true,
+        });
         await queryClient.invalidateQueries({ queryKey: ["settings"] });
       }
     } catch (error) {
@@ -295,7 +282,6 @@ function ProviderFormFull({
   const [activePreset, setActivePreset] = useState<{
     id: string;
     category?: ProviderCategory;
-    suggestedDefaults?: OpenClawSuggestedDefaults;
   } | null>(null);
   const [isEndpointModalOpen, setIsEndpointModalOpen] = useState(false);
   const [isCodexEndpointModalOpen, setIsCodexEndpointModalOpen] =
@@ -336,9 +322,6 @@ function ProviderFormFull({
     isEditMode,
     initialCategory: initialData?.category,
   });
-  const isOmoCategory = appId === "opencode" && category === "omo";
-  const isOmoSlimCategory = appId === "opencode" && category === "omo-slim";
-  const isAnyOmoCategory = isOmoCategory || isOmoSlimCategory;
 
   useEffect(() => {
     setSelectedPresetId(initialData ? null : "custom");
@@ -388,11 +371,9 @@ function ProviderFormFull({
             ? GEMINI_DEFAULT_CONFIG
             : appId === "opencode"
               ? OPENCODE_DEFAULT_CONFIG
-              : appId === "openclaw"
-                ? OPENCLAW_DEFAULT_CONFIG
-                : appId === "hermes"
-                  ? HERMES_DEFAULT_CONFIG
-                  : CLAUDE_DEFAULT_CONFIG,
+              : appId === "hermes"
+                ? HERMES_DEFAULT_CONFIG
+                : CLAUDE_DEFAULT_CONFIG,
       icon: initialData?.icon ?? "",
       iconColor: initialData?.iconColor ?? "",
     }),
@@ -675,7 +656,6 @@ function ProviderFormFull({
       third_party: t("providerForm.categoryThirdParty", {
         defaultValue: "第三方",
       }),
-      omo: "OMO",
     }),
     [t],
   );
@@ -694,11 +674,6 @@ function ProviderFormFull({
     } else if (appId === "opencode") {
       return opencodeProviderPresets.map<PresetEntry>((preset, index) => ({
         id: `opencode-${index}`,
-        preset,
-      }));
-    } else if (appId === "openclaw") {
-      return openclawProviderPresets.map<PresetEntry>((preset, index) => ({
-        id: `openclaw-${index}`,
         preset,
       }));
     } else if (appId === "hermes") {
@@ -861,14 +836,7 @@ function ProviderFormFull({
     selectedPresetId: selectedPresetId ?? undefined,
   });
 
-  // ── Extracted hooks: OpenCode / OMO / OpenClaw ─────────────────────
-
-  const {
-    omoModelOptions,
-    omoModelVariantsMap,
-    omoPresetMetaMap,
-    existingOpencodeKeys,
-  } = useOmoModelSource({ isOmoCategory: isAnyOmoCategory, providerId });
+  // ── Extracted hooks: OpenCode / Hermes ─────────────────────
 
   const {
     data: opencodeLiveProviderIds = [],
@@ -876,7 +844,7 @@ function ProviderFormFull({
   } = useQuery({
     queryKey: ["opencodeLiveProviderIds"],
     queryFn: () => providersApi.getOpenCodeLiveProviderIds(),
-    enabled: appId === "opencode" && !isAnyOmoCategory,
+    enabled: appId === "opencode",
   });
 
   const opencodeForm = useOpencodeFormState({
@@ -886,31 +854,6 @@ function ProviderFormFull({
     onSettingsConfigChange: (config) => form.setValue("settingsConfig", config),
     getSettingsConfig: () => form.getValues("settingsConfig"),
   });
-
-  const initialOmoSettings =
-    appId === "opencode" &&
-    (initialData?.category === "omo" || initialData?.category === "omo-slim")
-      ? (initialData.settingsConfig as Record<string, unknown> | undefined)
-      : undefined;
-
-  const omoDraft = useOmoDraftState({
-    initialOmoSettings,
-    isEditMode,
-    appId,
-    category,
-  });
-
-  const openclawForm = useOpenclawFormState({
-    initialData,
-    appId,
-    providerId,
-    onSettingsConfigChange: (config) => form.setValue("settingsConfig", config),
-    getSettingsConfig: () => form.getValues("settingsConfig"),
-  });
-  const {
-    data: openclawLiveProviderIds = [],
-    isLoading: isOpenclawLiveProviderIdsLoading,
-  } = useOpenClawLiveProviderIds(appId === "openclaw");
 
   const hermesForm = useHermesFormState({
     initialData,
@@ -925,23 +868,10 @@ function ProviderFormFull({
   } = useHermesLiveProviderIds(appId === "hermes");
 
   const additiveExistingProviderKeys = useMemo(() => {
-    if (appId === "opencode" && !isAnyOmoCategory) {
+    if (appId === "opencode") {
       return Array.from(
         new Set(
-          [...existingOpencodeKeys, ...opencodeLiveProviderIds].filter(
-            (key) => key !== providerId,
-          ),
-        ),
-      );
-    }
-
-    if (appId === "openclaw") {
-      return Array.from(
-        new Set(
-          [
-            ...openclawForm.existingOpenclawKeys,
-            ...openclawLiveProviderIds,
-          ].filter((key) => key !== providerId),
+          [...opencodeLiveProviderIds].filter((key) => key !== providerId),
         ),
       );
     }
@@ -959,23 +889,16 @@ function ProviderFormFull({
     return [];
   }, [
     appId,
-    existingOpencodeKeys,
     hermesForm.existingHermesKeys,
     hermesLiveProviderIds,
-    isAnyOmoCategory,
-    openclawForm.existingOpenclawKeys,
-    openclawLiveProviderIds,
     opencodeLiveProviderIds,
     providerId,
   ]);
 
   const isProviderKeyLockStateLoading = useMemo(() => {
     if (!isEditMode) return false;
-    if (appId === "opencode" && !isAnyOmoCategory) {
+    if (appId === "opencode") {
       return isOpencodeLiveProviderIdsLoading;
-    }
-    if (appId === "openclaw") {
-      return isOpenclawLiveProviderIdsLoading;
     }
     if (appId === "hermes") {
       return isHermesLiveProviderIdsLoading;
@@ -983,20 +906,15 @@ function ProviderFormFull({
     return false;
   }, [
     appId,
-    isAnyOmoCategory,
     isEditMode,
     isHermesLiveProviderIdsLoading,
-    isOpenclawLiveProviderIdsLoading,
     isOpencodeLiveProviderIdsLoading,
   ]);
 
   const isProviderKeyLocked = useMemo(() => {
     if (!isEditMode || !providerId) return false;
-    if (appId === "opencode" && !isAnyOmoCategory) {
+    if (appId === "opencode") {
       return opencodeLiveProviderIds.includes(providerId);
-    }
-    if (appId === "openclaw") {
-      return openclawLiveProviderIds.includes(providerId);
     }
     if (appId === "hermes") {
       return hermesLiveProviderIds.includes(providerId);
@@ -1005,9 +923,7 @@ function ProviderFormFull({
   }, [
     appId,
     hermesLiveProviderIds,
-    isAnyOmoCategory,
     isEditMode,
-    openclawLiveProviderIds,
     opencodeLiveProviderIds,
     providerId,
   ]);
@@ -1073,12 +989,12 @@ function ProviderFormFull({
       return;
     }
 
-    // opencode / openclaw / hermes: providerKey 相关
+    // opencode / hermes: providerKey 相关
     // A 类（空）归到 issues；B 类（正则不合法 / 重复 / 状态加载中）仍硬拒绝
     const keyPattern = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
-    if (appId === "opencode" && !isAnyOmoCategory) {
-      // providerKey 是 opencode / openclaw / hermes 的主键 ID，空或格式不合法
+    if (appId === "opencode") {
+      // providerKey 是 additive app 的主键 ID，空或格式不合法
       // 都属于完整性约束，保留硬拒绝（mutations 层也会 throw，软化只会让错误更晦涩）
       if (!opencodeForm.opencodeProviderKey.trim()) {
         toast.error(t("opencode.providerKeyRequired"));
@@ -1105,32 +1021,6 @@ function ProviderFormFull({
       }
       if (Object.keys(opencodeForm.opencodeModels).length === 0) {
         issues.push(t("opencode.modelsRequired"));
-      }
-    }
-
-    if (appId === "openclaw") {
-      if (!openclawForm.openclawProviderKey.trim()) {
-        toast.error(t("openclaw.providerKeyRequired"));
-        return;
-      }
-      if (!keyPattern.test(openclawForm.openclawProviderKey)) {
-        toast.error(t("openclaw.providerKeyInvalid"));
-        return;
-      }
-      if (isProviderKeyLockStateLoading) {
-        toast.error(
-          t("providerForm.providerKeyStatusLoading", {
-            defaultValue: "正在加载供应商标识状态，请稍后再试",
-          }),
-        );
-        return;
-      }
-      if (
-        !isProviderKeyLocked &&
-        additiveExistingProviderKeys.includes(openclawForm.openclawProviderKey)
-      ) {
-        toast.error(t("openclaw.providerKeyDuplicate"));
-        return;
       }
     }
 
@@ -1236,37 +1126,6 @@ function ProviderFormFull({
         }),
       );
       return;
-    }
-
-    // OMO Other Fields JSON：B 类（格式错了保存下去数据就坏了）
-    if (
-      appId === "opencode" &&
-      isAnyOmoCategory &&
-      omoDraft.omoOtherFieldsStr.trim()
-    ) {
-      try {
-        const otherFields = parseOmoOtherFieldsObject(
-          omoDraft.omoOtherFieldsStr,
-        );
-        if (!otherFields) {
-          toast.error(
-            t("omo.jsonMustBeObject", {
-              field: t("omo.otherFields", {
-                defaultValue: "Other Config",
-              }),
-              defaultValue: "{{field}} must be a JSON object",
-            }),
-          );
-          return;
-        }
-      } catch {
-        toast.error(
-          t("omo.invalidJson", {
-            defaultValue: "Other Fields contains invalid JSON",
-          }),
-        );
-        return;
-      }
     }
 
     // 非官方供应商端点 / API Key 空：A 类
@@ -1419,30 +1278,6 @@ function ProviderFormFull({
       } catch (err) {
         settingsConfig = values.settingsConfig.trim();
       }
-    } else if (
-      appId === "opencode" &&
-      (category === "omo" || category === "omo-slim")
-    ) {
-      const omoConfig: Record<string, unknown> = {};
-      if (Object.keys(omoDraft.omoAgents).length > 0) {
-        omoConfig.agents = omoDraft.omoAgents;
-      }
-      if (
-        category === "omo" &&
-        Object.keys(omoDraft.omoCategories).length > 0
-      ) {
-        omoConfig.categories = omoDraft.omoCategories;
-      }
-      if (omoDraft.omoOtherFieldsStr.trim()) {
-        // 格式已在 handleSubmit 前置校验中验证过，此处可以安全解析
-        const otherFields = parseOmoOtherFieldsObject(
-          omoDraft.omoOtherFieldsStr,
-        );
-        if (otherFields) {
-          omoConfig.otherFields = otherFields;
-        }
-      }
-      settingsConfig = JSON.stringify(omoConfig);
     } else {
       settingsConfig = values.settingsConfig.trim();
     }
@@ -1455,38 +1290,15 @@ function ProviderFormFull({
     };
 
     if (appId === "opencode") {
-      if (isAnyOmoCategory) {
-        if (!isEditMode) {
-          const prefix = category === "omo" ? "omo" : "omo-slim";
-          payload.providerKey = `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
-        }
-      } else {
-        payload.providerKey = opencodeForm.opencodeProviderKey;
-      }
-    } else if (appId === "openclaw") {
-      payload.providerKey = openclawForm.openclawProviderKey;
+      payload.providerKey = opencodeForm.opencodeProviderKey;
     } else if (appId === "hermes") {
       payload.providerKey = hermesForm.hermesProviderKey;
-    }
-
-    if (isAnyOmoCategory && !payload.presetCategory) {
-      payload.presetCategory = category;
     }
 
     if (activePreset) {
       payload.presetId = activePreset.id;
       if (activePreset.category) {
         payload.presetCategory = activePreset.category;
-      }
-      // OpenClaw: align preset model refs with the actual submitted provider key.
-      if (activePreset.suggestedDefaults) {
-        payload.suggestedDefaults =
-          appId === "openclaw" && payload.providerKey
-            ? rebaseOpenClawSuggestedDefaults(
-                activePreset.suggestedDefaults,
-                payload.providerKey,
-              )
-            : activePreset.suggestedDefaults;
       }
     }
 
@@ -1693,18 +1505,6 @@ function ProviderFormFull({
     formWebsiteUrl: form.watch("websiteUrl") || "",
   });
 
-  // 使用 API Key 链接 hook (OpenClaw)
-  const {
-    shouldShowApiKeyLink: shouldShowOpenclawApiKeyLink,
-    websiteUrl: openclawWebsiteUrl,
-  } = useApiKeyLink({
-    appId: "openclaw",
-    category,
-    selectedPresetId,
-    presetEntries,
-    formWebsiteUrl: form.watch("websiteUrl") || "",
-  });
-
   // 使用 API Key 链接 hook (Hermes)
   const {
     shouldShowApiKeyLink: shouldShowHermesApiKeyLink,
@@ -1748,11 +1548,6 @@ function ProviderFormFull({
       }
       if (appId === "opencode") {
         opencodeForm.resetOpencodeState();
-        omoDraft.resetOmoDraftState();
-      }
-      // OpenClaw 自定义模式：重置为空配置
-      if (appId === "openclaw") {
-        openclawForm.resetOpenclawState();
       }
       if (appId === "hermes") {
         hermesForm.resetHermesState();
@@ -1815,45 +1610,8 @@ function ProviderFormFull({
       const preset = entry.preset as OpenCodeProviderPreset;
       const config = preset.settingsConfig;
 
-      if (preset.category === "omo" || preset.category === "omo-slim") {
-        omoDraft.resetOmoDraftState();
-        form.reset({
-          name: preset.category === "omo" ? "OMO" : "OMO Slim",
-          websiteUrl: preset.websiteUrl ?? "",
-          settingsConfig: JSON.stringify({}, null, 2),
-          icon: preset.icon ?? "",
-          iconColor: preset.iconColor ?? "",
-        });
-        return;
-      }
-
       opencodeForm.resetOpencodeState(config);
 
-      form.reset({
-        name: preset.nameKey ? t(preset.nameKey) : preset.name,
-        websiteUrl: preset.websiteUrl ?? "",
-        settingsConfig: JSON.stringify(config, null, 2),
-        icon: preset.icon ?? "",
-        iconColor: preset.iconColor ?? "",
-      });
-      return;
-    }
-
-    // OpenClaw preset handling
-    if (appId === "openclaw") {
-      const preset = entry.preset as OpenClawProviderPreset;
-      const config = preset.settingsConfig;
-
-      // Update activePreset with suggestedDefaults for OpenClaw
-      setActivePreset({
-        id: value,
-        category: preset.category,
-        suggestedDefaults: preset.suggestedDefaults,
-      });
-
-      openclawForm.resetOpenclawState(config);
-
-      // Update form fields
       form.reset({
         name: preset.nameKey ? t(preset.nameKey) : preset.name,
         websiteUrl: preset.websiteUrl ?? "",
@@ -1940,7 +1698,7 @@ function ProviderFormFull({
           <BasicFormFields
             form={form}
             beforeNameSlot={
-              appId === "opencode" && !isAnyOmoCategory ? (
+              appId === "opencode" ? (
                 <div className="space-y-2">
                   <Label htmlFor="opencode-key">
                     {t("opencode.providerKey")}
@@ -2003,72 +1761,6 @@ function ProviderFormFull({
                                 "该供应商已添加到应用配置中，供应商标识不可修改",
                             })
                           : t("opencode.providerKeyHint")}
-                      </p>
-                    )}
-                </div>
-              ) : appId === "openclaw" ? (
-                <div className="space-y-2">
-                  <Label htmlFor="openclaw-key">
-                    {t("openclaw.providerKey")}
-                    <span className="text-destructive ml-1">*</span>
-                  </Label>
-                  <Input
-                    id="openclaw-key"
-                    value={openclawForm.openclawProviderKey}
-                    onChange={(e) =>
-                      openclawForm.setOpenclawProviderKey(
-                        e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
-                      )
-                    }
-                    placeholder={t("openclaw.providerKeyPlaceholder")}
-                    disabled={
-                      isProviderKeyLocked || isProviderKeyLockStateLoading
-                    }
-                    className={
-                      (additiveExistingProviderKeys.includes(
-                        openclawForm.openclawProviderKey,
-                      ) &&
-                        !isProviderKeyLocked) ||
-                      (openclawForm.openclawProviderKey.trim() !== "" &&
-                        !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(
-                          openclawForm.openclawProviderKey,
-                        ))
-                        ? "border-destructive"
-                        : ""
-                    }
-                  />
-                  {additiveExistingProviderKeys.includes(
-                    openclawForm.openclawProviderKey,
-                  ) &&
-                    !isProviderKeyLocked && (
-                      <p className="text-xs text-destructive">
-                        {t("openclaw.providerKeyDuplicate")}
-                      </p>
-                    )}
-                  {openclawForm.openclawProviderKey.trim() !== "" &&
-                    !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(
-                      openclawForm.openclawProviderKey,
-                    ) && (
-                      <p className="text-xs text-destructive">
-                        {t("openclaw.providerKeyInvalid")}
-                      </p>
-                    )}
-                  {!(
-                    additiveExistingProviderKeys.includes(
-                      openclawForm.openclawProviderKey,
-                    ) && !isProviderKeyLocked
-                  ) &&
-                    (openclawForm.openclawProviderKey.trim() === "" ||
-                      /^[a-z0-9]+(-[a-z0-9]+)*$/.test(
-                        openclawForm.openclawProviderKey,
-                      )) && (
-                      <p className="text-xs text-muted-foreground">
-                        {isProviderKeyLocked
-                          ? t("openclaw.providerKeyLockedHint", {
-                              defaultValue:
-                                "该供应商已添加到应用配置中，供应商标识不可修改",
-                            })
-                          : t("openclaw.providerKeyHint")}
                       </p>
                     )}
                 </div>
@@ -2319,7 +2011,7 @@ function ProviderFormFull({
             />
           )}
 
-          {appId === "opencode" && !isAnyOmoCategory && (
+          {appId === "opencode" && (
             <OpenCodeFormFields
               npm={opencodeForm.opencodeNpm}
               onNpmChange={opencodeForm.handleOpencodeNpmChange}
@@ -2338,45 +2030,6 @@ function ProviderFormFull({
               onExtraOptionsChange={
                 opencodeForm.handleOpencodeExtraOptionsChange
               }
-            />
-          )}
-
-          {appId === "opencode" &&
-            (category === "omo" || category === "omo-slim") && (
-              <OmoFormFields
-                modelOptions={omoModelOptions}
-                modelVariantsMap={omoModelVariantsMap}
-                presetMetaMap={omoPresetMetaMap}
-                agents={omoDraft.omoAgents}
-                onAgentsChange={omoDraft.setOmoAgents}
-                categories={
-                  category === "omo" ? omoDraft.omoCategories : undefined
-                }
-                onCategoriesChange={
-                  category === "omo" ? omoDraft.setOmoCategories : undefined
-                }
-                otherFieldsStr={omoDraft.omoOtherFieldsStr}
-                onOtherFieldsStrChange={omoDraft.setOmoOtherFieldsStr}
-                isSlim={category === "omo-slim"}
-              />
-            )}
-
-          {/* OpenClaw 专属字段 */}
-          {appId === "openclaw" && (
-            <OpenClawFormFields
-              baseUrl={openclawForm.openclawBaseUrl}
-              onBaseUrlChange={openclawForm.handleOpenclawBaseUrlChange}
-              apiKey={openclawForm.openclawApiKey}
-              onApiKeyChange={openclawForm.handleOpenclawApiKeyChange}
-              category={category}
-              shouldShowApiKeyLink={shouldShowOpenclawApiKeyLink}
-              websiteUrl={openclawWebsiteUrl}
-              api={openclawForm.openclawApi}
-              onApiChange={openclawForm.handleOpenclawApiChange}
-              models={openclawForm.openclawModels}
-              onModelsChange={openclawForm.handleOpenclawModelsChange}
-              userAgent={openclawForm.openclawUserAgent}
-              onUserAgentChange={openclawForm.handleOpenclawUserAgentChange}
             />
           )}
 
@@ -2449,22 +2102,7 @@ function ProviderFormFull({
               />
               {settingsConfigErrorField}
             </>
-          ) : appId === "opencode" &&
-            (category === "omo" || category === "omo-slim") ? (
-            <div className="space-y-2">
-              <Label>{t("provider.configJson")}</Label>
-              <JsonEditor
-                value={omoDraft.mergedOmoJsonPreview}
-                onChange={() => {}}
-                rows={14}
-                showValidation={false}
-                language="json"
-                darkMode={isDarkMode}
-              />
-            </div>
-          ) : appId === "opencode" &&
-            category !== "omo" &&
-            category !== "omo-slim" ? (
+          ) : appId === "opencode" ? (
             <>
               <div className="space-y-2">
                 <Label htmlFor="settingsConfig">
@@ -2489,7 +2127,7 @@ function ProviderFormFull({
               </div>
               {settingsConfigErrorField}
             </>
-          ) : appId === "openclaw" || appId === "hermes" ? (
+          ) : appId === "hermes" ? (
             <>
               <div className="space-y-2">
                 <Label htmlFor="settingsConfig">
@@ -2505,12 +2143,7 @@ function ProviderFormFull({
   "base_url": "https://api.example.com/v1",
   "api_key": ""
 }`
-                      : `{
-  "baseUrl": "https://api.example.com/v1",
-  "apiKey": "your-api-key-here",
-  "api": "openai-completions",
-  "models": []
-}`
+                      : "{}"
                   }
                   rows={14}
                   showValidation={true}
@@ -2548,15 +2181,12 @@ function ProviderFormFull({
             </>
           )}
 
-          {!isAnyOmoCategory &&
-            appId !== "opencode" &&
-            appId !== "openclaw" &&
-            appId !== "hermes" && (
-              <ProviderAdvancedConfig
-                pricingConfig={pricingConfig}
-                onPricingConfigChange={setPricingConfig}
-              />
-            )}
+          {appId !== "opencode" && appId !== "hermes" && (
+            <ProviderAdvancedConfig
+              pricingConfig={pricingConfig}
+              onPricingConfigChange={setPricingConfig}
+            />
+          )}
 
           {showButtons && (
             <div className="flex justify-end gap-2">
@@ -2640,6 +2270,5 @@ export type ProviderFormValues = ProviderFormData & {
   presetId?: string;
   presetCategory?: ProviderCategory;
   meta?: ProviderMeta;
-  providerKey?: string; // OpenCode/OpenClaw: user-defined provider key
-  suggestedDefaults?: OpenClawSuggestedDefaults; // OpenClaw: suggested default model configuration
+  providerKey?: string; // OpenCode/Hermes: user-defined provider key
 };

@@ -6,7 +6,7 @@ import type {
   McpServersMap,
   McpStatus,
 } from "@/types";
-import type { AppId } from "./types";
+import type { AppId, RuntimeAppId } from "./types";
 
 export const mcpApi = {
   async getStatus(): Promise<McpStatus> {
@@ -43,7 +43,7 @@ export const mcpApi = {
    * @deprecated 使用 upsertUnifiedServer() 代替（v3.7.0+）
    */
   async upsertServerInConfig(
-    app: AppId,
+    app: RuntimeAppId,
     id: string,
     spec: McpServer,
     options?: { syncOtherSide?: boolean },

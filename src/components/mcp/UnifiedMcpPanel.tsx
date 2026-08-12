@@ -12,7 +12,7 @@ import {
   useImportMcpFromApps,
 } from "@/hooks/useMcp";
 import type { McpServer } from "@/types";
-import type { AppId } from "@/lib/api/types";
+import type { RuntimeAppId } from "@/lib/api/types";
 import McpFormModal from "./McpFormModal";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { settingsApi } from "@/lib/api";
@@ -140,7 +140,6 @@ const UnifiedMcpPanel = React.forwardRef<
       gemini: 0,
       grokbuild: 0,
       opencode: 0,
-      openclaw: 0,
       hermes: 0,
     };
     serverEntries.forEach(([_, server]) => {
@@ -159,7 +158,7 @@ const UnifiedMcpPanel = React.forwardRef<
 
   const handleToggleApp = async (
     serverId: string,
-    app: AppId,
+    app: RuntimeAppId,
     enabled: boolean,
   ) => {
     if (!beginWrite()) return;
@@ -172,7 +171,7 @@ const UnifiedMcpPanel = React.forwardRef<
     }
   };
 
-  const handleToggleAll = async (app: AppId, enabled: boolean) => {
+  const handleToggleAll = async (app: RuntimeAppId, enabled: boolean) => {
     if (!beginWrite()) return;
 
     // AppCountBar summarizes the complete collection, so its bulk action must
@@ -369,7 +368,7 @@ UnifiedMcpPanel.displayName = "UnifiedMcpPanel";
 interface UnifiedMcpListItemProps {
   id: string;
   server: McpServer;
-  onToggleApp: (serverId: string, app: AppId, enabled: boolean) => void;
+  onToggleApp: (serverId: string, app: RuntimeAppId, enabled: boolean) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   disabled?: boolean;

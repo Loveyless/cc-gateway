@@ -77,7 +77,6 @@ export function useApiKeyLink({
       appId === "codex" ||
       appId === "gemini" ||
       appId === "opencode" ||
-      appId === "openclaw" ||
       appId === "hermes"
         ? shouldShowApiKeyLink
         : false,

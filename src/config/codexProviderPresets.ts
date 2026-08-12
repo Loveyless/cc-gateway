@@ -416,8 +416,7 @@ requires_openai_auth = true`,
   {
     name: "TeamoRouter",
     websiteUrl: "https://teamorouter.com",
-    apiKeyUrl:
-      "https://teamorouter.com/",
+    apiKeyUrl: "https://teamorouter.com/",
     category: "aggregator",
     auth: generateThirdPartyAuth(""),
     config: generateThirdPartyConfig(
@@ -443,10 +442,8 @@ requires_openai_auth = true`,
   },
   {
     name: "火山Agentplan",
-    websiteUrl:
-      "https://www.volcengine.com/activity/codingplan",
-    apiKeyUrl:
-      "https://www.volcengine.com/activity/codingplan",
+    websiteUrl: "https://www.volcengine.com/activity/codingplan",
+    apiKeyUrl: "https://www.volcengine.com/activity/codingplan",
     auth: generateThirdPartyAuth(""),
     config: generateThirdPartyConfig(
       "ark_agentplan",
@@ -472,10 +469,8 @@ requires_openai_auth = true`,
   },
   {
     name: "BytePlus",
-    websiteUrl:
-      "https://www.byteplus.com/en/product/modelark",
-    apiKeyUrl:
-      "https://www.byteplus.com/en/product/modelark",
+    websiteUrl: "https://www.byteplus.com/en/product/modelark",
+    apiKeyUrl: "https://www.byteplus.com/en/product/modelark",
     auth: generateThirdPartyAuth(""),
     config: generateThirdPartyConfig(
       "byteplus",
@@ -617,8 +612,7 @@ requires_openai_auth = true`,
     name: "Compshare",
     nameKey: "providerForm.presets.ucloud",
     websiteUrl: "https://www.compshare.cn",
-    apiKeyUrl:
-      "https://www.compshare.cn/coding-plan",
+    apiKeyUrl: "https://www.compshare.cn/coding-plan",
     auth: generateThirdPartyAuth(""),
     config: generateThirdPartyConfig(
       "compshare",
@@ -634,8 +628,7 @@ requires_openai_auth = true`,
     name: "Compshare Coding Plan",
     nameKey: "providerForm.presets.ucloudCoding",
     websiteUrl: "https://www.compshare.cn",
-    apiKeyUrl:
-      "https://www.compshare.cn/coding-plan",
+    apiKeyUrl: "https://www.compshare.cn/coding-plan",
     auth: generateThirdPartyAuth(""),
     config: generateThirdPartyConfig(
       "compshare_coding",
@@ -773,8 +766,7 @@ requires_openai_auth = true`,
   {
     name: "SudoCode.chat",
     websiteUrl: "https://sudocode.chat",
-    apiKeyUrl:
-      "https://sudocode.chat/sign-up",
+    apiKeyUrl: "https://sudocode.chat/sign-up",
     category: "third_party",
     auth: generateThirdPartyAuth(""),
     config: `model_provider = "custom"

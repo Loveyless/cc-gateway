@@ -707,8 +707,7 @@ export const opencodeProviderPresets: OpenCodeProviderPreset[] = [
   {
     name: "TeamoRouter",
     websiteUrl: "https://teamorouter.com",
-    apiKeyUrl:
-      "https://teamorouter.com/",
+    apiKeyUrl: "https://teamorouter.com/",
     settingsConfig: {
       npm: "@ai-sdk/openai-compatible",
       name: "TeamoRouter",
@@ -761,10 +760,8 @@ export const opencodeProviderPresets: OpenCodeProviderPreset[] = [
   },
   {
     name: "火山Agentplan",
-    websiteUrl:
-      "https://www.volcengine.com/activity/codingplan",
-    apiKeyUrl:
-      "https://www.volcengine.com/activity/codingplan",
+    websiteUrl: "https://www.volcengine.com/activity/codingplan",
+    apiKeyUrl: "https://www.volcengine.com/activity/codingplan",
     settingsConfig: {
       npm: "@ai-sdk/openai-compatible",
       name: "火山Agentplan",
@@ -792,10 +789,8 @@ export const opencodeProviderPresets: OpenCodeProviderPreset[] = [
   },
   {
     name: "BytePlus",
-    websiteUrl:
-      "https://www.byteplus.com/en/product/modelark",
-    apiKeyUrl:
-      "https://www.byteplus.com/en/product/modelark",
+    websiteUrl: "https://www.byteplus.com/en/product/modelark",
+    apiKeyUrl: "https://www.byteplus.com/en/product/modelark",
     settingsConfig: {
       npm: "@ai-sdk/openai-compatible",
       name: "BytePlus",
@@ -1126,8 +1121,7 @@ export const opencodeProviderPresets: OpenCodeProviderPreset[] = [
   {
     name: "SudoCode.chat",
     websiteUrl: "https://sudocode.chat",
-    apiKeyUrl:
-      "https://sudocode.chat/sign-up",
+    apiKeyUrl: "https://sudocode.chat/sign-up",
     settingsConfig: {
       npm: "@ai-sdk/openai",
       name: "SudoCode.chat",
@@ -1995,31 +1989,5 @@ export const opencodeProviderPresets: OpenCodeProviderPreset[] = [
         editorValue: "",
       },
     },
-  },
-  {
-    name: "Oh My OpenCode",
-    websiteUrl: "https://github.com/code-yeongyu/oh-my-openagent",
-    settingsConfig: {
-      npm: "",
-      options: {},
-      models: {},
-    },
-    category: "omo" as ProviderCategory,
-    icon: "opencode",
-    iconColor: "#8B5CF6",
-    isCustomTemplate: true,
-  },
-  {
-    name: "Oh My OpenCode Slim",
-    websiteUrl: "https://github.com/alvinunreal/oh-my-opencode-slim",
-    settingsConfig: {
-      npm: "",
-      options: {},
-      models: {},
-    },
-    category: "omo-slim" as ProviderCategory,
-    icon: "opencode",
-    iconColor: "#6366F1",
-    isCustomTemplate: true,
   },
 ];
