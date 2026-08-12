@@ -700,6 +700,13 @@ pub(crate) fn write_live_with_common_config(
     app_type: &AppType,
     provider: &Provider,
 ) -> Result<(), AppError> {
+    if crate::services::proxy::ProxyService::detect_foreign_takeover_in_live_config(app_type) {
+        return Err(AppError::Message(format!(
+            "{} Live 配置正在由 CC Switch 或其它代理接管，CC Gateway 不会覆盖外部接管配置",
+            app_type.as_str()
+        )));
+    }
+
     let mut effective_provider = provider.clone();
     effective_provider.settings_config =
         build_effective_settings_with_common_config(db, app_type, provider)?;
@@ -1014,6 +1021,13 @@ impl LiveSnapshot {
 
 /// Write live configuration snapshot for a provider
 pub(crate) fn write_live_snapshot(app_type: &AppType, provider: &Provider) -> Result<(), AppError> {
+    if crate::services::proxy::ProxyService::detect_foreign_takeover_in_live_config(app_type) {
+        return Err(AppError::Message(format!(
+            "{} Live 配置正在由 CC Switch 或其它代理接管，CC Gateway 不会覆盖外部接管配置",
+            app_type.as_str()
+        )));
+    }
+
     match app_type {
         AppType::Claude => {
             let path = get_claude_settings_path();
@@ -1311,7 +1325,7 @@ pub fn read_live_settings(app_type: AppType) -> Result<Value, AppError> {
         AppType::Codex => {
             let mut result = crate::codex_config::read_codex_live_settings()?;
             // `modelCatalog` is a cc-switch private field that lives only in
-            // the DB SSOT plus the `cc-switch-model-catalog.json` projection
+            // the DB SSOT plus the `cc-gateway-model-catalog.json` projection
             // file — it is never inlined into `auth.json` or `config.toml`.
             // Reverse-parse the projection so the edit form for the active
             // Codex provider doesn't see an empty mapping table.
@@ -1440,13 +1454,13 @@ pub fn import_default_config(state: &AppState, app_type: AppType) -> Result<bool
     }
 
     // 拒绝把"被代理接管的 Live"导入为供应商：接管期间 Live 里只有
-    // PROXY_MANAGED 占位符和本地代理地址，不是用户的真实配置。一旦导入，
+    // Gateway 或上游代理占位符和本地代理地址，不是用户的真实配置。一旦导入，
     // 它会成为 current provider（SSOT），后续"无备份恢复"路径会把占位符
     // 当真实配置写回 Live，永久卡在已失效的本地代理上。
     // 典型触发场景：代理接管开启时切换 app_config_dir 并重启，新数据库首启导入。
     if state
         .proxy_service
-        .detect_takeover_in_live_config_for_app(&app_type)
+        .detect_any_takeover_in_live_config_for_app(&app_type)
     {
         return Err(AppError::localized(
             "provider.import.live_taken_over",
@@ -1707,7 +1721,7 @@ pub(crate) fn remove_opencode_provider_from_live(provider_id: &str) -> Result<()
 /// Import all providers from OpenCode live config to database
 ///
 /// This imports existing providers from ~/.config/opencode/opencode.json
-/// into the CC Switch database. Each provider found will be added to the
+/// into the CC Gateway database. Each provider found will be added to the
 /// database with is_current set to false.
 pub fn import_opencode_providers_from_live(state: &AppState) -> Result<usize, AppError> {
     use crate::opencode_config;
@@ -1782,7 +1796,7 @@ pub fn import_opencode_providers_from_live(state: &AppState) -> Result<usize, Ap
 /// Import all providers from OpenClaw live config to database
 ///
 /// This imports existing providers from ~/.openclaw/openclaw.json
-/// into the CC Switch database. Each provider found will be added to the
+/// into the CC Gateway database. Each provider found will be added to the
 /// database with is_current set to false.
 pub fn import_openclaw_providers_from_live(state: &AppState) -> Result<usize, AppError> {
     use crate::openclaw_config;
@@ -1870,7 +1884,7 @@ pub fn import_openclaw_providers_from_live(state: &AppState) -> Result<usize, Ap
 /// Import all providers from Hermes live config to database
 ///
 /// This imports existing providers from ~/.hermes/config.yaml
-/// into the CC Switch database. Each provider found will be added to the
+/// into the CC Gateway database. Each provider found will be added to the
 /// database with is_current set to false.
 pub fn import_hermes_providers_from_live(state: &AppState) -> Result<usize, AppError> {
     use crate::hermes_config;

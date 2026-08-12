@@ -31,7 +31,7 @@ export function ClaudeDesktopRouteToggle({
       takeoverStatus?.grokbuild,
   );
   const routeAddress = status?.address ?? "127.0.0.1";
-  const routePort = status?.port ?? 15721;
+  const routePort = status?.port ?? 15722;
 
   const handleToggle = async (checked: boolean) => {
     try {

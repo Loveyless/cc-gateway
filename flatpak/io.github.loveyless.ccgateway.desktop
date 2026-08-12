@@ -1,9 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=CC Switch
+Name=CC Gateway
 Comment=All-in-One Assistant for Claude Code, Codex & Gemini CLI
-Exec=cc-switch
-Icon=com.ccswitch.desktop
+Exec=cc-gateway
+Icon=io.github.loveyless.ccgateway
 Terminal=false
 Categories=Utility;Development;
 StartupNotify=true

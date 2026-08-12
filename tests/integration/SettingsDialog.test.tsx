@@ -155,7 +155,7 @@ describe("SettingsPage integration", () => {
     const appInput = await screen.findByPlaceholderText(
       "settings.browsePlaceholderApp",
     );
-    expect((appInput as HTMLInputElement).value).toBe("/home/mock/.cc-switch");
+    expect((appInput as HTMLInputElement).value).toBe("/home/mock/.cc-gateway");
   });
 
   it("imports configuration and triggers success callback", async () => {
@@ -226,15 +226,15 @@ describe("SettingsPage integration", () => {
     const appInput = (await screen.findByPlaceholderText(
       "settings.browsePlaceholderApp",
     )) as HTMLInputElement;
-    expect(appInput.value).toBe("/home/mock/.cc-switch");
+    expect(appInput.value).toBe("/home/mock/.cc-gateway");
 
     fireEvent.click(browseButtons[0]);
     await waitFor(() =>
-      expect(appInput.value).toBe("/home/mock/.cc-switch/picked"),
+      expect(appInput.value).toBe("/home/mock/.cc-gateway/picked"),
     );
 
     fireEvent.click(resetButtons[0]);
-    await waitFor(() => expect(appInput.value).toBe("/home/mock/.cc-switch"));
+    await waitFor(() => expect(appInput.value).toBe("/home/mock/.cc-gateway"));
 
     const claudeInput = (await screen.findByPlaceholderText(
       "settings.browsePlaceholderClaude",
@@ -260,14 +260,23 @@ describe("SettingsPage integration", () => {
     fireEvent.click(screen.getByText("settings.tabAdvanced"));
     fireEvent.click(screen.getByText("settings.advanced.data.title"));
 
+    let requestedDefaultName = "";
     server.use(
-      http.post("http://tauri.local/save_file_dialog", () =>
-        HttpResponse.json(null),
+      http.post(
+        "http://tauri.local/save_file_dialog",
+        async ({ request }) => {
+          const body = (await request.json()) as { defaultName?: string };
+          requestedDefaultName = body.defaultName ?? "";
+          return HttpResponse.json(null);
+        },
       ),
     );
     fireEvent.click(screen.getByText("settings.exportConfig"));
 
     await waitFor(() => expect(toastErrorMock).toHaveBeenCalled());
+    expect(requestedDefaultName).toMatch(
+      /^cc-gateway-export-\d{8}_\d{6}\.sql$/,
+    );
     const cancelMessage = toastErrorMock.mock.calls.at(-1)?.[0] as string;
     expect(cancelMessage).toMatch(
       /settings\.selectFileFailed|请选择.*保存路径/,

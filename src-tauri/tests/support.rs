@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
 
-use cc_switch_lib::{update_settings, AppSettings, AppState, Database, MultiAppConfig};
+use cc_gateway_lib::{update_settings, AppSettings, AppState, Database, MultiAppConfig};
 
 /// 为测试设置隔离的 HOME 目录，避免污染真实用户数据。
 pub fn ensure_test_home() -> &'static Path {
@@ -13,8 +13,8 @@ pub fn ensure_test_home() -> &'static Path {
         }
         std::fs::create_dir_all(&base).expect("create test home");
         // Windows 上 `dirs::home_dir()` 不受 HOME/USERPROFILE 影响（走 Known Folder API），
-        // 用 CC_SWITCH_TEST_HOME 显式覆盖，以确保测试不会污染真实用户目录。
-        std::env::set_var("CC_SWITCH_TEST_HOME", &base);
+        // 用 CC_GATEWAY_TEST_HOME 显式覆盖，以确保测试不会污染真实用户目录。
+        std::env::set_var("CC_GATEWAY_TEST_HOME", &base);
         std::env::set_var("HOME", &base);
         #[cfg(windows)]
         std::env::set_var("USERPROFILE", &base);
@@ -29,7 +29,7 @@ pub fn reset_test_fs() {
     for sub in [
         ".claude",
         ".codex",
-        ".cc-switch",
+        ".cc-gateway",
         ".gemini",
         ".grok",
         ".config",

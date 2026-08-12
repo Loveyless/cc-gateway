@@ -7,9 +7,10 @@ import React, {
   useRef,
 } from "react";
 import type { UpdateInfo } from "../lib/updater";
-import { checkForUpdate } from "../lib/updater";
+import { checkForUpdate, UPDATES_ENABLED } from "../lib/updater";
 
 interface UpdateContextValue {
+  updatesEnabled: boolean;
   // 更新状态
   hasUpdate: boolean;
   updateInfo: UpdateInfo | null;
@@ -28,7 +29,7 @@ interface UpdateContextValue {
 const UpdateContext = createContext<UpdateContextValue | undefined>(undefined);
 
 export function UpdateProvider({ children }: { children: React.ReactNode }) {
-  const DISMISSED_VERSION_KEY = "ccswitch:update:dismissedVersion";
+  const DISMISSED_VERSION_KEY = "ccgateway:update:dismissedVersion";
   const LEGACY_DISMISSED_KEY = "dismissedUpdateVersion"; // 兼容旧键
 
   const [hasUpdate, setHasUpdate] = useState(false);
@@ -59,6 +60,8 @@ export function UpdateProvider({ children }: { children: React.ReactNode }) {
   const isCheckingRef = useRef(false);
 
   const checkUpdate = useCallback(async () => {
+    if (!UPDATES_ENABLED) return false;
+
     if (isCheckingRef.current) return false;
     isCheckingRef.current = true;
     setIsChecking(true);
@@ -117,6 +120,8 @@ export function UpdateProvider({ children }: { children: React.ReactNode }) {
 
   // 应用启动时自动检查更新
   useEffect(() => {
+    if (!UPDATES_ENABLED) return;
+
     // 延迟1秒后检查，避免影响启动体验
     const timer = setTimeout(() => {
       checkUpdate().catch(console.error);
@@ -126,6 +131,7 @@ export function UpdateProvider({ children }: { children: React.ReactNode }) {
   }, [checkUpdate]);
 
   const value: UpdateContextValue = {
+    updatesEnabled: UPDATES_ENABLED,
     hasUpdate,
     updateInfo,
     isChecking,

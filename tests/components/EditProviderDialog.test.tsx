@@ -176,10 +176,10 @@ describe("EditProviderDialog", () => {
     apiMocks.getCurrent.mockResolvedValue(provider.id);
     apiMocks.getLiveProviderSettings.mockResolvedValue({
       auth: {
-        OPENAI_API_KEY: "PROXY_MANAGED",
+        OPENAI_API_KEY: "CC_GATEWAY_PROXY_MANAGED",
       },
       config:
-        'model_provider = "custom"\n[model_providers.custom]\nbase_url = "http://127.0.0.1:15721/v1"\nexperimental_bearer_token = "PROXY_MANAGED"\n',
+        'model_provider = "custom"\n[model_providers.custom]\nbase_url = "http://127.0.0.1:15721/v1"\nexperimental_bearer_token = "CC_GATEWAY_PROXY_MANAGED"\n',
     });
 
     render(

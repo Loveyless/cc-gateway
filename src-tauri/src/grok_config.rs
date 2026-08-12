@@ -501,12 +501,12 @@ context_window = 500000
 
         let updated = apply_proxy_takeover(
             valid_config(),
-            "http://127.0.0.1:15721/grokbuild/v1",
+            "http://127.0.0.1:15722/grokbuild/v1",
             "PROXY_MANAGED",
         )
         .expect("takeover config");
         let selected = extract_model_config(&updated).expect("updated selected model");
-        assert_eq!(selected.base_url, "http://127.0.0.1:15721/grokbuild/v1");
+        assert_eq!(selected.base_url, "http://127.0.0.1:15722/grokbuild/v1");
         assert_eq!(selected.api_key.as_deref(), Some("PROXY_MANAGED"));
         assert!(has_proxy_placeholder(&updated, "PROXY_MANAGED"));
     }
@@ -519,7 +519,7 @@ context_window = 500000
         );
         let updated = apply_proxy_takeover(
             &direct_config,
-            "http://127.0.0.1:15721/grokbuild/v1",
+            "http://127.0.0.1:15722/grokbuild/v1",
             "PROXY_MANAGED",
         )
         .expect("takeover config");
@@ -610,8 +610,8 @@ context_window = 500000
     #[serial]
     fn official_provider_roundtrips_without_custom_model_tables() {
         let temp = TempDir::new().expect("temp dir");
-        let original_test_home = std::env::var_os("CC_SWITCH_TEST_HOME");
-        std::env::set_var("CC_SWITCH_TEST_HOME", temp.path());
+        let original_test_home = std::env::var_os("CC_GATEWAY_TEST_HOME");
+        std::env::set_var("CC_GATEWAY_TEST_HOME", temp.path());
 
         // 官方条目：空 config 可写（清掉自定义模型表，交还 Grok CLI 官方登录）
         let mut official = Provider::with_id(
@@ -647,8 +647,8 @@ context_window = 500000
         assert!(write_grok_provider_live(&custom).is_err());
 
         match original_test_home {
-            Some(value) => std::env::set_var("CC_SWITCH_TEST_HOME", value),
-            None => std::env::remove_var("CC_SWITCH_TEST_HOME"),
+            Some(value) => std::env::set_var("CC_GATEWAY_TEST_HOME", value),
+            None => std::env::remove_var("CC_GATEWAY_TEST_HOME"),
         }
     }
 
@@ -656,8 +656,8 @@ context_window = 500000
     #[serial]
     fn writes_and_reads_live_config() {
         let temp = TempDir::new().expect("temp dir");
-        let original_test_home = std::env::var_os("CC_SWITCH_TEST_HOME");
-        std::env::set_var("CC_SWITCH_TEST_HOME", temp.path());
+        let original_test_home = std::env::var_os("CC_GATEWAY_TEST_HOME");
+        std::env::set_var("CC_GATEWAY_TEST_HOME", temp.path());
 
         let provider = Provider::with_id(
             "grok".to_string(),
@@ -682,8 +682,8 @@ context_window = 500000
         );
 
         match original_test_home {
-            Some(value) => std::env::set_var("CC_SWITCH_TEST_HOME", value),
-            None => std::env::remove_var("CC_SWITCH_TEST_HOME"),
+            Some(value) => std::env::set_var("CC_GATEWAY_TEST_HOME", value),
+            None => std::env::remove_var("CC_GATEWAY_TEST_HOME"),
         }
     }
 }

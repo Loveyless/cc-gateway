@@ -167,8 +167,6 @@ interface OpenCodeFormFieldsProps {
   category?: ProviderCategory;
   shouldShowApiKeyLink: boolean;
   websiteUrl: string;
-  isPartner?: boolean;
-  partnerPromotionKey?: string;
 
   // Base URL
   baseUrl: string;
@@ -195,8 +193,6 @@ export function OpenCodeFormFields({
   category,
   shouldShowApiKeyLink,
   websiteUrl,
-  isPartner,
-  partnerPromotionKey,
   baseUrl,
   onBaseUrlChange,
   headers,
@@ -583,8 +579,6 @@ export function OpenCodeFormFields({
         category={category}
         shouldShowLink={shouldShowApiKeyLink}
         websiteUrl={websiteUrl}
-        isPartner={isPartner}
-        partnerPromotionKey={partnerPromotionKey}
       />
 
       {/* Base URL */}
@@ -667,7 +661,7 @@ export function OpenCodeFormFields({
                       handleHeaderValueChange(key, e.target.value)
                     }
                     placeholder={t("opencode.headerValuePlaceholder", {
-                      defaultValue: "CC Switch",
+                      defaultValue: "CC Gateway",
                     })}
                     className="flex-1"
                   />

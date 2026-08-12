@@ -1,6 +1,6 @@
 {
-  "name": "cc-switch",
-  "version": "3.19.2",
+  "name": "cc-gateway",
+  "version": "0.1.0",
   "description": "All-in-One Assistant for Claude Code, Codex & Gemini CLI",
   "type": "module",
   "scripts": {
@@ -16,7 +16,7 @@
     "test:unit:watch": "vitest watch"
   },
   "keywords": [],
-  "author": "Jason Young",
+  "author": "Loveyless",
   "license": "MIT",
   "packageManager": "pnpm@10.12.3",
   "devDependencies": {

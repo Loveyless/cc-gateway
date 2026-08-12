@@ -1,7 +1,7 @@
 use serde_json::json;
 use std::path::{Path, PathBuf};
 
-use cc_switch_lib::{
+use cc_gateway_lib::{
     get_codex_auth_path, get_codex_config_path, import_default_config_test_hook, read_json_file,
     switch_provider_test_hook, write_codex_live_atomic, AppError, AppType, McpApps, McpServer,
     MultiAppConfig, Provider, ProviderService,
@@ -16,7 +16,7 @@ use support::{
 };
 
 fn settings_path(home: &Path) -> PathBuf {
-    home.join(".cc-switch").join("settings.json")
+    home.join(".cc-gateway").join("settings.json")
 }
 
 fn grokbuild_config(name: &str, endpoint: &str, api_key: &str) -> String {
@@ -492,7 +492,7 @@ fn switch_provider_updates_claude_live_and_state() {
     reset_test_fs();
     let _home = ensure_test_home();
 
-    let settings_path = cc_switch_lib::get_claude_settings_path();
+    let settings_path = cc_gateway_lib::get_claude_settings_path();
     if let Some(parent) = settings_path.parent() {
         std::fs::create_dir_all(parent).expect("create claude settings dir");
     }
@@ -597,11 +597,11 @@ fn switch_provider_updates_claude_live_and_state() {
     // 验证数据已持久化到数据库
     let home_dir = std::env::var("HOME").expect("HOME should be set by ensure_test_home");
     let db_path = std::path::Path::new(&home_dir)
-        .join(".cc-switch")
-        .join("cc-switch.db");
+        .join(".cc-gateway")
+        .join("cc-gateway.db");
     assert!(
         db_path.exists(),
-        "switching provider should persist to cc-switch.db"
+        "switching provider should persist to cc-gateway.db"
     );
 
     // 验证当前供应商已更新
@@ -671,8 +671,8 @@ fn import_refuses_live_config_under_proxy_takeover() {
     reset_test_fs();
     ensure_test_home();
 
-    // 接管态 Codex Live：auth 是 PROXY_MANAGED 占位符，不是用户真实配置
-    let auth = json!({"OPENAI_API_KEY": "PROXY_MANAGED"});
+    // 接管态 Codex Live：auth 是 Gateway 占位符，不是用户真实配置
+    let auth = json!({"OPENAI_API_KEY": "CC_GATEWAY_PROXY_MANAGED"});
     let config = r#"model = "gpt-5"
 "#;
     write_codex_live_atomic(&auth, Some(config)).expect("seed taken-over codex live");
@@ -689,5 +689,32 @@ fn import_refuses_live_config_under_proxy_takeover() {
     assert!(
         providers.is_empty(),
         "taken-over live import must not create providers"
+    );
+}
+
+#[test]
+fn import_refuses_live_config_under_upstream_proxy_takeover() {
+    let _guard = test_mutex().lock().expect("acquire test mutex");
+    reset_test_fs();
+    ensure_test_home();
+
+    // 上游 CC Switch 接管态：Gateway 必须识别并拒绝把占位符导入数据库。
+    let auth = json!({"OPENAI_API_KEY": "PROXY_MANAGED"});
+    let config = r#"model = "gpt-5"
+"#;
+    write_codex_live_atomic(&auth, Some(config)).expect("seed upstream-taken-over codex live");
+
+    let state = create_test_state().expect("create test state");
+
+    import_default_config_test_hook(&state, AppType::Codex)
+        .expect_err("importing an upstream-taken-over live config must fail");
+
+    let providers = state
+        .db
+        .get_all_providers(AppType::Codex.as_str())
+        .expect("get codex providers");
+    assert!(
+        providers.is_empty(),
+        "upstream-taken-over live import must not create providers"
     );
 }

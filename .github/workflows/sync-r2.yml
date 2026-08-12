@@ -1,7 +1,6 @@
-# Mirror release assets to Cloudflare R2 so ccswitch.io/download can serve
-# them directly (dl.ccswitch.io), and mirror the Tauri updater manifest and
-# artifacts so in-app updates avoid GitHub too (the updater verifies minisign
-# signatures client-side, so the mirror is untrusted).
+# Optional Cloudflare R2 release mirror for cc-gateway. The workflow is disabled
+# until the fork has its own bucket, public base URL, signing key, and updater
+# manifest. It must never target the upstream CC Switch bucket or domain.
 #
 # Triggered on release promotion (`released` fires when a prerelease is
 # flipped to a full release, or a release is published as stable directly) —
@@ -44,9 +43,10 @@ jobs:
   sync-to-r2:
     name: Sync release to R2
     runs-on: ubuntu-22.04
+    if: vars.CC_GATEWAY_R2_SYNC_ENABLED == 'true'
     env:
-      R2_BUCKET: cc-switch-releases
-      R2_PUBLIC_BASE_URL: https://dl.ccswitch.io
+      R2_BUCKET: ${{ vars.R2_BUCKET }}
+      R2_PUBLIC_BASE_URL: ${{ vars.R2_PUBLIC_BASE_URL }}
       KEEP_VERSIONS: "5"
       AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
@@ -66,17 +66,11 @@ jobs:
             echo "::error::No release tag to sync."
             exit 1
           fi
-          if [ -n "$R2_ACCOUNT_ID" ] && [ -n "$AWS_ACCESS_KEY_ID" ] && [ -n "$AWS_SECRET_ACCESS_KEY" ]; then
+          if [ -n "$R2_ACCOUNT_ID" ] && [ -n "$AWS_ACCESS_KEY_ID" ] && [ -n "$AWS_SECRET_ACCESS_KEY" ] && [ -n "$R2_BUCKET" ] && [ -n "$R2_PUBLIC_BASE_URL" ]; then
             echo "configured=true" >> "$GITHUB_OUTPUT"
-          elif [ "$GITHUB_REPOSITORY" = "farion1231/cc-switch" ]; then
-            # A silently stale mirror strands updater users on old versions
-            # (the R2 endpoint wins as long as its manifest parses), so the
-            # official repo must never skip this sync.
-            echo "::error::R2 secrets (R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY) are missing on the official repo; refusing to skip the mirror sync."
-            exit 1
           else
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "R2 secrets not configured; skipping download mirror sync."
+            echo "::error::R2 sync was enabled without the required fork-owned secrets and variables."
+            exit 1
           fi
 
       # Only the tag that IS GitHub's releases/latest may touch the bucket-root
