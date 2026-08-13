@@ -40,11 +40,13 @@ pub struct VisibleApps {
     pub claude_desktop: bool,
     #[serde(default = "default_true")]
     pub codex: bool,
-    #[serde(default = "default_true")]
+    /// Retired legacy field; accepted on read but never shown or written.
+    #[serde(default = "default_false", skip_serializing)]
     pub gemini: bool,
     #[serde(default = "default_true")]
     pub grokbuild: bool,
-    #[serde(default = "default_true")]
+    /// Retired legacy field; accepted on read but never shown or written.
+    #[serde(default = "default_false", skip_serializing)]
     pub opencode: bool,
     /// Retired legacy field; accepted on read but never shown or written.
     #[serde(default = "default_false", skip_serializing)]
@@ -59,9 +61,9 @@ impl Default for VisibleApps {
             claude: true,
             claude_desktop: true,
             codex: true,
-            gemini: true,
+            gemini: false,
             grokbuild: true,
-            opencode: true,
+            opencode: false,
             openclaw: false,
             hermes: false, // 默认不显示，需用户手动启用
         }
@@ -75,11 +77,9 @@ impl VisibleApps {
             AppType::Claude => self.claude,
             AppType::ClaudeDesktop => self.claude_desktop,
             AppType::Codex => self.codex,
-            AppType::Gemini => self.gemini,
             AppType::GrokBuild => self.grokbuild,
-            AppType::OpenCode => self.opencode,
-            AppType::OpenClaw => false,
             AppType::Hermes => self.hermes,
+            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => false,
         }
     }
 }
@@ -284,7 +284,8 @@ pub struct AppSettings {
     #[serde(default)]
     pub enable_failover_toggle: bool,
     /// Whether to show the project profile switcher on the main page header
-    #[serde(default = "default_show_profile_switcher")]
+    /// Retired project switcher flag; accepted on read but never shown or written.
+    #[serde(default = "default_false", skip_serializing)]
     pub show_profile_switcher: bool,
     /// Keep Codex ChatGPT login material in auth.json when switching to third-party providers.
     /// Opt-in: defaults to false so third-party switches cleanly overwrite auth.json.
@@ -321,11 +322,11 @@ pub struct AppSettings {
     pub claude_config_dir: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub codex_config_dir: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing)]
     pub gemini_config_dir: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub grok_config_dir: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing)]
     pub opencode_config_dir: Option<String>,
     #[serde(default, skip_serializing)]
     pub openclaw_config_dir: Option<String>,
@@ -342,14 +343,14 @@ pub struct AppSettings {
     /// 当前 Codex 供应商 ID（本地存储，优先于数据库 is_current）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub current_provider_codex: Option<String>,
-    /// 当前 Gemini 供应商 ID（本地存储，优先于数据库 is_current）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 当前 Gemini 供应商 ID（历史字段，仅反序列化）
+    #[serde(default, skip_serializing)]
     pub current_provider_gemini: Option<String>,
     /// 当前 Grok Build 供应商 ID（本地存储，优先于数据库 is_current）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub current_provider_grokbuild: Option<String>,
-    /// 当前 OpenCode 供应商 ID（本地存储，对 OpenCode 可能无意义，但保持结构一致）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// 当前 OpenCode 供应商 ID（历史字段，仅反序列化）
+    #[serde(default, skip_serializing)]
     pub current_provider_opencode: Option<String>,
     /// 当前 OpenClaw 供应商 ID（本地存储，对 OpenClaw 可能无意义，但保持结构一致）
     #[serde(default, skip_serializing)]
@@ -407,10 +408,6 @@ fn default_minimize_to_tray_on_close() -> bool {
     true
 }
 
-fn default_show_profile_switcher() -> bool {
-    true
-}
-
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
@@ -426,7 +423,7 @@ impl Default for AppSettings {
             usage_confirmed: None,
             usage_dashboard_refresh_interval_ms: None,
             enable_failover_toggle: false,
-            show_profile_switcher: true,
+            show_profile_switcher: false,
             preserve_codex_official_auth_on_switch: false,
             unify_codex_session_history: false,
             unify_codex_migrate_existing: None,
@@ -628,6 +625,7 @@ pub fn get_settings_for_frontend() -> AppSettings {
     settings.webdav_sync = None;
     settings.s3_sync = None;
     settings.webdav_backup = None;
+    settings.show_profile_switcher = false;
     settings
 }
 

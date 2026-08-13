@@ -509,7 +509,7 @@ impl Database {
 
     /// 同步版本：检查是否有任一 app 的 enabled = true
     ///
-    /// 用于 `ProfileService::apply` 等 sync 路径判断是否需要停止代理服务。
+    /// 同步路径判断是否需要停止代理服务。
     pub fn is_live_takeover_active_sync(&self) -> bool {
         let conn = match self.conn.lock() {
             Ok(c) => c,

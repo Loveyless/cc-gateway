@@ -28,7 +28,7 @@ CC Gateway 不会在启动时读取或迁移 `~/.cc-switch`，Windows 旧版 `HO
 
 ## 并存限制
 
-安装身份和应用自有数据已隔离，但两个应用仍会操作同一组外部 Agent live 配置，例如 `~/.claude`、`~/.claude.json`、`~/.codex`、`~/.gemini` 和 `~/.config/opencode`。因此：
+安装身份和应用自有数据已隔离，但两个应用仍会操作同一组外部 Agent live 配置，例如 `~/.claude`、`~/.claude.json`、`~/.codex` 和 `~/.config/grok`。因此：
 
 - 可以同时安装和启动两个应用，但不要让它们同时接管同一个 Agent。
 - Provider 切换、代理接管、MCP/Prompt/Skill 投影都遵循“最后写入者生效”，不能把两个应用同时运行理解为 Agent 配置也完全隔离。

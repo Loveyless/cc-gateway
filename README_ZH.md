@@ -2,7 +2,7 @@
 
 # CC Gateway
 
-### Claude Code、Claude Desktop、Codex、Gemini CLI、Grok Build、OpenCode、OpenClaw 和 Hermes Agent 的全方位管理工具
+### Claude Code、Claude Desktop、Codex、Grok Build 和 Hermes Agent 的全方位管理工具
 
 [![Version](https://img.shields.io/github/v/release/Loveyless/cc-gateway?color=blue&label=version)](https://github.com/Loveyless/cc-gateway/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/Loveyless/cc-gateway/releases)
@@ -21,17 +21,17 @@
 
 ## 为什么选择 CC Gateway？
 
-现代 AI 编程依赖于 Claude Code、Claude Desktop、Codex、Gemini CLI、Grok Build、OpenCode、OpenClaw 和 Hermes 等工具——但每个工具都有自己的配置格式。切换 API 供应商意味着手动编辑 JSON、TOML 或 `.env` 文件，而在多个工具之间缺乏一个统一管理 MCP, SKILLS 的方式。
+现代 AI 编程依赖于 Claude Code、Claude Desktop、Codex、Grok Build 和 Hermes 等工具——但每个工具都有自己的配置格式。切换 API 供应商意味着手动编辑 JSON、TOML 或配置文件，而在多个工具之间缺乏一个统一管理 MCP, SKILLS 的方式。
 
-**CC Gateway** 为你提供一个桌面应用来管理所有支持的 AI 工具。无需手动编辑配置文件，你将获得一个可视化界面，一键将供应商导入应用，一键在不同的供应商之间进行切换，内置 50+ 供应商预设、统一的 MCP, SKILLS 管理以及系统托盘即时切换功能——所有操作都基于可靠的 SQLite 数据库和原子写入机制，保护你的配置不被损坏。
+**CC Gateway** 为你提供一个桌面应用来管理所有支持的 AI 工具。无需手动编辑配置文件，你将获得一个可视化界面，一键将供应商导入应用，一键在不同的供应商之间进行切换，内置供应商预设、统一的 MCP, SKILLS 管理以及系统托盘即时切换功能——所有操作都基于可靠的 SQLite 数据库和原子写入机制，保护你的配置不被损坏。
 
-- **一个应用，八个工具** — 在单一界面中管理 Claude Code、Claude Desktop、Codex、Gemini CLI、Grok Build、OpenCode、OpenClaw 和 Hermes
-- **告别手动编辑** — 50+ 供应商预设，包括 AWS Bedrock、NVIDIA NIM 和社区中转服务；一键即可切换
-- **统一 MCP, SKILLS 管理** — 一个面板管理 Claude、Codex、Gemini、Grok Build、OpenCode 和 Hermes 的 MCP, SKILLS, 支持双向同步
+- **一个应用，五个工具** — 在单一界面中管理 Claude Code、Claude Desktop、Codex、Grok Build 和 Hermes
+- **告别手动编辑** — 内置供应商预设，包括 AWS Bedrock、NVIDIA NIM 和社区中转服务；一键即可切换
+- **统一 MCP, SKILLS 管理** — 一个面板管理 Claude、Codex、Grok Build 和 Hermes 的 MCP, SKILLS, 支持双向同步
 - **系统托盘快速切换** — 从托盘菜单即时切换供应商，无需打开完整应用
-- **云同步** — 通过 Dropbox、OneDrive、iCloud 或 WebDAV 服务器在不同设备之间同步供应商数据
+- **目录覆盖** — 可把各工具配置目录指到 Dropbox、OneDrive、iCloud 等本地同步文件夹
 - **跨平台** — 基于 Tauri 2 构建的原生桌面应用，支持 Windows、macOS 和 Linux
-- **小工具** - 内置了多种小工具来解决首次安装登录确认、禁止签名、插件拓展同步等多种功能
+- **小工具** - 内置了多种小工具来解决首次安装登录确认、插件拓展同步等多种功能
 
 ## 界面预览
 
@@ -45,33 +45,32 @@
 
 ### 供应商管理
 
-- **8 个支持工具，50+ 预设** — Claude Code、Claude Desktop、Codex、Gemini CLI、Grok Build、OpenCode、OpenClaw、Hermes；复制 key 即可一键导入
-- **通用供应商** — 一份配置同步到 Claude Code、Codex 和 Gemini CLI
+- **5 个支持工具** — Claude Code、Claude Desktop、Codex、Grok Build、Hermes；复制 key 即可一键导入
+- **通用供应商** — 一份配置同步到 Claude Code 和 Codex
 - 一键切换、系统托盘快速访问、拖拽排序、导入导出
 
 ### 代理与故障转移
 
 - **本地代理热切换** — 格式转换、自动故障转移、熔断器、供应商健康监控和整流器
-- **应用级代理接管** — 独立为 Claude、Codex、Gemini 或 Grok Build 配置代理，具体到单个供应商
+- **应用级代理接管** — 独立为 Claude、Codex 或 Grok Build 配置代理，具体到单个供应商
 
 ### MCP、Prompts 与 Skills
 
-- **统一 MCP 面板** — 管理 Claude、Codex、Gemini、Grok Build、OpenCode 和 Hermes 的 MCP 服务器，双向同步，支持 Deep Link 导入
-- **Prompts** — Markdown 编辑器，跨应用同步（CLAUDE.md / AGENTS.md / GEMINI.md），回填保护
+- **统一 MCP 面板** — 管理 Claude、Codex、Grok Build 和 Hermes 的 MCP 服务器，双向同步，支持 Deep Link 导入
+- **Prompts** — Markdown 编辑器，跨应用同步（CLAUDE.md / AGENTS.md），回填保护
 - **Skills** — 从 GitHub 仓库或 ZIP 文件一键安装，自定义仓库管理，支持软连接和文件复制
 
 ### 用量与成本追踪
 
 - **用量仪表盘** — 跨供应商追踪支出、请求数和 Token 用量，趋势图表、详细请求日志和自定义模型定价
 
-### 会话管理器与工作区
+### 会话管理器
 
-- 浏览、搜索和恢复支持的会话来源
-- **工作区编辑器**（OpenClaw）— 编辑 Agent 文件（AGENTS.md、SOUL.md 等），支持 Markdown 预览
+- 浏览、搜索和恢复 Claude Code、Codex、Grok Build、Hermes 的会话来源
 
 ### 系统与平台
 
-- **云同步** — 自定义配置目录（Dropbox、OneDrive、iCloud、坚果云、NAS）及 WebDAV 服务器同步
+- **目录覆盖** — 自定义配置目录（Dropbox、OneDrive、iCloud、坚果云、NAS）
 - **Deep Link** (`ccgateway://`) — 通过 URL 一键导入供应商、MCP 服务器、提示词和技能
 - 深色 / 浅色 / 跟随系统主题、开机自启、手动检查 Release 更新、原子写入、自动备份、国际化（简中/繁中/英/日）
 
@@ -80,7 +79,7 @@
 <details>
 <summary><strong>CC Gateway 支持哪些 AI 工具？</strong></summary>
 
-CC Gateway 支持八个工具：**Claude Code**、**Claude Desktop**、**Codex**、**Gemini CLI**、**Grok Build**、**OpenCode**、**OpenClaw** 和 **Hermes**。每个工具都有专属的供应商预设和配置管理。
+CC Gateway 支持五个工具：**Claude Code**、**Claude Desktop**、**Codex**、**Grok Build** 和 **Hermes**。每个工具都有专属的供应商预设和配置管理。
 
 </details>
 

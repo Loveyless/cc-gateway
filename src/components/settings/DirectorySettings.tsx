@@ -16,9 +16,7 @@ interface DirectorySettingsProps {
   onResetAppConfig: () => Promise<void>;
   claudeDir?: string;
   codexDir?: string;
-  geminiDir?: string;
   grokDir?: string;
-  opencodeDir?: string;
   hermesDir?: string;
   onDirectoryChange: (app: DirectoryAppId, value?: string) => void;
   onBrowseDirectory: (app: DirectoryAppId) => Promise<void>;
@@ -33,9 +31,7 @@ export function DirectorySettings({
   onResetAppConfig,
   claudeDir,
   codexDir,
-  geminiDir,
   grokDir,
-  opencodeDir,
   hermesDir,
   onDirectoryChange,
   onBrowseDirectory,
@@ -116,17 +112,6 @@ export function DirectorySettings({
         />
 
         <DirectoryInput
-          label={t("settings.geminiConfigDir")}
-          description={undefined}
-          value={geminiDir}
-          resolvedValue={resolvedDirs.gemini}
-          placeholder={t("settings.browsePlaceholderGemini")}
-          onChange={(val) => onDirectoryChange("gemini", val)}
-          onBrowse={() => onBrowseDirectory("gemini")}
-          onReset={() => onResetDirectory("gemini")}
-        />
-
-        <DirectoryInput
           label={t("settings.grokConfigDir")}
           description={undefined}
           value={grokDir}
@@ -135,17 +120,6 @@ export function DirectorySettings({
           onChange={(val) => onDirectoryChange("grokbuild", val)}
           onBrowse={() => onBrowseDirectory("grokbuild")}
           onReset={() => onResetDirectory("grokbuild")}
-        />
-
-        <DirectoryInput
-          label={t("settings.opencodeConfigDir")}
-          description={undefined}
-          value={opencodeDir}
-          resolvedValue={resolvedDirs.opencode}
-          placeholder={t("settings.browsePlaceholderOpencode")}
-          onChange={(val) => onDirectoryChange("opencode", val)}
-          onBrowse={() => onBrowseDirectory("opencode")}
-          onReset={() => onResetDirectory("opencode")}
         />
 
         <DirectoryInput

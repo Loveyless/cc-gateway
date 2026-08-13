@@ -202,7 +202,7 @@ requires_openai_auth = true`;
           apps: {
             claude: claudeEnabled,
             codex: codexEnabled,
-            gemini: geminiEnabled,
+            gemini: false,
           },
           models,
         }
@@ -261,7 +261,7 @@ requires_openai_auth = true`;
           apps: {
             claude: claudeEnabled,
             codex: codexEnabled,
-            gemini: geminiEnabled,
+            gemini: false,
           },
           models,
         }
@@ -502,16 +502,6 @@ requires_openai_auth = true`;
               <Switch
                 checked={codexEnabled}
                 onCheckedChange={setCodexEnabled}
-              />
-            </div>
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div className="flex items-center gap-2">
-                <ProviderIcon icon="gemini" name="Gemini" size={20} />
-                <span className="font-medium">Gemini CLI</span>
-              </div>
-              <Switch
-                checked={geminiEnabled}
-                onCheckedChange={setGeminiEnabled}
               />
             </div>
           </div>

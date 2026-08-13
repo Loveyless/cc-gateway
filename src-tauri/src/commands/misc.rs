@@ -111,7 +111,7 @@ pub struct ToolVersion {
     wsl_distro: Option<String>,
 }
 
-const VALID_TOOLS: [&str; 6] = ["claude", "codex", "gemini", "grok", "opencode", "hermes"];
+const VALID_TOOLS: [&str; 4] = ["claude", "codex", "grok", "hermes"];
 
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]

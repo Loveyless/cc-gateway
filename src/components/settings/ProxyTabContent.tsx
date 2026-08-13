@@ -28,7 +28,6 @@ interface ProxyTabContentProps {
 export const FAILOVER_APPS = [
   { id: "claude", label: "Claude" },
   { id: "codex", label: "Codex" },
-  { id: "gemini", label: "Gemini" },
   { id: "grokbuild", label: "Grok Build" },
 ] as const;
 
@@ -179,7 +178,7 @@ export function ProxyTabContent({
               )}
 
               <Tabs defaultValue="claude" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-3">
                   {FAILOVER_APPS.map(({ id, label }) => (
                     <TabsTrigger key={id} value={id}>
                       {label}

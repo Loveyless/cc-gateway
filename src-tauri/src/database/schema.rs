@@ -308,8 +308,7 @@ impl Database {
         )
         .map_err(|e| AppError::Database(e.to_string()))?;
 
-        // 19. Profiles 表（全应用共享的项目实体，payload 按 app 分槽快照
-        //     供应商/MCP/Skills/Prompt；各应用分组的 current 标记在 settings 表）
+        // 19. Profiles 表（历史项目快照，运行时已不再读写）
         conn.execute(
             "CREATE TABLE IF NOT EXISTS profiles (
                 id TEXT PRIMARY KEY,

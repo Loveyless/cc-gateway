@@ -27,7 +27,7 @@ import {
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { Provider, VisibleApps } from "@/types";
 import type { EnvConflict } from "@/types/env";
-import { proxyKeys, useProvidersQuery, useSettingsQuery } from "@/lib/query";
+import { useProvidersQuery, useSettingsQuery } from "@/lib/query";
 import {
   providersApi,
   settingsApi,
@@ -55,7 +55,6 @@ import {
   DRAG_REGION_STYLE,
 } from "@/lib/platform";
 import { AppSwitcher } from "@/components/AppSwitcher";
-import { ProfileSwitcher } from "@/components/profiles/ProfileSwitcher";
 import { ProviderList } from "@/components/providers/ProviderList";
 import { AddProviderDialog } from "@/components/providers/AddProviderDialog";
 import { EditProviderDialog } from "@/components/providers/EditProviderDialog";
@@ -79,8 +78,6 @@ import UnifiedSkillsPanel, {
 } from "@/components/skills/UnifiedSkillsPanel";
 import { DeepLinkImportDialog } from "@/components/DeepLinkImportDialog";
 import { FirstRunNoticeDialog } from "@/components/FirstRunNoticeDialog";
-import { AgentsPanel } from "@/components/agents/AgentsPanel";
-import { UniversalProviderPanel } from "@/components/universal";
 import { McpIcon } from "@/components/BrandIcons";
 import { Button } from "@/components/ui/button";
 import { SessionManagerPage } from "@/components/sessions/SessionManagerPage";
@@ -93,8 +90,6 @@ type View =
   | "skills"
   | "skillsDiscovery"
   | "mcp"
-  | "agents"
-  | "universal"
   | "sessions"
   | "hermesMemory";
 
@@ -106,9 +101,7 @@ const VALID_APPS: RuntimeAppId[] = [
   "claude",
   "claude-desktop",
   "codex",
-  "gemini",
   "grokbuild",
-  "opencode",
   "hermes",
 ];
 
@@ -128,8 +121,6 @@ const VALID_VIEWS: View[] = [
   "skills",
   "skillsDiscovery",
   "mcp",
-  "agents",
-  "universal",
   "sessions",
   "hermesMemory",
 ];
@@ -179,9 +170,7 @@ function App() {
     claude: true,
     "claude-desktop": true,
     codex: true,
-    gemini: true,
     grokbuild: true,
-    opencode: true,
     hermes: true,
   };
 
@@ -189,9 +178,7 @@ function App() {
     if (visibleApps.claude) return "claude";
     if (visibleApps["claude-desktop"]) return "claude-desktop";
     if (visibleApps.codex) return "codex";
-    if (visibleApps.gemini) return "gemini";
     if (visibleApps.grokbuild) return "grokbuild";
-    if (visibleApps.opencode) return "opencode";
     if (visibleApps.hermes) return "hermes";
     return "claude"; // fallback
   };
@@ -209,8 +196,6 @@ function App() {
       sharedFeatureApp !== "claude" &&
       sharedFeatureApp !== "codex" &&
       sharedFeatureApp !== "grokbuild" &&
-      sharedFeatureApp !== "opencode" &&
-      sharedFeatureApp !== "gemini" &&
       sharedFeatureApp !== "hermes"
     ) {
       setCurrentView("providers");
@@ -265,8 +250,6 @@ function App() {
     sharedFeatureApp === "claude" ||
     sharedFeatureApp === "codex" ||
     sharedFeatureApp === "grokbuild" ||
-    sharedFeatureApp === "opencode" ||
-    sharedFeatureApp === "gemini" ||
     sharedFeatureApp === "hermes";
 
   const {
@@ -318,21 +301,6 @@ function App() {
     } catch (error) {
       console.error("[App] Failed to update tray menu", error);
     }
-  });
-
-  // 应用项目后刷新相关缓存（providers 由既有 provider-switched 监听承接；
-  // proxy 状态由后端直接改 DB，不走 mutation，必须显式刷新）
-  useTauriEvent("profile-applied", async () => {
-    await queryClient.invalidateQueries({ queryKey: ["profiles"] });
-    await queryClient.invalidateQueries({ queryKey: ["mcp", "all"] });
-    await queryClient.invalidateQueries({ queryKey: ["skills"] });
-    await queryClient.invalidateQueries({
-      queryKey: proxyKeys.takeoverStatus,
-    });
-    await queryClient.invalidateQueries({ queryKey: proxyKeys.status });
-    await queryClient.invalidateQueries({
-      queryKey: ["providers", "claude-desktop"],
-    });
   });
 
   useTauriEvent<{ appType: string; providerName: string }>(
@@ -574,11 +542,7 @@ function App() {
       // Does NOT delete from database - provider remains in the list
       await providersApi.removeFromLiveConfig(provider.id, activeApp);
       // Invalidate queries to refresh the isInConfig state
-      if (activeApp === "opencode") {
-        await queryClient.invalidateQueries({
-          queryKey: ["opencodeLiveProviderIds"],
-        });
-      } else if (activeApp === "hermes") {
+      if (activeApp === "hermes") {
         await queryClient.invalidateQueries({
           queryKey: hermesKeys.liveProviderIds,
         });
@@ -630,19 +594,13 @@ function App() {
       iconColor: provider.iconColor,
     };
 
-    if (activeApp === "opencode" || activeApp === "hermes") {
+    if (activeApp === "hermes") {
       let liveProviderIds: string[] = [];
       try {
-        liveProviderIds =
-          activeApp === "opencode"
-            ? await queryClient.ensureQueryData({
-                queryKey: ["opencodeLiveProviderIds"],
-                queryFn: () => providersApi.getOpenCodeLiveProviderIds(),
-              })
-            : await queryClient.ensureQueryData({
-                queryKey: hermesKeys.liveProviderIds,
-                queryFn: () => providersApi.getHermesLiveProviderIds(),
-              });
+        liveProviderIds = await queryClient.ensureQueryData({
+          queryKey: hermesKeys.liveProviderIds,
+          queryFn: () => providersApi.getHermesLiveProviderIds(),
+        });
       } catch (error) {
         console.error(
           "[App] Failed to load live provider IDs for duplication",
@@ -839,16 +797,6 @@ function App() {
               onInteractionBlockedChange={setMcpManagementBusy}
             />
           );
-        case "agents":
-          return (
-            <AgentsPanel onOpenChange={() => setCurrentView("providers")} />
-          );
-        case "universal":
-          return (
-            <div className="px-6 pt-4">
-              <UniversalProviderPanel />
-            </div>
-          );
 
         case "sessions":
           return (
@@ -888,7 +836,7 @@ function App() {
                         setConfirmAction({ provider, action: "delete" })
                       }
                       onRemoveFromConfig={
-                        activeApp === "opencode" || activeApp === "hermes"
+                        activeApp === "hermes"
                           ? (provider) =>
                               setConfirmAction({ provider, action: "remove" })
                           : undefined
@@ -1054,11 +1002,6 @@ function App() {
                   {currentView === "skills" && t("skills.title")}
                   {currentView === "skillsDiscovery" && t("skills.title")}
                   {currentView === "mcp" && t("mcp.unifiedPanel.title")}
-                  {currentView === "agents" && t("agents.title")}
-                  {currentView === "universal" &&
-                    t("universalProvider.title", {
-                      defaultValue: "统一供应商",
-                    })}
                   {currentView === "sessions" && t("sessionManager.title")}
                   {currentView === "hermesMemory" && t("hermes.memory.title")}
                 </h1>
@@ -1119,35 +1062,24 @@ function App() {
           </div>
 
           <div className="flex flex-1 min-w-0 items-center justify-end gap-1.5">
-            {currentView === "providers" &&
-              activeApp !== "opencode" &&
-              activeApp !== "hermes" && (
-                <div
-                  className="flex shrink-0 items-center gap-1.5"
-                  style={{ WebkitAppRegion: "no-drag" } as any}
-                >
-                  {activeApp === "claude-desktop" ? (
-                    <ClaudeDesktopRouteToggle />
-                  ) : (
-                    settingsData?.enableLocalProxy && (
-                      <ProxyToggle activeApp={activeApp} />
-                    )
+            {currentView === "providers" && activeApp !== "hermes" && (
+              <div
+                className="flex shrink-0 items-center gap-1.5"
+                style={{ WebkitAppRegion: "no-drag" } as any}
+              >
+                {activeApp === "claude-desktop" ? (
+                  <ClaudeDesktopRouteToggle />
+                ) : (
+                  settingsData?.enableLocalProxy && (
+                    <ProxyToggle activeApp={activeApp} />
+                  )
+                )}
+                {activeApp !== "claude-desktop" &&
+                  settingsData?.enableFailoverToggle && (
+                    <FailoverToggle activeApp={activeApp} />
                   )}
-                  {activeApp !== "claude-desktop" &&
-                    settingsData?.enableFailoverToggle && (
-                      <FailoverToggle activeApp={activeApp} />
-                    )}
-                </div>
-              )}
-            {currentView === "providers" &&
-              (settingsData?.showProfileSwitcher ?? true) && (
-                <div
-                  className="flex shrink-0 items-center"
-                  style={{ WebkitAppRegion: "no-drag" } as any}
-                >
-                  <ProfileSwitcher activeApp={activeApp} />
-                </div>
-              )}
+              </div>
+            )}
             {/* 弹性中段：空间不足时由 AppSwitcher 自行收纳溢出应用；
                 justify-end + overflow-hidden 只裁剪 resize 瞬间的过渡帧 */}
             <div className="flex flex-1 min-w-0 items-center justify-end overflow-hidden py-4">

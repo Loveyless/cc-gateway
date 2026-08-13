@@ -1,6 +1,6 @@
 # CC Gateway ユーザーマニュアル
 
-> Claude Code / Claude Desktop / Codex / Gemini CLI / OpenCode / OpenClaw / Hermes オールインワンアシスタント
+> Claude Code / Claude Desktop / Codex / Grok Build / Hermes オールインワンアシスタント
 
 ## 目次構成
 

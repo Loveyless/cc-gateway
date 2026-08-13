@@ -19,9 +19,7 @@ export const APP_IDS: RuntimeAppId[] = [
   "claude",
   "claude-desktop",
   "codex",
-  "gemini",
   "grokbuild",
-  "opencode",
   "hermes",
 ];
 
@@ -29,9 +27,7 @@ export const APP_IDS: RuntimeAppId[] = [
 export const SKILLS_APP_IDS: RuntimeAppId[] = [
   "claude",
   "codex",
-  "gemini",
   "grokbuild",
-  "opencode",
   "hermes",
 ];
 

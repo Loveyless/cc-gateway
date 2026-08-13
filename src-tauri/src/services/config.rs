@@ -87,7 +87,6 @@ impl ConfigService {
     pub fn sync_current_providers_to_live(config: &mut MultiAppConfig) -> Result<(), AppError> {
         Self::sync_current_provider_for_app(config, &AppType::Claude)?;
         Self::sync_current_provider_for_app(config, &AppType::Codex)?;
-        Self::sync_current_provider_for_app(config, &AppType::Gemini)?;
         Self::sync_current_provider_for_app(config, &AppType::GrokBuild)?;
         Ok(())
     }
@@ -125,13 +124,10 @@ impl ConfigService {
             AppType::ClaudeDesktop => {
                 // Claude Desktop 3P profiles are managed by claude_desktop_config.
             }
-            AppType::Gemini => Self::sync_gemini_live(config, &current_id, &provider)?,
-            AppType::GrokBuild => crate::grok_config::write_grok_provider_live(&provider)?,
-            AppType::OpenCode => {
-                // OpenCode uses additive mode, no live sync needed
-                // OpenCode providers are managed directly in the config file
+            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {
+                app_type.ensure_supported()?
             }
-            AppType::OpenClaw => AppType::OpenClaw.ensure_supported()?,
+            AppType::GrokBuild => crate::grok_config::write_grok_provider_live(&provider)?,
             AppType::Hermes => {
                 // Hermes uses additive mode, no live sync needed
             }

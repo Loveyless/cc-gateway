@@ -45,7 +45,7 @@ pub use codex_config::{
 pub use commands::open_provider_terminal;
 pub use commands::*;
 pub use config::{get_claude_mcp_path, get_claude_settings_path, read_json_file};
-pub use database::{Database, Profile};
+pub use database::Database;
 pub use deeplink::{import_provider_from_deeplink, parse_deeplink_url, DeepLinkImportRequest};
 pub use error::AppError;
 pub use grok_config::get_grok_config_path;
@@ -59,7 +59,6 @@ pub use mcp::{
 pub use prompt::Prompt;
 pub use provider::{Provider, ProviderMeta};
 pub use services::{
-    profile::{ProfilePayload, ProfileScope, ProfileService},
     provider::reapply_current_codex_official_live,
     skill::{migrate_skills_to_ssot, ImportSkillSelection},
     ConfigService, EndpointLatency, McpService, PromptService, ProviderService, ProxyService,
@@ -1329,7 +1328,7 @@ pub fn run() {
             commands::enable_prompt,
             commands::import_prompt_from_file,
             commands::get_current_prompt_file_content,
-            // Profile management (项目配置方案)
+            // Retired project profiles: commands stay registered but reject writes.
             commands::list_profiles,
             commands::create_profile,
             commands::update_profile,
@@ -1759,7 +1758,7 @@ pub(crate) fn remove_tray_icon_before_exit(app_handle: &tauri::AppHandle) {
 ///
 /// 检查 `proxy_config.enabled` 字段，如果有任一应用的状态为 `true`，
 /// 则自动启动代理服务并接管对应应用的 Live 配置。
-const PROXY_STARTUP_APP_TYPES: [&str; 4] = ["claude", "codex", "gemini", "grokbuild"];
+const PROXY_STARTUP_APP_TYPES: [&str; 3] = ["claude", "codex", "grokbuild"];
 
 async fn enabled_proxy_apps_on_startup(db: &database::Database) -> Vec<&'static str> {
     let mut apps = Vec::new();

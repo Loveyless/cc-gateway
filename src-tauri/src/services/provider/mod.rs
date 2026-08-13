@@ -4029,19 +4029,9 @@ impl ProviderService {
             let _ = state.db.delete_provider("codex", &codex_id);
         }
 
-        // 同步到 Gemini
-        if let Some(mut gemini_provider) = provider.to_gemini_provider() {
-            // 合并已有配置
-            if let Some(existing) = state.db.get_provider_by_id(&gemini_provider.id, "gemini")? {
-                let mut merged = existing.settings_config.clone();
-                Self::merge_json(&mut merged, &gemini_provider.settings_config);
-                gemini_provider.settings_config = merged;
-            }
-            state.db.save_provider("gemini", &gemini_provider)?;
-        } else {
-            let gemini_id = format!("universal-gemini-{id}");
-            let _ = state.db.delete_provider("gemini", &gemini_id);
-        }
+        // Gemini CLI is retired: never write new child providers, drop leftovers.
+        let gemini_id = format!("universal-gemini-{id}");
+        let _ = state.db.delete_provider("gemini", &gemini_id);
 
         Ok(true)
     }

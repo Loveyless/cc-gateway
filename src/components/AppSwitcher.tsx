@@ -28,9 +28,7 @@ const ALL_APPS: RuntimeAppId[] = [
   "claude",
   "claude-desktop",
   "codex",
-  "gemini",
   "grokbuild",
-  "opencode",
   "hermes",
 ];
 const STORAGE_KEY = "cc-gateway-last-app";
@@ -39,9 +37,7 @@ const APP_ICON_NAME: Partial<Record<RuntimeAppId, string>> = {
   claude: "claude",
   "claude-desktop": "claude",
   codex: "openai",
-  gemini: "gemini",
   grokbuild: "grok",
-  opencode: "opencode",
   hermes: "hermes",
 };
 
@@ -49,9 +45,7 @@ const APP_DISPLAY_NAME: Partial<Record<RuntimeAppId, string>> = {
   claude: "Claude Code",
   "claude-desktop": "Claude Desktop",
   codex: "Codex",
-  gemini: "Gemini",
   grokbuild: "Grok Build",
-  opencode: "OpenCode",
   hermes: "Hermes",
 };
 

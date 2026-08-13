@@ -1,7 +1,7 @@
 {
   "app": {
     "title": "CC Gateway",
-    "description": "All-in-One Assistant for Claude Code, Codex & Gemini CLI"
+    "description": "All-in-One Assistant for Claude Code, Claude Desktop, Codex, Grok Build and Hermes"
   },
   "common": {
     "add": "Add",
@@ -46,7 +46,7 @@
   },
   "firstRunNotice": {
     "title": "Welcome to CC Gateway",
-    "bodyDefault": "CC Gateway lets you switch between multiple Claude Code / Codex / Gemini CLI providers with a single click. If you already had these tools configured, CC Gateway has saved your existing setup as a provider named “default” so none of your previous configuration is lost.",
+    "bodyDefault": "CC Gateway lets you switch between multiple Claude Code / Codex / Grok Build / Hermes providers with a single click. If you already had these tools configured, CC Gateway has saved your existing setup as a provider named “default” so none of your previous configuration is lost.",
     "bodyOfficial": "An “Official” preset is also included in the list — click it any time you want to switch back to the official default. CC Gateway automatically backs up your current config to “default” before switching, so you can move back and forth freely. That's how CC Gateway works 😊",
     "confirm": "Got it"
   },
@@ -329,7 +329,7 @@
     "advanced": {
       "configDir": {
         "title": "Configuration Directory",
-        "description": "Manage storage paths for Claude, Codex and Gemini configurations"
+        "description": "Manage storage paths for Claude, Codex and Grok Build configurations"
       },
       "proxy": {
         "title": "Local Routing",
@@ -504,9 +504,7 @@
       "claudeDesc": "Anthropic Claude Code CLI",
       "codexDesc": "OpenAI Codex CLI",
       "geminiDesc": "Google Gemini CLI",
-      "opencodeDesc": "OpenCode CLI",
-      "showProfileSwitcher": "Show project switcher",
-      "showProfileSwitcherDescription": "Show the project switcher in the main page header"
+      "opencodeDesc": "OpenCode CLI"
     },
     "skillStorage": {
       "title": "Skill Storage Location",
@@ -600,7 +598,7 @@
     "officialWebsite": "Official Website",
     "github": "GitHub",
     "manualInstallCommands": "Manual Install Commands",
-    "oneClickInstallHint": "Install or upgrade Claude Code / Codex / Gemini CLI / OpenCode / Hermes",
+    "oneClickInstallHint": "Install or upgrade Claude Code / Codex / Grok Build / Hermes",
     "localEnvCheck": "Local environment check",
     "updateAllTools": "Update All ({{count}})",
     "currentVersion": "Current Version",
@@ -704,7 +702,7 @@
   },
   "sessionManager": {
     "title": "Session Manager",
-    "subtitle": "Manage Claude Code, Codex, Gemini CLI, Grok Build, OpenCode and Hermes sessions",
+    "subtitle": "Manage Claude Code, Codex, Grok Build and Hermes sessions",
     "searchPlaceholder": "Search by content, directory, or ID",
     "searchSessions": "Search sessions",
     "providerFilterAll": "All",
@@ -1747,41 +1745,6 @@
       "deleteMessage": "Are you sure you want to delete prompt \"{{name}}\"?"
     }
   },
-  "profiles": {
-    "switcherTooltip": {
-      "claude": "Projects: switch the Claude Code provider / MCP / Skills / memory files in one click",
-      "claude-desktop": "Projects: switch the Claude Desktop provider in one click",
-      "codex": "Projects: switch the Codex provider / MCP / Skills / memory files in one click"
-    },
-    "none": "No project",
-    "searchPlaceholder": "Search projects",
-    "empty": "No projects yet",
-    "createFromCurrent": "New project",
-    "createDescription": {
-      "claude": "Save the current Claude Code provider, MCP, Skills and memory file as a project you can switch to later.",
-      "claude-desktop": "Save the current Claude Desktop provider as a project you can switch to later.",
-      "codex": "Save the current Codex provider, MCP, Skills and memory file configuration as a project you can switch to later."
-    },
-    "manage": "Manage projects…",
-    "manageTitle": "Manage Projects",
-    "manageDescription": "Projects are configuration snapshots. When you switch projects, the current configuration is automatically saved back to the project you are leaving.",
-    "namePlaceholder": "e.g. Development, Drawing",
-    "rename": "Rename",
-    "noSnapshotForScope": "Not saved for this app yet",
-    "delete": "Delete",
-    "deleteConfirmTitle": "Confirm Delete",
-    "deleteConfirmMessage": "Are you sure you want to delete project \"{{name}}\"? Your current configuration will not be changed.",
-    "createSuccess": "Project created",
-    "createFailed": "Failed to create project: {{detail}}",
-    "updateSuccess": "Project updated",
-    "updateFailed": "Failed to update project: {{detail}}",
-    "deleteSuccess": "Project deleted",
-    "deleteFailed": "Failed to delete project: {{detail}}",
-    "applySuccess": "Project applied",
-    "applyFailed": "Failed to apply project: {{detail}}",
-    "applyWarnings": "Project applied with {{warningCount}} warning(s):\n{{details}}",
-    "clearSuccess": "Switched to no project"
-  },
   "hermes": {
     "form": {
       "baseUrl": "API Endpoint",
@@ -2162,9 +2125,6 @@
     "skillsFailed": "Failed to auto import skills",
     "skillsFailedDescription": "Open the Skills page and click \"Import Existing\" to import manually (or restart and try again)."
   },
-  "agents": {
-    "title": "Agents"
-  },
   "health": {
     "operational": "Operational",
     "degraded": "Degraded",
@@ -2404,7 +2364,7 @@
     "duplicatedAndSynced": "Universal provider duplicated and synced",
     "duplicateError": "Failed to duplicate universal provider",
     "title": "Universal Provider",
-    "description": "Universal providers manage Claude, Codex, and Gemini configurations simultaneously. Changes are automatically synced to all enabled apps.",
+    "description": "Universal providers manage Claude and Codex configurations simultaneously. Changes are automatically synced to all enabled apps.",
     "add": "Add Universal Provider",
     "edit": "Edit Universal Provider",
     "empty": "No universal providers yet",
@@ -2439,7 +2399,7 @@
     "deleteConfirmTitle": "Delete Universal Provider",
     "deleteConfirmDescription": "Are you sure you want to delete \"{{name}}\"? This will also delete its generated provider configurations in each app.",
     "syncConfirmTitle": "Sync Universal Provider",
-    "syncConfirmDescription": "Syncing \"{{name}}\" will overwrite the associated provider configurations in Claude, Codex, and Gemini. Do you want to continue?",
+    "syncConfirmDescription": "Syncing \"{{name}}\" will overwrite the associated provider configurations in Claude and Codex. Do you want to continue?",
     "syncConfirm": "Sync",
     "saveAndSync": "Save & Sync",
     "savedAndSynced": "Saved and synced to all apps",

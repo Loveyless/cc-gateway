@@ -349,9 +349,7 @@ export function SettingsPage({
                             onResetAppConfig={resetAppConfigDir}
                             claudeDir={settings.claudeConfigDir}
                             codexDir={settings.codexConfigDir}
-                            geminiDir={settings.geminiConfigDir}
                             grokDir={settings.grokConfigDir}
-                            opencodeDir={settings.opencodeConfigDir}
                             hermesDir={settings.hermesConfigDir}
                             onDirectoryChange={updateDirectory}
                             onBrowseDirectory={browseDirectory}

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Zap, Loader2, Plus, X, AlertCircle, Save } from "lucide-react";
-import type { RuntimeAppId } from "@/lib/api";
+import type { AppId } from "@/lib/api";
 import { vscodeApi } from "@/lib/api/vscode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,13 +9,14 @@ import { FullScreenPanel } from "@/components/common/FullScreenPanel";
 import type { CustomEndpoint, EndpointCandidate } from "@/types";
 
 // 端点测速超时配置（秒）
-const ENDPOINT_TIMEOUT_SECS: Record<RuntimeAppId, number> = {
+const ENDPOINT_TIMEOUT_SECS: Record<AppId, number> = {
   codex: 12,
   claude: 8,
   "claude-desktop": 8,
   gemini: 8,
   grokbuild: 12,
   opencode: 8,
+  openclaw: 8,
   hermes: 8,
 };
 
@@ -27,7 +28,7 @@ interface TestResult {
 }
 
 interface EndpointSpeedTestProps {
-  appId: RuntimeAppId;
+  appId: AppId;
   providerId?: string;
   value: string;
   onChange: (url: string) => void;

@@ -165,9 +165,7 @@ pub(crate) fn parse_mcp_apps(apps_str: &str) -> Result<McpApps, AppError> {
         match app.trim() {
             "claude" => apps.claude = true,
             "codex" => apps.codex = true,
-            "gemini" => apps.gemini = true,
             "grokbuild" | "grok" => apps.grokbuild = true,
-            "opencode" => apps.opencode = true,
             "hermes" => apps.hermes = true,
             other => {
                 return Err(AppError::InvalidInput(format!(

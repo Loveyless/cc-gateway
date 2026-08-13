@@ -2,7 +2,7 @@
 
 # CC Gateway
 
-### Claude Code、Claude Desktop、Codex、Gemini CLI、Grok Build、OpenCode、OpenClaw、Hermes Agent のオールインワン管理ツール
+### Claude Code、Claude Desktop、Codex、Grok Build、Hermes Agent のオールインワン管理ツール
 
 [![Version](https://img.shields.io/github/v/release/Loveyless/cc-gateway?color=blue&label=version)](https://github.com/Loveyless/cc-gateway/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/Loveyless/cc-gateway/releases)
@@ -21,15 +21,15 @@
 
 ## CC Gateway を選ぶ理由
 
-最新の AI コーディングは Claude Code、Claude Desktop、Codex、Gemini CLI、Grok Build、OpenCode、OpenClaw、Hermes などのツールに依存していますが、各ツールの設定形式はバラバラです。API プロバイダを切り替えるたびに JSON、TOML、`.env` ファイルを手動で編集する必要があり、複数ツール間で MCP や Skills を統一的に管理する手段もありません。
+最新の AI コーディングは Claude Code、Claude Desktop、Codex、Grok Build、Hermes などのツールに依存していますが、各ツールの設定形式はバラバラです。API プロバイダを切り替えるたびに JSON、TOML、設定ファイルを手動で編集する必要があり、複数ツール間で MCP や Skills を統一的に管理する手段もありません。
 
 **CC Gateway** は、対応する AI ツールを 1 つのデスクトップアプリで一元管理できます。設定ファイルを手作業で編集する代わりに、ワンクリックでプロバイダをインポートし、瞬時に切り替えられるビジュアルインターフェースを提供します。50 以上の組み込みプリセット、統一 MCP・Skills 管理、システムトレイからの即時切り替え機能を搭載。すべてはアトミック書き込みによる信頼性の高い SQLite データベースに支えられており、設定の破損を防ぎます。
 
-- **1 つのアプリで 8 つのツール** -- Claude Code、Claude Desktop、Codex、Gemini CLI、Grok Build、OpenCode、OpenClaw、Hermes を単一インターフェースで管理
+- **1 つのアプリで 5 つのツール** -- Claude Code、Claude Desktop、Codex、Grok Build、Hermes を単一インターフェースで管理
 - **手動編集は不要** -- AWS Bedrock、NVIDIA NIM、コミュニティリレーなど 50 以上のプロバイダプリセットを内蔵。選んで切り替えるだけ
-- **統一 MCP・Skills 管理** -- 1 つのパネルで Claude、Codex、Gemini、Grok Build、OpenCode、Hermes の MCP サーバーと Skills を双方向同期で管理
+- **統一 MCP・Skills 管理** -- 1 つのパネルで Claude、Codex、Grok Build、Hermes の MCP サーバーと Skills を双方向同期で管理
 - **システムトレイでクイック切り替え** -- トレイメニューから即座にプロバイダを切り替え。アプリを開く必要なし
-- **クラウド同期** -- Dropbox、OneDrive、iCloud、または WebDAV サーバー経由でデバイス間のプロバイダデータを同期
+- **ディレクトリ上書き** -- 各ツールの設定ディレクトリを Dropbox、OneDrive、iCloud などのローカル同期フォルダに指定可能
 - **クロスプラットフォーム** -- Tauri 2 で構築された Windows、macOS、Linux 対応のネイティブデスクトップアプリ
 - **便利ツール内蔵** -- 初回起動時のログイン確認、署名バイパス、プラグイン拡張の同期など、さまざまなユーティリティを搭載
 
@@ -45,8 +45,8 @@
 
 ### プロバイダ管理
 
-- **8 つの対応ツール、50 以上のプリセット** -- Claude Code、Claude Desktop、Codex、Gemini CLI、Grok Build、OpenCode、OpenClaw、Hermes。キーをコピーしてワンクリックでインポート
-- **ユニバーサルプロバイダ** -- 1 つの設定を Claude Code、Codex、Gemini CLI に同期
+- **5 つの対応ツール** -- Claude Code、Claude Desktop、Codex、Grok Build、Hermes。キーをコピーしてワンクリックでインポート
+- **ユニバーサルプロバイダ** -- 1 つの設定を Claude Code と Codex に同期
 - ワンクリック切り替え、システムトレイクイックアクセス、ドラッグ＆ドロップ並び替え、インポート/エクスポート
 
 ### プロキシ & フェイルオーバー
@@ -56,7 +56,7 @@
 
 ### MCP、Prompts & Skills
 
-- **統一 MCP パネル** -- Claude、Codex、Gemini、Grok Build、OpenCode、Hermes の MCP サーバーを管理、双方向同期、Deep Link インポート対応
+- **統一 MCP パネル** -- Claude、Codex、Grok Build、Hermes の MCP サーバーを管理、双方向同期、Deep Link インポート対応
 - **Prompts** -- Markdown エディタ、クロスアプリ同期（CLAUDE.md / AGENTS.md / GEMINI.md）、バックフィル保護
 - **Skills** -- GitHub リポジトリまたは ZIP ファイルからワンクリックインストール、カスタムリポジトリ管理、シンボリックリンクとファイルコピーに対応
 
@@ -67,11 +67,11 @@
 ### Session Manager & ワークスペース
 
 - 対応するセッションソースの会話履歴を閲覧・検索・復元
-- **ワークスペースエディタ**（OpenClaw）-- エージェントファイル（AGENTS.md、SOUL.md など）を Markdown プレビュー付きで編集
+- Claude Code、Codex、Grok Build、Hermes のセッションを閲覧・検索・復元
 
 ### システム & プラットフォーム
 
-- **クラウド同期** -- カスタム設定ディレクトリ（Dropbox、OneDrive、iCloud、NAS）および WebDAV サーバー同期
+- **ディレクトリ上書き** -- カスタム設定ディレクトリ（Dropbox、OneDrive、iCloud、NAS）
 - **Deep Link** (`ccgateway://`) -- URL 経由でプロバイダ、MCP サーバー、Prompts、Skills をワンクリックインポート
 - ダーク / ライト / システムテーマ、自動起動、Release の手動更新確認、アトミック書き込み、自動バックアップ、多言語対応（簡体中文/繁體中文/英/日）
 
@@ -80,7 +80,7 @@
 <details>
 <summary><strong>CC Gateway はどの AI ツールに対応していますか？</strong></summary>
 
-CC Gateway は **Claude Code**、**Claude Desktop**、**Codex**、**Gemini CLI**、**Grok Build**、**OpenCode**、**OpenClaw**、**Hermes** の 8 つのツールに対応しています。各ツールに専用のプロバイダプリセットと設定管理が用意されています。
+CC Gateway は **Claude Code**、**Claude Desktop**、**Codex**、**Grok Build**、**Hermes** の 5 つのツールに対応しています。各ツールに専用のプロバイダプリセットと設定管理が用意されています。
 
 </details>
 

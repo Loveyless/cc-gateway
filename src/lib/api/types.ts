@@ -3,11 +3,11 @@ export type AppId =
   | "claude"
   | "claude-desktop"
   | "codex"
-  | "gemini"
+  | "gemini" // legacy serialized data only; not a supported runtime app
   | "grokbuild"
-  | "opencode"
+  | "opencode" // legacy serialized data only; not a supported runtime app
   | "openclaw" // legacy serialized data only; not a supported runtime app
   | "hermes";
 
 /** Applications that remain supported by current UI and runtime actions. */
-export type RuntimeAppId = Exclude<AppId, "openclaw">;
+export type RuntimeAppId = Exclude<AppId, "openclaw" | "gemini" | "opencode">;

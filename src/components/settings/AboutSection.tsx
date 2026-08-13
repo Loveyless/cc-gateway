@@ -58,14 +58,7 @@ interface ToolVersion {
   wsl_distro: string | null;
 }
 
-const TOOL_NAMES = [
-  "claude",
-  "codex",
-  "gemini",
-  "grok",
-  "opencode",
-  "hermes",
-] as const;
+const TOOL_NAMES = ["claude", "codex", "grok", "hermes"] as const;
 type ToolName = (typeof TOOL_NAMES)[number];
 type ToolLifecycleAction = "install" | "update";
 
@@ -127,12 +120,8 @@ const POSIX_ONE_CLICK_INSTALL_COMMANDS = `# Claude Code
 ${posixScriptInstallCommand("https://claude.ai/install.sh")} || npm i -g @anthropic-ai/claude-code@latest
 # Codex
 npm i -g @openai/codex@latest
-# Gemini CLI
-npm i -g @google/gemini-cli@latest
 # Grok Build
 npm i -g @xai-official/grok@latest
-# OpenCode
-${posixScriptInstallCommand("https://opencode.ai/install")} || npm i -g opencode-ai@latest
 # Hermes
 ${posixScriptInstallCommand("https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh")}`;
 
@@ -140,12 +129,8 @@ const WINDOWS_ONE_CLICK_INSTALL_COMMANDS = `# Claude Code
 npm i -g @anthropic-ai/claude-code@latest
 # Codex
 npm i -g @openai/codex@latest
-# Gemini CLI
-npm i -g @google/gemini-cli@latest
 # Grok Build
 npm i -g @xai-official/grok@latest
-# OpenCode
-npm i -g opencode-ai@latest
 # Hermes
 ${HERMES_WINDOWS_INSTALL_COMMAND}`;
 
@@ -156,9 +141,7 @@ const ONE_CLICK_INSTALL_COMMANDS = isWindows()
 const TOOL_DISPLAY_NAMES: Record<ToolName, string> = {
   claude: "Claude Code",
   codex: "Codex",
-  gemini: "Gemini CLI",
   grok: "Grok Build",
-  opencode: "OpenCode",
   hermes: "Hermes",
 };
 
@@ -171,9 +154,7 @@ function toolDisplayName(tool: string): string {
 const TOOL_APP_IDS: Record<ToolName, AppId> = {
   claude: "claude",
   codex: "codex",
-  gemini: "gemini",
   grok: "grokbuild",
-  opencode: "opencode",
   hermes: "hermes",
 };
 

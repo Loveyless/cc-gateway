@@ -6,7 +6,6 @@ describe("ProxyTabContent failover apps", () => {
     expect(FAILOVER_APPS.map(({ id }) => id)).toEqual([
       "claude",
       "codex",
-      "gemini",
       "grokbuild",
     ]);
   });

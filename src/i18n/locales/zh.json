@@ -1,7 +1,7 @@
 {
   "app": {
     "title": "CC Gateway",
-    "description": "Claude Code / Codex / Gemini CLI 全方位辅助工具"
+    "description": "Claude Code / Claude Desktop / Codex / Grok Build / Hermes 全方位辅助工具"
   },
   "common": {
     "add": "添加",
@@ -46,7 +46,7 @@
   },
   "firstRunNotice": {
     "title": "欢迎使用 CC Gateway",
-    "bodyDefault": "CC Gateway 可以帮你在 Claude Code / Codex / Gemini CLI 的多个供应商之间一键切换。如果你之前已经配置过这些工具，CC Gateway 会自动把现有设置保存为名为 “default” 的供应商，保证你的配置不会丢失。",
+    "bodyDefault": "CC Gateway 可以帮你在 Claude Code / Codex / Grok Build / Hermes 的多个供应商之间一键切换。如果你之前已经配置过这些工具，CC Gateway 会自动把现有设置保存为名为 “default” 的供应商，保证你的配置不会丢失。",
     "bodyOfficial": "列表里还预置了 “官方（Official）” 供应商，随时点一下即可切回官方默认配置。切换前 CC Gateway 会自动把当前配置备份回 default，可以放心来回切。CC Gateway 就是这样工作的 😊",
     "confirm": "我知道了"
   },
@@ -329,7 +329,7 @@
     "advanced": {
       "configDir": {
         "title": "配置文件目录",
-        "description": "管理 Claude、Codex 和 Gemini 的配置存储路径"
+        "description": "管理 Claude、Codex 和 Grok Build 的配置存储路径"
       },
       "proxy": {
         "title": "本地路由",
@@ -504,9 +504,7 @@
       "claudeDesc": "Anthropic Claude Code CLI",
       "codexDesc": "OpenAI Codex CLI",
       "geminiDesc": "Google Gemini CLI",
-      "opencodeDesc": "OpenCode CLI",
-      "showProfileSwitcher": "显示项目切换",
-      "showProfileSwitcherDescription": "在主页面顶部显示项目切换入口"
+      "opencodeDesc": "OpenCode CLI"
     },
     "skillStorage": {
       "title": "Skills 存储位置",
@@ -600,7 +598,7 @@
     "officialWebsite": "官方网站",
     "github": "GitHub",
     "manualInstallCommands": "手动安装命令",
-    "oneClickInstallHint": "安装或升级 Claude Code / Codex / Gemini CLI / OpenCode / Hermes",
+    "oneClickInstallHint": "安装或升级 Claude Code / Codex / Grok Build / Hermes",
     "localEnvCheck": "本地环境检查",
     "updateAllTools": "全部升级（{{count}}）",
     "currentVersion": "当前版本",
@@ -704,7 +702,7 @@
   },
   "sessionManager": {
     "title": "会话管理",
-    "subtitle": "管理 Claude Code、Codex、Gemini CLI、Grok Build、OpenCode 与 Hermes 工作阶段记录",
+    "subtitle": "管理 Claude Code、Codex、Grok Build 与 Hermes 工作阶段记录",
     "searchPlaceholder": "搜索会话内容、目录或 ID",
     "searchSessions": "搜索会话",
     "providerFilterAll": "全部",
@@ -1747,41 +1745,6 @@
       "deleteMessage": "确定要删除提示词 \"{{name}}\" 吗？"
     }
   },
-  "profiles": {
-    "switcherTooltip": {
-      "claude": "项目：一键切换 Claude Code 的供应商 / MCP / Skills / 记忆文件",
-      "claude-desktop": "项目：一键切换 Claude Desktop 的供应商",
-      "codex": "项目：一键切换 Codex 的供应商 / MCP / Skills / 记忆文件"
-    },
-    "none": "不使用项目",
-    "searchPlaceholder": "搜索项目",
-    "empty": "暂无项目",
-    "createFromCurrent": "新建项目",
-    "createDescription": {
-      "claude": "把 Claude Code 当前的供应商、MCP、Skills、记忆文件保存为一个项目，之后可一键切换。",
-      "claude-desktop": "把 Claude Desktop 当前的供应商保存为一个项目，之后可一键切换。",
-      "codex": "把 Codex 当前的供应商、MCP、Skills 和记忆文件配置保存为一个项目，之后可一键切换。"
-    },
-    "manage": "管理项目…",
-    "manageTitle": "管理项目",
-    "manageDescription": "项目是配置快照。切换项目时，当前配置会自动保存回原项目。",
-    "namePlaceholder": "例如：开发、绘图",
-    "rename": "重命名",
-    "noSnapshotForScope": "本侧未保存",
-    "delete": "删除",
-    "deleteConfirmTitle": "确认删除",
-    "deleteConfirmMessage": "确定要删除项目 \"{{name}}\" 吗？不会改动任何现有配置。",
-    "createSuccess": "项目已创建",
-    "createFailed": "创建项目失败: {{detail}}",
-    "updateSuccess": "项目已更新",
-    "updateFailed": "更新项目失败: {{detail}}",
-    "deleteSuccess": "项目已删除",
-    "deleteFailed": "删除项目失败: {{detail}}",
-    "applySuccess": "项目已应用",
-    "applyFailed": "应用项目失败: {{detail}}",
-    "applyWarnings": "项目已应用，{{warningCount}} 条警告：\n{{details}}",
-    "clearSuccess": "已切换为不使用项目"
-  },
   "hermes": {
     "form": {
       "baseUrl": "API 端点",
@@ -2162,9 +2125,6 @@
     "skillsFailed": "自动导入技能失败",
     "skillsFailedDescription": "请打开 Skills 页面点击“导入已有”手动导入（或重启后再试）。"
   },
-  "agents": {
-    "title": "智能体"
-  },
   "health": {
     "operational": "正常",
     "degraded": "降级",
@@ -2404,7 +2364,7 @@
     "duplicatedAndSynced": "统一供应商已复制并同步",
     "duplicateError": "复制统一供应商失败",
     "title": "统一供应商",
-    "description": "统一供应商可以同时管理 Claude、Codex 和 Gemini 的配置。修改后会自动同步到所有启用的应用。",
+    "description": "统一供应商可以同时管理 Claude 和 Codex 的配置。修改后会自动同步到所有启用的应用。",
     "add": "添加统一供应商",
     "edit": "编辑统一供应商",
     "empty": "还没有统一供应商",
@@ -2439,7 +2399,7 @@
     "deleteConfirmTitle": "删除统一供应商",
     "deleteConfirmDescription": "确定要删除 \"{{name}}\" 吗？这将同时删除它在各应用中生成的供应商配置。",
     "syncConfirmTitle": "同步统一供应商",
-    "syncConfirmDescription": "同步 \"{{name}}\" 将会覆盖 Claude、Codex 和 Gemini 中关联的供应商配置。确定要继续吗？",
+    "syncConfirmDescription": "同步 \"{{name}}\" 将会覆盖 Claude 和 Codex 中关联的供应商配置。确定要继续吗？",
     "syncConfirm": "同步",
     "saveAndSync": "保存并同步",
     "savedAndSynced": "已保存并同步到所有应用",

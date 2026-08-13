@@ -454,8 +454,7 @@ describe("useSettings hook", () => {
     expect(directorySettingsMock.resetAllDirectories).toHaveBeenCalledWith({
       claude: "/server/claude",
       codex: undefined,
-      gemini: "/server/gemini",
-      opencode: "/server/opencode",
+      grokbuild: undefined,
       hermes: undefined,
     });
     expect(metadataMock.setRequiresRestart).toHaveBeenCalledWith(false);

@@ -1,6 +1,6 @@
 # CC Gateway User Manual
 
-> All-in-One Assistant for Claude Code / Claude Desktop / Codex / Gemini CLI / OpenCode / OpenClaw / Hermes
+> All-in-One Assistant for Claude Code / Claude Desktop / Codex / Grok Build / Hermes
 
 ## Table of Contents
 

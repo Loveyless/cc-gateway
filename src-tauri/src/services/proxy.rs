@@ -938,7 +938,7 @@ impl ProxyService {
 
     /// 同步关闭指定应用的 Live 接管（恢复配置并清标志，不停止代理服务）。
     ///
-    /// 用于 `ProfileService::apply` 等 sync 路径：调用者所在线程可能没有 Tokio
+    /// 用于同步路径：调用者所在线程可能没有 Tokio
     /// runtime，无法执行 `set_takeover_for_app(false)` 里的停止服务/等待任务等
     /// Tokio IO。这里只恢复 Live 文件、删除备份、清除 DB 接管标志，让后续
     /// `ProviderService::switch` 能正常写入官方供应商配置。

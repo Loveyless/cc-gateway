@@ -90,9 +90,7 @@ describe("useDirectorySettings", () => {
       appConfig: "/override/app",
       claude: "/remote/claude",
       codex: "/remote/codex",
-      gemini: "/remote/gemini",
       grokbuild: "/remote/grok",
-      opencode: "/remote/opencode",
       hermes: "/remote/hermes",
     });
   });
@@ -228,16 +226,12 @@ describe("useDirectorySettings", () => {
       result.current.resetAllDirectories({
         claude: "/server/claude",
         codex: "/server/codex",
-        gemini: "/server/gemini",
         grokbuild: "/server/grok",
-        opencode: "/server/opencode",
       });
     });
 
     expect(result.current.resolvedDirs.claude).toBe("/server/claude");
     expect(result.current.resolvedDirs.codex).toBe("/server/codex");
-    expect(result.current.resolvedDirs.gemini).toBe("/server/gemini");
     expect(result.current.resolvedDirs.grokbuild).toBe("/server/grok");
-    expect(result.current.resolvedDirs.opencode).toBe("/server/opencode");
   });
 });

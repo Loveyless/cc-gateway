@@ -71,12 +71,6 @@ export function parseDeepLinkConfigPreview(
         tomlConfig: config ? sanitizeTomlForPreview(config) : "",
       };
     }
-    if (request.app === "gemini") {
-      return {
-        type: "gemini",
-        env: parsed as Record<string, string>,
-      };
-    }
     if (request.app === "grokbuild") {
       const config =
         typeof parsed.config === "string"

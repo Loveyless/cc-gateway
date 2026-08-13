@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { FileText, Search } from "lucide-react";
 import { type AppId } from "@/lib/api";
 import { usePromptActions } from "@/hooks/usePromptActions";
-import { useTauriEvent } from "@/hooks/useTauriEvent";
 import { ManagementListSearch } from "@/components/common/ManagementListSearch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import PromptListItem from "./PromptListItem";
@@ -144,9 +143,6 @@ const PromptPanel = React.forwardRef<PromptPanelHandle, PromptPanelProps>(
         window.removeEventListener("prompt-imported", handlePromptImported);
       };
     }, [appId, runExternalReload]);
-
-    // 应用项目 Profile 会切换激活的 prompt（prompts 非 react-query，需主动 reload）
-    useTauriEvent("profile-applied", runExternalReload);
 
     const handleAdd = () => {
       if (reloadLockRef.current || writeLockRef.current || interactionBlocked) {

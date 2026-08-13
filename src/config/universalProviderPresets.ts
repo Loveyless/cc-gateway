@@ -1,7 +1,7 @@
 /**
  * 统一供应商（Universal Provider）预设配置
  *
- * 统一供应商是跨应用共享的配置，修改后会自动同步到 Claude、Codex、Gemini 三个应用。
+ * 统一供应商是跨应用共享的配置，修改后会自动同步到 Claude、Codex。
  * 适用于 NewAPI 等支持多种协议的 API 网关。
  */
 
@@ -65,7 +65,7 @@ export const universalProviderPresets: UniversalProviderPreset[] = [
     defaultApps: {
       claude: true,
       codex: true,
-      gemini: true,
+      gemini: false,
     },
     defaultModels: NEWAPI_DEFAULT_MODELS,
     websiteUrl: "https://www.newapi.pro",
@@ -80,7 +80,7 @@ export const universalProviderPresets: UniversalProviderPreset[] = [
     defaultApps: {
       claude: true,
       codex: true,
-      gemini: true,
+      gemini: false,
     },
     defaultModels: NEWAPI_DEFAULT_MODELS,
     icon: "openai",

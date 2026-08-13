@@ -271,10 +271,10 @@ export interface VisibleApps {
   claude: boolean;
   "claude-desktop": boolean;
   codex: boolean;
-  gemini: boolean;
   grokbuild: boolean;
-  opencode: boolean;
   hermes: boolean;
+  gemini?: boolean;
+  opencode?: boolean;
 }
 
 export type RemoteSnapshotLayout = "current" | "legacy";
@@ -320,8 +320,6 @@ export interface Settings {
   usageDashboardRefreshIntervalMs?: number;
   // Whether to show the failover toggle independently on the main page
   enableFailoverToggle?: boolean;
-  // Whether to show the project profile switcher on the main page header
-  showProfileSwitcher?: boolean;
   // Preserve Codex ChatGPT login in auth.json when switching third-party providers
   preserveCodexOfficialAuthOnSwitch?: boolean;
   // Run official Codex under the shared "custom" provider id so future

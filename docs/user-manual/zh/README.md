@@ -1,6 +1,6 @@
 # CC Gateway 用户手册
 
-> Claude Code / Claude Desktop / Codex / Gemini CLI / OpenCode / OpenClaw / Hermes 全方位辅助工具
+> Claude Code / Claude Desktop / Codex / Grok Build / Hermes 全方位辅助工具
 
 ## 目录结构
 
@@ -27,7 +27,7 @@
 │   ├── 3.2 Prompts 提示词管理
 │   ├── 3.3 Skills 技能管理
 │   ├── 3.4 会话管理器
-│   └── 3.5 工作区文件与每日记忆
+│   └── 3.5 工作区文件与每日记忆（已下线，仅历史文档）
 │
 ├── 4. 代理与高可用
 │   ├── 4.1 代理服务
