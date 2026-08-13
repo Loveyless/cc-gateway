@@ -29,12 +29,6 @@ import {
 import { useStreamCheck } from "@/hooks/useStreamCheck";
 import { ProviderCard } from "@/components/providers/ProviderCard";
 import { ProviderEmptyState } from "@/components/providers/ProviderEmptyState";
-import {
-  useAutoFailoverEnabled,
-  useFailoverQueue,
-  useAddToFailoverQueue,
-  useRemoveFromFailoverQueue,
-} from "@/lib/query/failover";
 import { useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -51,12 +45,9 @@ interface ProviderListProps {
   onDuplicate: (provider: Provider) => void;
   onConfigureUsage?: (provider: Provider) => void;
   onOpenWebsite: (url: string) => void;
-  onOpenTerminal?: (provider: Provider) => void;
   onCreate?: () => void;
   isLoading?: boolean;
-  isProxyRunning?: boolean; // 代理服务运行状态
   isProxyTakeover?: boolean; // 代理接管模式（Live配置已被接管）
-  activeProviderId?: string; // 代理当前实际使用的供应商 ID（用于故障转移模式下标注绿色边框）
 }
 
 export function ProviderList({
@@ -70,12 +61,9 @@ export function ProviderList({
   onDuplicate,
   onConfigureUsage,
   onOpenWebsite,
-  onOpenTerminal,
   onCreate,
   isLoading = false,
-  isProxyRunning = false,
   isProxyTakeover = false,
-  activeProviderId,
 }: ProviderListProps) {
   const { t } = useTranslation();
   const { checkProvider, isChecking } = useStreamCheck(appId);
@@ -109,45 +97,6 @@ export function ProviderList({
       return true; // 其他应用始终返回 true
     },
     [appId, opencodeLiveIds, hermesLiveIds],
-  );
-
-  // 故障转移相关
-  const { data: isAutoFailoverEnabled } = useAutoFailoverEnabled(appId);
-  const { data: failoverQueue } = useFailoverQueue(appId);
-  const addToQueue = useAddToFailoverQueue();
-  const removeFromQueue = useRemoveFromFailoverQueue();
-
-  const isFailoverModeActive =
-    isProxyTakeover === true && isAutoFailoverEnabled === true;
-
-  const getFailoverPriority = useCallback(
-    (providerId: string): number | undefined => {
-      if (!isFailoverModeActive || !failoverQueue) return undefined;
-      const index = failoverQueue.findIndex(
-        (item) => item.providerId === providerId,
-      );
-      return index >= 0 ? index + 1 : undefined;
-    },
-    [isFailoverModeActive, failoverQueue],
-  );
-
-  const isInFailoverQueue = useCallback(
-    (providerId: string): boolean => {
-      if (!isFailoverModeActive || !failoverQueue) return false;
-      return failoverQueue.some((item) => item.providerId === providerId);
-    },
-    [isFailoverModeActive, failoverQueue],
-  );
-
-  const handleToggleFailover = useCallback(
-    (providerId: string, enabled: boolean) => {
-      if (enabled) {
-        addToQueue.mutate({ appType: appId, providerId });
-      } else {
-        removeFromQueue.mutate({ appType: appId, providerId });
-      }
-    },
-    [appId, addToQueue, removeFromQueue],
   );
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -363,18 +312,9 @@ export function ProviderList({
                 onDuplicate={onDuplicate}
                 onConfigureUsage={onConfigureUsage}
                 onOpenWebsite={onOpenWebsite}
-                onOpenTerminal={onOpenTerminal}
                 onTest={handleTest}
                 isTesting={isChecking(provider.id)}
-                isProxyRunning={isProxyRunning}
                 isProxyTakeover={isProxyTakeover}
-                isAutoFailoverEnabled={isFailoverModeActive}
-                failoverPriority={getFailoverPriority(provider.id)}
-                isInFailoverQueue={isInFailoverQueue(provider.id)}
-                onToggleFailover={(enabled) =>
-                  handleToggleFailover(provider.id, enabled)
-                }
-                activeProviderId={activeProviderId}
                 // Hermes: model.provider === provider.id
                 isDefaultModel={appId === "hermes" ? isHermesCurrent : false}
               />
@@ -491,16 +431,9 @@ interface SortableProviderCardProps {
   onDuplicate: (provider: Provider) => void;
   onConfigureUsage?: (provider: Provider) => void;
   onOpenWebsite: (url: string) => void;
-  onOpenTerminal?: (provider: Provider) => void;
   onTest?: (provider: Provider) => void;
   isTesting: boolean;
-  isProxyRunning: boolean;
   isProxyTakeover: boolean;
-  isAutoFailoverEnabled: boolean;
-  failoverPriority?: number;
-  isInFailoverQueue: boolean;
-  onToggleFailover: (enabled: boolean) => void;
-  activeProviderId?: string;
   isDefaultModel?: boolean;
 }
 
@@ -516,16 +449,9 @@ function SortableProviderCard({
   onDuplicate,
   onConfigureUsage,
   onOpenWebsite,
-  onOpenTerminal,
   onTest,
   isTesting,
-  isProxyRunning,
   isProxyTakeover,
-  isAutoFailoverEnabled,
-  failoverPriority,
-  isInFailoverQueue,
-  onToggleFailover,
-  activeProviderId,
   isDefaultModel,
 }: SortableProviderCardProps) {
   const {
@@ -558,21 +484,14 @@ function SortableProviderCard({
           onConfigureUsage ? (item) => onConfigureUsage(item) : () => undefined
         }
         onOpenWebsite={onOpenWebsite}
-        onOpenTerminal={onOpenTerminal}
         onTest={onTest}
         isTesting={isTesting}
-        isProxyRunning={isProxyRunning}
         isProxyTakeover={isProxyTakeover}
         dragHandleProps={{
           attributes,
           listeners,
           isDragging,
         }}
-        isAutoFailoverEnabled={isAutoFailoverEnabled}
-        failoverPriority={failoverPriority}
-        isInFailoverQueue={isInFailoverQueue}
-        onToggleFailover={onToggleFailover}
-        activeProviderId={activeProviderId}
         isDefaultModel={isDefaultModel}
       />
     </div>

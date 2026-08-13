@@ -147,9 +147,6 @@
     "configureUsage": "Configure usage query",
     "managedByHermes": "Hermes Managed",
     "managedByHermesHint": "Defined in Hermes' providers: dict. Edit or remove it via Hermes Web UI.",
-    "openTerminal": "Open Terminal",
-    "terminalOpened": "Terminal opened",
-    "terminalOpenFailed": "Failed to open terminal",
     "name": "Provider Name",
     "namePlaceholder": "e.g., Claude Official",
     "websiteUrl": "Website URL",
@@ -283,11 +280,6 @@
       "message": "Local routing is an advanced feature. Please make sure you understand how it works before enabling.\n\nWe recommend consulting the relevant documentation or your provider for proper configuration.",
       "confirm": "I understand, enable"
     },
-    "failover": {
-      "title": "Enable Failover",
-      "message": "Failover is an advanced feature. Please make sure you understand how it works before enabling.\n\nWe recommend configuring provider priorities in the failover queue first.",
-      "confirm": "I understand, enable"
-    },
     "unifyCodexHistory": {
       "title": "Unified Codex session history",
       "message": "When enabled, the official subscription and third-party providers share one session history list. Note: resuming an old session across providers may fail because its encrypted_content reasoning cannot be decrypted by another backend.\n\nYou can also migrate your existing official session history into the shared list (originals are backed up to ~/.cc-gateway/backups first and can be restored when you turn this off).",
@@ -335,19 +327,9 @@
         "title": "Local Routing",
         "description": "Control routing service toggle, view status and port info",
         "enableFeature": "Show Routing Toggle on Main Page",
-        "enableFeatureDescription": "When enabled, the routing and failover toggles will appear at the top of the main page",
-        "enableFailoverToggle": "Show Failover Toggle on Main Page",
-        "enableFailoverToggleDescription": "When enabled, the failover toggle will appear independently at the top of the main page",
+        "enableFeatureDescription": "When enabled, the routing toggle will appear at the top of the main page",
         "running": "Running",
         "stopped": "Stopped"
-      },
-      "connectivityCheck": {
-        "title": "Connectivity Check Settings",
-        "description": "Configure timeout, retries, and the slow-response threshold for provider reachability checks"
-      },
-      "failover": {
-        "title": "Auto Failover",
-        "description": "Configure failover queue and circuit breaker strategy"
       },
       "pricing": {
         "title": "Cost Pricing",
@@ -360,10 +342,6 @@
       "data": {
         "title": "Data Management",
         "description": "Import and export local configuration data"
-      },
-      "backup": {
-        "title": "Backup & Restore",
-        "description": "Manage automatic backups, view and restore database snapshots"
       },
       "rectifier": {
         "title": "Rectifier",
@@ -524,36 +502,6 @@
       "symlink": "Symlink",
       "copy": "Copy Files",
       "symlinkHint": "Symlinks save disk space and enable real-time sync. Note: May require admin privileges or Developer Mode on Windows"
-    },
-    "terminal": {
-      "title": "Preferred Terminal",
-      "description": "Choose which terminal app to use when clicking the terminal button",
-      "fallbackHint": "If the selected terminal is unavailable, the system default will be used",
-      "options": {
-        "macos": {
-          "terminal": "Terminal.app",
-          "iterm2": "iTerm2",
-          "alacritty": "Alacritty",
-          "kitty": "Kitty",
-          "ghostty": "Ghostty",
-          "wezterm": "WezTerm",
-          "kaku": "Kaku",
-          "warp": "Warp"
-        },
-        "windows": {
-          "cmd": "Command Prompt",
-          "powershell": "PowerShell",
-          "wt": "Windows Terminal"
-        },
-        "linux": {
-          "gnomeTerminal": "GNOME Terminal",
-          "konsole": "Konsole",
-          "xfce4Terminal": "Xfce4 Terminal",
-          "alacritty": "Alacritty",
-          "kitty": "Kitty",
-          "ghostty": "Ghostty"
-        }
-      }
     },
     "configDirectoryOverride": "Configuration Directory Override (Advanced)",
     "configDirectoryDescription": "When using Claude Code or Codex in environments like WSL, you can manually specify the configuration directory to the one in WSL to keep provider data consistent with the main environment.",

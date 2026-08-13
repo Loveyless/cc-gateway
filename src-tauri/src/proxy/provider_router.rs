@@ -1,6 +1,6 @@
 //! 供应商路由器模块
 //!
-//! 负责选择和管理代理目标供应商，实现智能故障转移
+//! 负责选择当前代理目标供应商，并维护按供应商隔离的熔断器。
 
 use crate::app_config::AppType;
 use crate::database::Database;
@@ -29,83 +29,25 @@ impl ProviderRouter {
         }
     }
 
-    /// 选择可用的供应商（支持故障转移）
-    ///
-    /// 返回按优先级排序的可用供应商列表：
-    /// - 故障转移关闭时：仅返回当前供应商
-    /// - 故障转移开启时：仅使用故障转移队列，按队列顺序依次尝试（P1 → P2 → ...）
+    /// 选择当前供应商。自动故障转移已移除，始终只返回当前供应商。
     pub async fn select_providers(&self, app_type: &str) -> Result<Vec<Provider>, AppError> {
-        let mut result = Vec::new();
-        let mut total_providers = 0usize;
-        let mut circuit_open_count = 0usize;
+        let current_id = AppType::from_str(app_type)
+            .ok()
+            .and_then(|app_enum| {
+                crate::settings::get_effective_current_provider(&self.db, &app_enum)
+                    .ok()
+                    .flatten()
+            })
+            .or_else(|| self.db.get_current_provider(app_type).ok().flatten());
 
-        // 检查该应用的自动故障转移开关是否开启（从 proxy_config 表读取）
-        let auto_failover_enabled = match self.db.get_proxy_config_for_app(app_type).await {
-            Ok(config) => config.auto_failover_enabled,
-            Err(e) => {
-                log::error!("[{app_type}] 读取 proxy_config 失败: {e}，默认禁用故障转移");
-                false
-            }
-        };
-
-        if auto_failover_enabled {
-            // 故障转移开启：仅按队列顺序依次尝试（P1 → P2 → ...）
-            let all_providers = self.db.get_all_providers(app_type)?;
-
-            // 使用 DAO 返回的排序结果，确保和前端展示一致
-            let ordered_ids: Vec<String> = self
-                .db
-                .get_failover_queue(app_type)?
-                .into_iter()
-                .map(|item| item.provider_id)
-                .collect();
-
-            total_providers = ordered_ids.len();
-
-            for provider_id in ordered_ids {
-                let Some(provider) = all_providers.get(&provider_id).cloned() else {
-                    continue;
-                };
-
-                let circuit_key = format!("{app_type}:{}", provider.id);
-                let breaker = self.get_or_create_circuit_breaker(&circuit_key).await;
-
-                if breaker.is_available().await {
-                    result.push(provider);
-                } else {
-                    circuit_open_count += 1;
-                }
-            }
-        } else {
-            // 故障转移关闭：仅使用当前供应商，跳过熔断器检查
-            let current_id = AppType::from_str(app_type)
-                .ok()
-                .and_then(|app_enum| {
-                    crate::settings::get_effective_current_provider(&self.db, &app_enum)
-                        .ok()
-                        .flatten()
-                })
-                .or_else(|| self.db.get_current_provider(app_type).ok().flatten());
-
-            if let Some(current_id) = current_id {
-                if let Some(current) = self.db.get_provider_by_id(&current_id, app_type)? {
-                    total_providers = 1;
-                    result.push(current);
-                }
+        if let Some(current_id) = current_id {
+            if let Some(current) = self.db.get_provider_by_id(&current_id, app_type)? {
+                return Ok(vec![current]);
             }
         }
 
-        if result.is_empty() {
-            if total_providers > 0 && circuit_open_count == total_providers {
-                log::warn!("[{app_type}] [FO-004] 所有供应商均已熔断");
-                return Err(AppError::AllProvidersCircuitOpen);
-            } else {
-                log::warn!("[{app_type}] [FO-005] 未配置供应商");
-                return Err(AppError::NoProvidersConfigured);
-            }
-        }
-
-        Ok(result)
+        log::warn!("[{app_type}] [FO-005] 未配置供应商");
+        Err(AppError::NoProvidersConfigured)
     }
 
     /// 请求执行前获取熔断器“放行许可”
@@ -339,7 +281,7 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn test_failover_disabled_uses_current_provider() {
+    async fn test_select_providers_uses_current_provider_only() {
         let _home = TempHome::new();
         let db = Arc::new(Database::memory().unwrap());
 
@@ -351,68 +293,6 @@ mod tests {
         db.save_provider("claude", &provider_a).unwrap();
         db.save_provider("claude", &provider_b).unwrap();
         db.set_current_provider("claude", "a").unwrap();
-        db.add_to_failover_queue("claude", "b").unwrap();
-
-        let router = ProviderRouter::new(db.clone());
-        let providers = router.select_providers("claude").await.unwrap();
-
-        assert_eq!(providers.len(), 1);
-        assert_eq!(providers[0].id, "a");
-    }
-
-    #[tokio::test]
-    #[serial]
-    async fn test_failover_enabled_uses_queue_order_ignoring_current() {
-        let _home = TempHome::new();
-        let db = Arc::new(Database::memory().unwrap());
-
-        // 设置 sort_index 来控制顺序：b=1, a=2
-        let mut provider_a =
-            Provider::with_id("a".to_string(), "Provider A".to_string(), json!({}), None);
-        provider_a.sort_index = Some(2);
-        let mut provider_b =
-            Provider::with_id("b".to_string(), "Provider B".to_string(), json!({}), None);
-        provider_b.sort_index = Some(1);
-
-        db.save_provider("claude", &provider_a).unwrap();
-        db.save_provider("claude", &provider_b).unwrap();
-        db.set_current_provider("claude", "a").unwrap();
-
-        db.add_to_failover_queue("claude", "b").unwrap();
-        db.add_to_failover_queue("claude", "a").unwrap();
-
-        // 启用自动故障转移（使用新的 proxy_config API）
-        let mut config = db.get_proxy_config_for_app("claude").await.unwrap();
-        config.auto_failover_enabled = true;
-        db.update_proxy_config_for_app(config).await.unwrap();
-
-        let router = ProviderRouter::new(db.clone());
-        let providers = router.select_providers("claude").await.unwrap();
-
-        assert_eq!(providers.len(), 2);
-        // 故障转移开启时：仅按队列顺序选择（忽略当前供应商）
-        assert_eq!(providers[0].id, "b");
-        assert_eq!(providers[1].id, "a");
-    }
-
-    #[tokio::test]
-    #[serial]
-    async fn test_failover_enabled_uses_queue_only_even_if_current_not_in_queue() {
-        let _home = TempHome::new();
-        let db = Arc::new(Database::memory().unwrap());
-
-        let provider_a =
-            Provider::with_id("a".to_string(), "Provider A".to_string(), json!({}), None);
-        let mut provider_b =
-            Provider::with_id("b".to_string(), "Provider B".to_string(), json!({}), None);
-        provider_b.sort_index = Some(1);
-
-        db.save_provider("claude", &provider_a).unwrap();
-        db.save_provider("claude", &provider_b).unwrap();
-        db.set_current_provider("claude", "a").unwrap();
-
-        // 只把 b 加入故障转移队列（模拟“当前供应商不在队列里”的常见配置）
-        db.add_to_failover_queue("claude", "b").unwrap();
 
         let mut config = db.get_proxy_config_for_app("claude").await.unwrap();
         config.auto_failover_enabled = true;
@@ -422,50 +302,7 @@ mod tests {
         let providers = router.select_providers("claude").await.unwrap();
 
         assert_eq!(providers.len(), 1);
-        assert_eq!(providers[0].id, "b");
-    }
-
-    #[tokio::test]
-    #[serial]
-    async fn test_select_providers_does_not_consume_half_open_permit() {
-        let _home = TempHome::new();
-        let db = Arc::new(Database::memory().unwrap());
-
-        db.update_circuit_breaker_config(&CircuitBreakerConfig {
-            failure_threshold: 1,
-            timeout_seconds: 0,
-            ..Default::default()
-        })
-        .await
-        .unwrap();
-
-        let provider_a =
-            Provider::with_id("a".to_string(), "Provider A".to_string(), json!({}), None);
-        let provider_b =
-            Provider::with_id("b".to_string(), "Provider B".to_string(), json!({}), None);
-
-        db.save_provider("claude", &provider_a).unwrap();
-        db.save_provider("claude", &provider_b).unwrap();
-
-        db.add_to_failover_queue("claude", "a").unwrap();
-        db.add_to_failover_queue("claude", "b").unwrap();
-
-        // 启用自动故障转移（使用新的 proxy_config API）
-        let mut config = db.get_proxy_config_for_app("claude").await.unwrap();
-        config.auto_failover_enabled = true;
-        db.update_proxy_config_for_app(config).await.unwrap();
-
-        let router = ProviderRouter::new(db.clone());
-
-        router
-            .record_result("b", "claude", false, false, Some("fail".to_string()))
-            .await
-            .unwrap();
-
-        let providers = router.select_providers("claude").await.unwrap();
-        assert_eq!(providers.len(), 2);
-
-        assert!(router.allow_provider_request("b", "claude").await.allowed);
+        assert_eq!(providers[0].id, "a");
     }
 
     #[tokio::test]
@@ -486,12 +323,6 @@ mod tests {
         let provider_a =
             Provider::with_id("a".to_string(), "Provider A".to_string(), json!({}), None);
         db.save_provider("claude", &provider_a).unwrap();
-        db.add_to_failover_queue("claude", "a").unwrap();
-
-        // 启用自动故障转移
-        let mut config = db.get_proxy_config_for_app("claude").await.unwrap();
-        config.auto_failover_enabled = true;
-        db.update_proxy_config_for_app(config).await.unwrap();
 
         let router = ProviderRouter::new(db.clone());
 

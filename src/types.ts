@@ -22,8 +22,6 @@ export interface Provider {
   // 图标配置
   icon?: string; // 图标名称（如 "openai", "anthropic"）
   iconColor?: string; // 图标颜色（Hex 格式，如 "#00A67E"）
-  // 是否加入故障转移队列
-  inFailoverQueue?: boolean;
 }
 
 export interface AppConfig {
@@ -318,8 +316,6 @@ export interface Settings {
   // User has confirmed the usage query first-run notice
   usageConfirmed?: boolean;
   usageDashboardRefreshIntervalMs?: number;
-  // Whether to show the failover toggle independently on the main page
-  enableFailoverToggle?: boolean;
   // Preserve Codex ChatGPT login in auth.json when switching third-party providers
   preserveCodexOfficialAuthOnSwitch?: boolean;
   // Run official Codex under the shared "custom" provider id so future
@@ -327,8 +323,6 @@ export interface Settings {
   unifyCodexSessionHistory?: boolean;
   // User opted in (enable dialog checkbox) to migrate existing official sessions
   unifyCodexMigrateExisting?: boolean;
-  // User has confirmed the failover toggle first-run notice
-  failoverConfirmed?: boolean;
   // User has confirmed the first-run welcome notice
   firstRunNoticeConfirmed?: boolean;
   // User has confirmed the auto-sync traffic warning
@@ -370,19 +364,6 @@ export interface Settings {
   skillSyncMethod?: SkillSyncMethod;
   // Skill 存储位置：cc_switch（默认）或 unified（~/.agents/skills/）
   skillStorageLocation?: SkillStorageLocation;
-
-  // ===== 备份策略设置 =====
-  // Auto-backup interval in hours (0=disabled, default 24)
-  backupIntervalHours?: number;
-  // Maximum backup files to retain (default 10)
-  backupRetainCount?: number;
-
-  // ===== 终端设置 =====
-  // 首选终端应用（可选，默认使用系统默认终端）
-  // macOS: "terminal" | "iterm2" | "warp" | "alacritty" | "kitty" | "ghostty" | "wezterm" | "kaku"
-  // Windows: "cmd" | "powershell" | "wt"
-  // Linux: "gnome-terminal" | "konsole" | "xfce4-terminal" | "alacritty" | "kitty" | "ghostty"
-  preferredTerminal?: string;
 
   // ===== 本机自动迁移状态 =====
   localMigrations?: {

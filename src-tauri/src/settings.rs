@@ -280,8 +280,8 @@ pub struct AppSettings {
     pub usage_confirmed: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub usage_dashboard_refresh_interval_ms: Option<u32>,
-    /// Whether to show the failover toggle independently on the main page
-    #[serde(default)]
+    /// Retired failover toggle; accepted on read but never shown or written.
+    #[serde(default, skip_serializing)]
     pub enable_failover_toggle: bool,
     /// Whether to show the project profile switcher on the main page header
     /// Retired project switcher flag; accepted on read but never shown or written.
@@ -301,8 +301,8 @@ pub struct AppSettings {
     /// a failed migration retries at startup; cleared when the toggle turns off.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unify_codex_migrate_existing: Option<bool>,
-    /// User has confirmed the failover toggle first-run notice
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Retired failover first-run notice; accepted on read but never written.
+    #[serde(default, skip_serializing)]
     pub failover_confirmed: Option<bool>,
     /// User has confirmed the first-run welcome notice
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -379,20 +379,17 @@ pub struct AppSettings {
     #[serde(default, skip_serializing)]
     pub webdav_backup: Option<serde_json::Value>,
 
-    // ===== 备份策略设置 =====
-    /// Auto-backup interval in hours (default 24, 0 = disabled)
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    // ===== 备份策略设置（设置页已移除；自动备份关闭，保留份数仍给内部清理用）=====
+    /// Retired auto-backup interval; accepted on read but never shown or written.
+    #[serde(default, skip_serializing)]
     pub backup_interval_hours: Option<u32>,
     /// Maximum number of backup files to retain (default 10)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub backup_retain_count: Option<u32>,
 
-    // ===== 终端设置 =====
-    /// 首选终端应用（可选，默认使用系统默认终端）
-    /// - macOS: "terminal" | "iterm2" | "warp" | "alacritty" | "kitty" | "ghostty" | "wezterm" | "kaku"
-    /// - Windows: "cmd" | "powershell" | "wt" (Windows Terminal)
-    /// - Linux: "gnome-terminal" | "konsole" | "xfce4-terminal" | "alacritty" | "kitty" | "ghostty"
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    // ===== 终端设置（设置页已移除；仅反序列化兼容）=====
+    /// Retired preferred terminal; accepted on read but never shown or written.
+    #[serde(default, skip_serializing)]
     pub preferred_terminal: Option<String>,
 
     // ===== 本机自动迁移状态 =====
@@ -942,16 +939,9 @@ pub fn set_skill_storage_location(location: SkillStorageLocation) -> Result<(), 
 
 // ===== 备份策略管理函数 =====
 
-/// Get the effective auto-backup interval in hours (default 24)
+/// Auto-backup is retired; interval is always treated as disabled.
 pub fn effective_backup_interval_hours() -> u32 {
-    settings_store()
-        .read()
-        .unwrap_or_else(|e| {
-            log::warn!("设置锁已毒化，使用恢复值: {e}");
-            e.into_inner()
-        })
-        .backup_interval_hours
-        .unwrap_or(24)
+    0
 }
 
 /// Get the effective backup retain count (default 10, minimum 1)
@@ -969,16 +959,9 @@ pub fn effective_backup_retain_count() -> usize {
 
 // ===== 终端设置管理函数 =====
 
-/// 获取首选终端应用
+/// Preferred terminal setting is retired; always use the system default.
 pub fn get_preferred_terminal() -> Option<String> {
-    settings_store()
-        .read()
-        .unwrap_or_else(|e| {
-            log::warn!("设置锁已毒化，使用恢复值: {e}");
-            e.into_inner()
-        })
-        .preferred_terminal
-        .clone()
+    None
 }
 
 #[cfg(test)]

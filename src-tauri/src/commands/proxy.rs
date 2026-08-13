@@ -113,7 +113,7 @@ pub async fn update_global_proxy_config(
 
 /// 获取指定应用的代理配置
 ///
-/// 返回应用级配置（enabled、auto_failover、超时、熔断器等）
+/// 返回应用级配置（enabled、超时、熔断器等）
 #[tauri::command]
 pub async fn get_proxy_config_for_app(
     state: tauri::State<'_, AppState>,
@@ -127,7 +127,7 @@ pub async fn get_proxy_config_for_app(
 
 /// 更新指定应用的代理配置
 ///
-/// 更新应用级配置（enabled、auto_failover、超时、熔断器等）
+/// 更新应用级配置（enabled、超时、熔断器等）
 #[tauri::command]
 pub async fn update_proxy_config_for_app(
     state: tauri::State<'_, AppState>,
@@ -320,89 +320,21 @@ pub async fn get_provider_health(
 }
 
 /// 重置熔断器
-///
-/// 重置后会检查是否应该切回队列中优先级更高的供应商：
-/// 1. 检查自动故障转移是否开启
-/// 2. 如果恢复的供应商在队列中优先级更高（queue_order 更小），则自动切换
 #[tauri::command]
 pub async fn reset_circuit_breaker(
-    app_handle: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     provider_id: String,
     app_type: String,
 ) -> Result<(), String> {
-    // 1. 重置数据库健康状态
     let db = &state.db;
     db.update_provider_health(&provider_id, &app_type, true, None)
         .await
         .map_err(|e| e.to_string())?;
 
-    // 2. 如果代理正在运行，重置内存中的熔断器状态
     state
         .proxy_service
         .reset_provider_circuit_breaker(&provider_id, &app_type)
         .await?;
-
-    // 3. 检查是否应该切回优先级更高的供应商（从 proxy_config 表读取）
-    // 只有当该应用已被代理接管（enabled=true）且开启了自动故障转移时才执行
-    let (app_enabled, auto_failover_enabled) = match db.get_proxy_config_for_app(&app_type).await {
-        Ok(config) => (config.enabled, config.auto_failover_enabled),
-        Err(e) => {
-            log::error!("[{app_type}] Failed to read proxy_config: {e}, defaulting to disabled");
-            (false, false)
-        }
-    };
-
-    if app_enabled && auto_failover_enabled && state.proxy_service.is_running().await {
-        // 获取当前供应商 ID
-        let current_id = db
-            .get_current_provider(&app_type)
-            .map_err(|e| e.to_string())?;
-
-        if let Some(current_id) = current_id {
-            // 获取故障转移队列
-            let queue = db
-                .get_failover_queue(&app_type)
-                .map_err(|e| e.to_string())?;
-
-            // 找到恢复的供应商和当前供应商在队列中的位置（使用 sort_index）
-            let restored_order = queue
-                .iter()
-                .find(|item| item.provider_id == provider_id)
-                .and_then(|item| item.sort_index);
-
-            let current_order = queue
-                .iter()
-                .find(|item| item.provider_id == current_id)
-                .and_then(|item| item.sort_index);
-
-            // 如果恢复的供应商优先级更高（sort_index 更小），则切换
-            if let (Some(restored), Some(current)) = (restored_order, current_order) {
-                if restored < current {
-                    log::info!(
-                        "[Recovery] 供应商 {provider_id} 已恢复且优先级更高 (P{restored} vs P{current})，自动切换"
-                    );
-
-                    // 获取供应商名称用于日志和事件
-                    let provider_name = db
-                        .get_all_providers(&app_type)
-                        .ok()
-                        .and_then(|providers| providers.get(&provider_id).map(|p| p.name.clone()))
-                        .unwrap_or_else(|| provider_id.clone());
-
-                    // 创建故障转移切换管理器并执行切换
-                    let switch_manager =
-                        crate::proxy::failover_switch::FailoverSwitchManager::new(db.clone());
-                    if let Err(e) = switch_manager
-                        .try_switch(Some(&app_handle), &app_type, &provider_id, &provider_name)
-                        .await
-                    {
-                        log::error!("[Recovery] 自动切换失败: {e}");
-                    }
-                }
-            }
-        }
-    }
 
     Ok(())
 }

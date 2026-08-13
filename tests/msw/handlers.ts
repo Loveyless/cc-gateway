@@ -332,43 +332,4 @@ export const handlers = [
   ),
 
   http.post(`${TAURI_ENDPOINT}/is_live_takeover_active`, () => success(false)),
-
-  // Failover / circuit breaker defaults
-  http.post(`${TAURI_ENDPOINT}/get_failover_queue`, () => success([])),
-  http.post(`${TAURI_ENDPOINT}/get_available_providers_for_failover`, () =>
-    success([]),
-  ),
-  http.post(`${TAURI_ENDPOINT}/add_to_failover_queue`, () => success(true)),
-  http.post(`${TAURI_ENDPOINT}/remove_from_failover_queue`, () =>
-    success(true),
-  ),
-  http.post(`${TAURI_ENDPOINT}/reorder_failover_queue`, () => success(true)),
-  http.post(`${TAURI_ENDPOINT}/set_failover_item_enabled`, () => success(true)),
-
-  http.post(`${TAURI_ENDPOINT}/get_circuit_breaker_config`, () =>
-    success({
-      failureThreshold: 3,
-      successThreshold: 2,
-      timeoutSeconds: 60,
-      errorRateThreshold: 50,
-      minRequests: 5,
-    }),
-  ),
-  http.post(`${TAURI_ENDPOINT}/update_circuit_breaker_config`, () =>
-    success(true),
-  ),
-  http.post(`${TAURI_ENDPOINT}/get_provider_health`, () =>
-    success({
-      provider_id: "mock-provider",
-      app_type: "claude",
-      is_healthy: true,
-      consecutive_failures: 0,
-      last_success_at: null,
-      last_failure_at: null,
-      last_error: null,
-      updated_at: new Date().toISOString(),
-    }),
-  ),
-  http.post(`${TAURI_ENDPOINT}/reset_circuit_breaker`, () => success(true)),
-  http.post(`${TAURI_ENDPOINT}/get_circuit_breaker_stats`, () => success(null)),
 ];

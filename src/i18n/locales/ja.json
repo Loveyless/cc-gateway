@@ -147,9 +147,6 @@
     "configureUsage": "利用状況を設定",
     "managedByHermes": "Hermes 管理",
     "managedByHermesHint": "Hermes の providers: dict で定義されています。Hermes Web UI で編集または削除してください。",
-    "openTerminal": "ターミナルを開く",
-    "terminalOpened": "ターミナルを開きました",
-    "terminalOpenFailed": "ターミナルを開けませんでした",
     "name": "プロバイダー名",
     "namePlaceholder": "例: Claude Official",
     "websiteUrl": "Web サイト URL",
@@ -283,11 +280,6 @@
       "message": "ローカルルーティングは上級機能です。有効にする前に、その仕組みを理解していることをご確認ください。\n\n適切な設定方法については、関連ドキュメントまたはプロバイダーにご相談ください。",
       "confirm": "理解しました、有効にする"
     },
-    "failover": {
-      "title": "フェイルオーバーの有効化",
-      "message": "フェイルオーバーは上級機能です。有効にする前に、その仕組みを理解していることをご確認ください。\n\nフェイルオーバーキューでプロバイダーの優先順位を先に設定することをお勧めします。",
-      "confirm": "理解しました、有効にする"
-    },
     "unifyCodexHistory": {
       "title": "Codex セッション履歴を統一",
       "message": "オンにすると、公式サブスクリプションとサードパーティが同じセッション履歴リストを共有します。注意：プロバイダーをまたいで古いセッションを再開すると、encrypted_content を相手のバックエンドが復号できず失敗する場合があります。\n\n既存の公式セッション履歴を共有リストへ移行することもできます（移行前に ~/.cc-gateway/backups へ自動バックアップされ、オフにする際に復元を選択できます）。",
@@ -335,19 +327,9 @@
         "title": "ローカルルーティング",
         "description": "ルーティングサービスの切り替え、ステータスとポート情報を表示",
         "enableFeature": "メインページにルーティング切り替えを表示",
-        "enableFeatureDescription": "有効にすると、メインページ上部にルーティングとフェイルオーバーの切り替えが表示されます",
-        "enableFailoverToggle": "メインページにフェイルオーバー切り替えを表示",
-        "enableFailoverToggleDescription": "有効にすると、メインページ上部にフェイルオーバー切り替えが独立して表示されます",
+        "enableFeatureDescription": "有効にすると、メインページ上部にルーティング切り替えが表示されます",
         "running": "実行中",
         "stopped": "停止中"
-      },
-      "connectivityCheck": {
-        "title": "接続チェック設定",
-        "description": "プロバイダー接続チェックのタイムアウト、リトライ、低速判定しきい値を設定"
-      },
-      "failover": {
-        "title": "自動フェイルオーバー",
-        "description": "フェイルオーバーキューとサーキットブレーカー戦略を設定"
       },
       "pricing": {
         "title": "コスト計算",
@@ -360,10 +342,6 @@
       "data": {
         "title": "データ管理",
         "description": "ローカル設定データのインポートとエクスポート"
-      },
-      "backup": {
-        "title": "バックアップと復元",
-        "description": "自動バックアップの管理、データベーススナップショットの表示と復元"
       },
       "rectifier": {
         "title": "整流器",
@@ -524,36 +502,6 @@
       "symlink": "シンボリックリンク",
       "copy": "ファイルコピー",
       "symlinkHint": "シンボリックリンクはディスク容量を節約し、リアルタイム同期を有効にします。注意：Windowsでは管理者権限または開発者モードが必要な場合があります"
-    },
-    "terminal": {
-      "title": "優先ターミナル",
-      "description": "ターミナルボタンをクリックした時に使用するターミナルアプリを選択",
-      "fallbackHint": "選択したターミナルが利用できない場合、システムのデフォルトが使用されます",
-      "options": {
-        "macos": {
-          "terminal": "Terminal.app",
-          "iterm2": "iTerm2",
-          "alacritty": "Alacritty",
-          "kitty": "Kitty",
-          "ghostty": "Ghostty",
-          "wezterm": "WezTerm",
-          "kaku": "Kaku",
-          "warp": "Warp"
-        },
-        "windows": {
-          "cmd": "コマンドプロンプト",
-          "powershell": "PowerShell",
-          "wt": "Windows Terminal"
-        },
-        "linux": {
-          "gnomeTerminal": "GNOME Terminal",
-          "konsole": "Konsole",
-          "xfce4Terminal": "Xfce4 Terminal",
-          "alacritty": "Alacritty",
-          "kitty": "Kitty",
-          "ghostty": "Ghostty"
-        }
-      }
     },
     "configDirectoryOverride": "設定ディレクトリの上書き（詳細）",
     "configDirectoryDescription": "WSL などで Claude Code や Codex を使う場合、ここで設定ディレクトリを WSL 側に合わせるとデータを揃えられます。",

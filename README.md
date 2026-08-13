@@ -49,9 +49,9 @@ Modern AI-powered coding relies on tools like Claude Code, Claude Desktop, Codex
 - **Universal providers** — One config syncs to Claude Code and Codex
 - One-click switching, system tray quick access, drag-and-drop sorting, import/export
 
-### Proxy & Failover
+### Proxy
 
-- **Local proxy with hot-switching** — Format conversion, auto-failover, circuit breaker, provider health monitoring, and request rectifier
+- **Local proxy with hot-switching** — Format conversion, provider health monitoring, and request rectifier
 - **App-level takeover** — Independently proxy Claude, Codex, or Grok Build, down to individual providers
 
 ### MCP, Prompts & Skills
@@ -144,7 +144,7 @@ If you launch from a desktop icon, add it to the `.desktop` `Exec=` line (e.g. `
 
 ## Documentation
 
-For detailed guides on every feature, check out the **[User Manual](docs/user-manual/en/README.md)** — covering provider management, MCP/Prompts/Skills, proxy & failover, and more.
+For detailed guides on every feature, check out the **[User Manual](docs/user-manual/en/README.md)** — covering provider management, MCP/Prompts/Skills, proxy, and more.
 
 ## Quick Start
 

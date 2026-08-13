@@ -42,7 +42,6 @@ pub use app_config::{AppType, InstalledSkill, McpApps, McpServer, MultiAppConfig
 pub use codex_config::{
     get_codex_auth_path, get_codex_config_path, read_codex_live_settings, write_codex_live_atomic,
 };
-pub use commands::open_provider_terminal;
 pub use commands::*;
 pub use config::{get_claude_mcp_path, get_claude_settings_path, read_json_file};
 pub use database::Database;
@@ -1355,11 +1354,6 @@ pub fn run() {
             commands::save_file_dialog,
             commands::open_file_dialog,
             commands::open_zip_file_dialog,
-            commands::create_db_backup,
-            commands::list_db_backups,
-            commands::restore_db_backup,
-            commands::rename_db_backup,
-            commands::delete_db_backup,
             commands::sync_current_providers_live,
             // Deep link import
             commands::parse_deeplink,
@@ -1421,19 +1415,11 @@ pub fn run() {
             commands::is_proxy_running,
             commands::is_live_takeover_active,
             commands::switch_proxy_provider,
-            // Proxy failover commands
             commands::get_provider_health,
             commands::reset_circuit_breaker,
             commands::get_circuit_breaker_config,
             commands::update_circuit_breaker_config,
             commands::get_circuit_breaker_stats,
-            // Failover queue management
-            commands::get_failover_queue,
-            commands::get_available_providers_for_failover,
-            commands::add_to_failover_queue,
-            commands::remove_from_failover_queue,
-            commands::get_auto_failover_enabled,
-            commands::set_auto_failover_enabled,
             // Usage statistics
             commands::get_usage_summary,
             commands::get_usage_summary_by_app,
@@ -1457,8 +1443,6 @@ pub fn run() {
             // Stream health check
             commands::stream_check_provider,
             commands::stream_check_all_providers,
-            commands::get_stream_check_config,
-            commands::save_stream_check_config,
             // Session manager
             commands::list_sessions,
             commands::get_session_messages,
@@ -1468,8 +1452,6 @@ pub fn run() {
             commands::get_tool_versions,
             commands::run_tool_lifecycle_action,
             commands::probe_tool_installations,
-            // Provider terminal
-            commands::open_provider_terminal,
             // Universal Provider management
             commands::get_universal_providers,
             commands::get_universal_provider,

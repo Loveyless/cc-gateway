@@ -510,6 +510,11 @@ impl Database {
                         Self::migrate_v15_to_v16(conn)?;
                         Self::set_user_version(conn, 16)?;
                     }
+                    16 => {
+                        log::info!("迁移数据库从 v16 到 v17（关闭自动故障转移残留状态）");
+                        Self::migrate_v16_to_v17(conn)?;
+                        Self::set_user_version(conn, 17)?;
+                    }
                     _ => {
                         return Err(AppError::Database(format!(
                             "未知的数据库版本 {version}，无法迁移到 {SCHEMA_VERSION}"
@@ -1520,6 +1525,25 @@ impl Database {
     fn migrate_v15_to_v16(conn: &Connection) -> Result<(), AppError> {
         let codex_dir = crate::codex_config::get_codex_config_dir();
         crate::services::session_usage_codex::reset_codex_usage_on_conn(conn, &codex_dir)
+    }
+
+    /// v16 -> v17: persist auto-failover as disabled. The feature is retired;
+    /// leftover flags must not keep switching providers after upgrade.
+    fn migrate_v16_to_v17(conn: &Connection) -> Result<(), AppError> {
+        if Self::table_exists(conn, "proxy_config")? {
+            conn.execute(
+                "UPDATE proxy_config SET auto_failover_enabled = 0, updated_at = datetime('now')",
+                [],
+            )
+            .map_err(|e| AppError::Database(e.to_string()))?;
+        }
+        if Self::table_exists(conn, "providers")?
+            && Self::has_column(conn, "providers", "in_failover_queue")?
+        {
+            conn.execute("UPDATE providers SET in_failover_queue = 0", [])
+                .map_err(|e| AppError::Database(e.to_string()))?;
+        }
+        Ok(())
     }
 
     /// 插入默认模型定价数据
@@ -3222,7 +3246,7 @@ mod tests {
 
         Database::apply_schema_migrations_on_conn(&conn)?;
 
-        assert_eq!(Database::get_user_version(&conn)?, 16);
+        assert_eq!(Database::get_user_version(&conn)?, SCHEMA_VERSION);
         let counts: (i64, i64, i64, i64) = conn.query_row(
             "SELECT
                 (SELECT COUNT(*) FROM proxy_request_logs WHERE data_source = 'codex_session'),
@@ -3233,6 +3257,39 @@ mod tests {
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
         )?;
         assert_eq!(counts, (0, 1, 0, 1));
+        Ok(())
+    }
+
+    #[test]
+    fn migrate_v16_to_v17_disables_leftover_auto_failover() -> Result<(), AppError> {
+        let conn = Connection::open_in_memory()?;
+        Database::create_tables_on_conn(&conn)?;
+        conn.execute(
+            "UPDATE proxy_config SET auto_failover_enabled = 1 WHERE app_type = 'claude'",
+            [],
+        )?;
+        conn.execute(
+            "INSERT INTO providers (id, app_type, name, settings_config, in_failover_queue)
+             VALUES ('p1', 'claude', 'P1', '{}', 1)",
+            [],
+        )?;
+        Database::set_user_version(&conn, 16)?;
+
+        Database::apply_schema_migrations_on_conn(&conn)?;
+
+        assert_eq!(Database::get_user_version(&conn)?, SCHEMA_VERSION);
+        let failover_enabled: i64 = conn.query_row(
+            "SELECT auto_failover_enabled FROM proxy_config WHERE app_type = 'claude'",
+            [],
+            |row| row.get(0),
+        )?;
+        assert_eq!(failover_enabled, 0);
+        let in_queue: i64 = conn.query_row(
+            "SELECT in_failover_queue FROM providers WHERE id = 'p1' AND app_type = 'claude'",
+            [],
+            |row| row.get(0),
+        )?;
+        assert_eq!(in_queue, 0);
         Ok(())
     }
 }

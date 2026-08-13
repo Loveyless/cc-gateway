@@ -49,9 +49,9 @@
 - **通用供应商** — 一份配置同步到 Claude Code 和 Codex
 - 一键切换、系统托盘快速访问、拖拽排序、导入导出
 
-### 代理与故障转移
+### 代理
 
-- **本地代理热切换** — 格式转换、自动故障转移、熔断器、供应商健康监控和整流器
+- **本地代理热切换** — 格式转换、供应商健康监控和整流器
 - **应用级代理接管** — 独立为 Claude、Codex 或 Grok Build 配置代理，具体到单个供应商
 
 ### MCP、Prompts 与 Skills
@@ -146,7 +146,7 @@ CC_GATEWAY_GDK_BACKEND=wayland ./CC-Gateway-*.AppImage
 
 ## 文档
 
-如需了解各项功能的详细使用方法，请查阅 **[用户手册](docs/user-manual/zh/README.md)** — 涵盖供应商管理、MCP/Prompts/Skills、代理与故障转移等全部功能。
+如需了解各项功能的详细使用方法，请查阅 **[用户手册](docs/user-manual/zh/README.md)** — 涵盖供应商管理、MCP/Prompts/Skills、代理等全部功能。
 
 ## 快速开始
 

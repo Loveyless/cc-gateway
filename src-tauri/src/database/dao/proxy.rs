@@ -248,7 +248,11 @@ impl Database {
         // conn 已在 block 结束时释放
 
         match result {
-            Ok(config) => Ok(config),
+            Ok(mut config) => {
+                // 自动故障转移已移除，读路径一律视为关闭，避免旧库残留开关继续切供应商。
+                config.auto_failover_enabled = false;
+                Ok(config)
+            }
             Err(rusqlite::Error::QueryReturnedNoRows) => {
                 // 如果不存在，创建默认配置
                 self.init_proxy_config_rows().await?;
@@ -296,7 +300,7 @@ impl Database {
             rusqlite::params![
                 config.app_type,
                 if config.enabled { 1 } else { 0 },
-                if config.auto_failover_enabled { 1 } else { 0 },
+                0,
                 config.max_retries as i32,
                 config.streaming_first_byte_timeout as i32,
                 config.streaming_idle_timeout as i32,
@@ -851,53 +855,6 @@ impl Database {
             .map_err(|e| AppError::Database(e.to_string()))?;
 
         log::info!("已删除所有 Live 配置备份");
-        Ok(())
-    }
-
-    // ==================== Sync Methods for Tray Menu ====================
-
-    /// 同步获取应用的 proxy 启用状态和自动故障转移状态
-    ///
-    /// 用于托盘菜单构建等同步场景
-    /// 返回 (enabled, auto_failover_enabled)
-    pub fn get_proxy_flags_sync(&self, app_type: &str) -> (bool, bool) {
-        let conn = match self.conn.lock() {
-            Ok(c) => c,
-            Err(_) => return (false, false),
-        };
-
-        conn.query_row(
-            "SELECT enabled, auto_failover_enabled FROM proxy_config WHERE app_type = ?1",
-            [app_type],
-            |row| Ok((row.get::<_, i32>(0)? != 0, row.get::<_, i32>(1)? != 0)),
-        )
-        .unwrap_or((false, false))
-    }
-
-    /// 同步设置应用的 proxy 启用状态和自动故障转移状态
-    ///
-    /// 用于托盘菜单点击等同步场景
-    pub fn set_proxy_flags_sync(
-        &self,
-        app_type: &str,
-        enabled: bool,
-        auto_failover_enabled: bool,
-    ) -> Result<(), AppError> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|e| AppError::Database(format!("Mutex lock failed: {e}")))?;
-
-        conn.execute(
-            "UPDATE proxy_config SET enabled = ?2, auto_failover_enabled = ?3, updated_at = datetime('now') WHERE app_type = ?1",
-            rusqlite::params![
-                app_type,
-                if enabled { 1 } else { 0 },
-                if auto_failover_enabled { 1 } else { 0 },
-            ],
-        )
-        .map_err(|e| AppError::Database(e.to_string()))?;
-
         Ok(())
     }
 }

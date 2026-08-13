@@ -108,14 +108,6 @@ export interface ProxyUsageRecord {
   timestamp: string;
 }
 
-// 故障转移队列条目
-export interface FailoverQueueItem {
-  providerId: string;
-  providerName: string;
-  providerNotes?: string;
-  sortIndex?: number;
-}
-
 // 全局代理配置（统一字段，三行镜像）
 export interface GlobalProxyConfig {
   proxyEnabled: boolean;

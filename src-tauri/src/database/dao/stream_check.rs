@@ -39,13 +39,9 @@ impl Database {
         Ok(conn.last_insert_rowid())
     }
 
-    /// 获取流式检查配置
+    /// 连通检测配置面板已移除，始终使用内置默认值。
     pub fn get_stream_check_config(&self) -> Result<StreamCheckConfig, AppError> {
-        match self.get_setting("stream_check_config")? {
-            Some(json) => serde_json::from_str(&json)
-                .map_err(|e| AppError::Message(format!("解析配置失败: {e}"))),
-            None => Ok(StreamCheckConfig::default()),
-        }
+        Ok(StreamCheckConfig::default())
     }
 
     /// Delete stream check logs older than `retain_days` days.
@@ -63,12 +59,5 @@ impl Database {
             log::info!("Cleaned up {deleted} stream_check_logs older than {retain_days} days");
         }
         Ok(deleted as u64)
-    }
-
-    /// 保存流式检查配置
-    pub fn save_stream_check_config(&self, config: &StreamCheckConfig) -> Result<(), AppError> {
-        let json = serde_json::to_string(config)
-            .map_err(|e| AppError::Message(format!("序列化配置失败: {e}")))?;
-        self.set_setting("stream_check_config", &json)
     }
 }

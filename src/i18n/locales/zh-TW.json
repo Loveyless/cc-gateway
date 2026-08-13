@@ -147,9 +147,6 @@
     "configureUsage": "設定用量查詢",
     "managedByHermes": "Hermes 託管",
     "managedByHermesHint": "該專案定義於 Hermes 的 providers: dict，請在 Hermes Web UI 中編輯或刪除。",
-    "openTerminal": "開啟終端機",
-    "terminalOpened": "終端機已開啟",
-    "terminalOpenFailed": "開啟終端機失敗",
     "name": "供應商名稱",
     "namePlaceholder": "例如：Claude 官方",
     "websiteUrl": "官網連結",
@@ -283,11 +280,6 @@
       "message": "本地路由是一項進階功能，啟用前請確保您已了解其運作原理。\n\n建議先查閱相關文件或諮詢您的供應商，以取得正確的設定方式。",
       "confirm": "我已了解，繼續啟用"
     },
-    "failover": {
-      "title": "啟用故障轉移功能",
-      "message": "故障轉移是一項進階功能，啟用前請確保您已了解其運作原理。\n\n建議先在故障轉移佇列中設定好供應商優先順序。",
-      "confirm": "我已了解，繼續啟用"
-    },
     "unifyCodexHistory": {
       "title": "統一 Codex 會話歷史",
       "message": "開啟後，官方訂閱與第三方將共用同一個會話歷史清單。注意：跨供應商繼續舊會話時，可能因對方後端無法解密 encrypted_content 推理內容而失敗。\n\n可選擇同時把現有官方會話歷史遷入共享清單（遷移前自動備份到 ~/.cc-gateway/backups，關閉開關時可選擇恢復）。",
@@ -335,19 +327,9 @@
         "title": "本地路由",
         "description": "控制路由服務開關、查看狀態與連接埠資訊",
         "enableFeature": "在主頁面顯示本地路由開關",
-        "enableFeatureDescription": "開啟後，主頁面頂部將顯示路由和故障轉移開關",
-        "enableFailoverToggle": "在主頁面顯示故障轉移開關",
-        "enableFailoverToggleDescription": "開啟後，主頁面頂部將獨立顯示故障轉移開關",
+        "enableFeatureDescription": "開啟後，主頁面頂部將顯示路由開關",
         "running": "執行中",
         "stopped": "已停止"
-      },
-      "connectivityCheck": {
-        "title": "連通檢測設定",
-        "description": "設定供應商位址探測的逾時、重試與緩慢閾值"
-      },
-      "failover": {
-        "title": "自動故障轉移",
-        "description": "設定故障轉移佇列和斷路器策略"
       },
       "pricing": {
         "title": "成本定價",
@@ -360,10 +342,6 @@
       "data": {
         "title": "資料管理",
         "description": "匯入和匯出本地設定資料"
-      },
-      "backup": {
-        "title": "備份與還原",
-        "description": "管理自動備份，查看和還原資料庫快照"
       },
       "rectifier": {
         "title": "整流器",
@@ -524,36 +502,6 @@
       "symlink": "軟連結",
       "copy": "檔案複製",
       "symlinkHint": "軟連結節省磁碟空間並支援即時同步。注意：Windows 可能需要管理員權限或開啟開發者模式"
-    },
-    "terminal": {
-      "title": "首選終端機",
-      "description": "選擇點擊終端機按鈕時使用的終端機應用程式",
-      "fallbackHint": "如果選擇的終端機不可用，將自動使用系統預設終端機",
-      "options": {
-        "macos": {
-          "terminal": "Terminal.app",
-          "iterm2": "iTerm2",
-          "alacritty": "Alacritty",
-          "kitty": "Kitty",
-          "ghostty": "Ghostty",
-          "wezterm": "WezTerm",
-          "kaku": "Kaku",
-          "warp": "Warp"
-        },
-        "windows": {
-          "cmd": "命令提示字元",
-          "powershell": "PowerShell",
-          "wt": "Windows Terminal"
-        },
-        "linux": {
-          "gnomeTerminal": "GNOME Terminal",
-          "konsole": "Konsole",
-          "xfce4Terminal": "Xfce4 Terminal",
-          "alacritty": "Alacritty",
-          "kitty": "Kitty",
-          "ghostty": "Ghostty"
-        }
-      }
     },
     "configDirectoryOverride": "設定目錄覆寫（進階）",
     "configDirectoryDescription": "在 WSL 等環境使用 Claude Code 或 Codex 的時候，可手動指定為 WSL 裡的設定目錄，供應商資料與主環境保持一致。",

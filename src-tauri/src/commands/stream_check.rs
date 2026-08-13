@@ -6,9 +6,7 @@
 use crate::app_config::AppType;
 use crate::commands::copilot::CopilotAuthState;
 use crate::error::AppError;
-use crate::services::stream_check::{
-    HealthStatus, StreamCheckConfig, StreamCheckResult, StreamCheckService,
-};
+use crate::services::stream_check::{HealthStatus, StreamCheckResult, StreamCheckService};
 use crate::store::AppState;
 use std::collections::HashSet;
 use tauri::State;
@@ -56,16 +54,12 @@ pub async fn stream_check_all_providers(
     let providers = state.db.get_all_providers(app_type.as_str())?;
 
     let allowed_ids: Option<HashSet<String>> = if proxy_targets_only {
-        let mut ids = HashSet::new();
-        if let Ok(Some(current_id)) = state.db.get_current_provider(app_type.as_str()) {
-            ids.insert(current_id);
-        }
-        if let Ok(queue) = state.db.get_failover_queue(app_type.as_str()) {
-            for item in queue {
-                ids.insert(item.provider_id);
-            }
-        }
-        Some(ids)
+        state
+            .db
+            .get_current_provider(app_type.as_str())
+            .ok()
+            .flatten()
+            .map(|current_id| HashSet::from([current_id]))
     } else {
         None
     };
@@ -109,21 +103,6 @@ pub async fn stream_check_all_providers(
     }
 
     Ok(results)
-}
-
-/// 获取连通性检查配置
-#[tauri::command]
-pub fn get_stream_check_config(state: State<'_, AppState>) -> Result<StreamCheckConfig, AppError> {
-    state.db.get_stream_check_config()
-}
-
-/// 保存连通性检查配置
-#[tauri::command]
-pub fn save_stream_check_config(
-    state: State<'_, AppState>,
-    config: StreamCheckConfig,
-) -> Result<(), AppError> {
-    state.db.save_stream_check_config(&config)
 }
 
 /// Copilot 供应商的 base_url 需要从 OAuth 管理器动态解析（按账号或默认端点）。

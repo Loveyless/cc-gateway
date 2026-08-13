@@ -8,7 +8,6 @@ import {
   Minus,
   Play,
   Plus,
-  Terminal,
   Trash2,
   Zap,
 } from "lucide-react";
@@ -30,10 +29,6 @@ interface ProviderActionsProps {
   onConfigureUsage?: () => void;
   onDelete: () => void;
   onRemoveFromConfig?: () => void;
-  onOpenTerminal?: () => void;
-  isAutoFailoverEnabled?: boolean;
-  isInFailoverQueue?: boolean;
-  onToggleFailover?: (enabled: boolean) => void;
   isOfficialBlockedByProxy?: boolean;
   // Hermes v12+ providers: dict overlay — edit/delete must go through Web UI
   isReadOnly?: boolean;
@@ -67,10 +62,6 @@ export function ProviderActions({
   onConfigureUsage,
   onDelete,
   onRemoveFromConfig,
-  onOpenTerminal,
-  isAutoFailoverEnabled = false,
-  isInFailoverQueue = false,
-  onToggleFailover,
   isOfficialBlockedByProxy = false,
   isReadOnly = false,
   // Hermes current provider marker
@@ -82,10 +73,6 @@ export function ProviderActions({
 
   // 累加模式应用（OpenCode / Hermes）
   const isAdditiveMode = appId === "opencode" || appId === "hermes";
-
-  // 故障转移模式下的按钮逻辑（累加模式不支持故障转移）
-  const isFailoverMode =
-    !isAdditiveMode && isAutoFailoverEnabled && onToggleFailover;
 
   const handleMainButtonClick = () => {
     if (isAdditiveMode) {
@@ -99,8 +86,6 @@ export function ProviderActions({
       } else {
         onSwitch(); // 添加到配置
       }
-    } else if (isFailoverMode) {
-      onToggleFailover(!isInFailoverQueue);
     } else {
       onSwitch();
     }
@@ -128,27 +113,6 @@ export function ProviderActions({
           "bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-700",
         icon: <Plus className="h-4 w-4" />,
         text: t("provider.addToConfig", { defaultValue: "添加" }),
-      };
-    }
-
-    if (isFailoverMode) {
-      if (isInFailoverQueue) {
-        return {
-          disabled: false,
-          variant: "secondary" as const,
-          className:
-            "bg-blue-100 text-blue-600 hover:bg-blue-200 dark:bg-blue-900/50 dark:text-blue-400 dark:hover:bg-blue-900/70",
-          icon: <Check className="h-4 w-4" />,
-          text: t("failover.inQueue", { defaultValue: "已加入" }),
-        };
-      }
-      return {
-        disabled: false,
-        variant: "default" as const,
-        className:
-          "bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700",
-        icon: <Plus className="h-4 w-4" />,
-        text: t("failover.addQueue", { defaultValue: "加入" }),
       };
     }
 
@@ -296,21 +260,6 @@ export function ProviderActions({
         >
           <BarChart3 className="h-4 w-4" />
         </Button>
-
-        {onOpenTerminal && (
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={onOpenTerminal}
-            title={t("provider.openTerminal", "打开终端")}
-            className={cn(
-              iconButtonClass,
-              "hover:text-emerald-600 dark:hover:text-emerald-400",
-            )}
-          >
-            <Terminal className="h-4 w-4" />
-          </Button>
-        )}
 
         <Button
           size="icon"

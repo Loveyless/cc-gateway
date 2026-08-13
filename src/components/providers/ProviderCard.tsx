@@ -17,8 +17,6 @@ import CodexOauthQuotaFooter from "@/components/CodexOauthQuotaFooter";
 import XaiOauthQuotaFooter from "@/components/XaiOauthQuotaFooter";
 import { PROVIDER_TYPES, TEMPLATE_TYPES } from "@/config/constants";
 import { isHermesReadOnlyProvider } from "@/config/hermesProviderPresets";
-import { ProviderHealthBadge } from "@/components/providers/ProviderHealthBadge";
-import { FailoverPriorityBadge } from "@/components/providers/FailoverPriorityBadge";
 import {
   extractCodexBaseUrl,
   extractCodexExperimentalBearerToken,
@@ -27,7 +25,6 @@ import {
   supportsOfficialProxyTakeover,
   providerNeedsRouting,
 } from "@/utils/providerCapabilities";
-import { useProviderHealth } from "@/lib/query/failover";
 import { useUsageQuery } from "@/lib/query/queries";
 import { resolveProviderIcon } from "@/utils/providerIcon";
 
@@ -50,16 +47,9 @@ interface ProviderCardProps {
   onOpenWebsite: (url: string) => void;
   onDuplicate: (provider: Provider) => void;
   onTest?: (provider: Provider) => void;
-  onOpenTerminal?: (provider: Provider) => void;
   isTesting?: boolean;
-  isProxyRunning: boolean;
   isProxyTakeover?: boolean; // 代理接管模式（Live配置已被接管，切换为热切换）
   dragHandleProps?: DragHandleProps;
-  isAutoFailoverEnabled?: boolean; // 是否开启自动故障转移
-  failoverPriority?: number; // 故障转移优先级（1 = P1, 2 = P2, ...）
-  isInFailoverQueue?: boolean; // 是否在故障转移队列中
-  onToggleFailover?: (enabled: boolean) => void; // 切换故障转移队列
-  activeProviderId?: string; // 代理当前实际使用的供应商 ID（用于故障转移模式下标注绿色边框）
   // Hermes current provider marker
   isDefaultModel?: boolean;
   onSetAsDefault?: () => void;
@@ -145,24 +135,15 @@ export function ProviderCard({
   onOpenWebsite,
   onDuplicate,
   onTest,
-  onOpenTerminal,
   isTesting,
-  isProxyRunning,
   isProxyTakeover = false,
   dragHandleProps,
-  isAutoFailoverEnabled = false,
-  failoverPriority,
-  isInFailoverQueue = false,
-  onToggleFailover,
-  activeProviderId,
   isDefaultModel,
   onSetAsDefault,
 }: ProviderCardProps) {
   const { t } = useTranslation();
 
   const isAdditiveMode = appId === "opencode" || appId === "hermes";
-
-  const { data: health } = useProviderHealth(provider.id, appId);
 
   const fallbackUrlText = t("provider.notConfigured", {
     defaultValue: "未配置接口地址",
@@ -258,14 +239,7 @@ export function ProviderCard({
   // 判断是否是"当前使用中"的供应商
   // - 独占模式供应商：使用 isCurrent
   // - OpenCode：不存在"当前"概念，返回 false
-  // - 故障转移模式：代理实际使用的供应商（activeProviderId）
-  // - 普通模式：isCurrent
-  const isActiveProvider =
-    appId === "opencode"
-      ? false
-      : isAutoFailoverEnabled
-        ? activeProviderId === provider.id
-        : isCurrent;
+  const isActiveProvider = appId === "opencode" ? false : isCurrent;
 
   const shouldUseGreen = isProxyTakeover && isActiveProvider;
   const hasPersistentConfigHighlight = isAdditiveMode && isInConfig;
@@ -277,7 +251,7 @@ export function ProviderCard({
       className={cn(
         "relative overflow-hidden rounded-xl border border-border p-4 transition-all duration-300",
         "bg-card text-card-foreground group",
-        isAutoFailoverEnabled || isProxyTakeover
+        isProxyTakeover
           ? "hover:border-emerald-500/50"
           : "hover:border-border-active",
         shouldUseGreen &&
@@ -388,19 +362,6 @@ export function ProviderCard({
                       defaultValue: "不支持路由",
                     })}
                   </span>
-                )}
-
-              {isProxyRunning && isInFailoverQueue && health && (
-                <ProviderHealthBadge
-                  consecutiveFailures={health.consecutive_failures}
-                  isHealthy={health.is_healthy}
-                />
-              )}
-
-              {isAutoFailoverEnabled &&
-                isInFailoverQueue &&
-                failoverPriority && (
-                  <FailoverPriorityBadge priority={failoverPriority} />
                 )}
 
               {isHermesReadOnly && (
@@ -547,12 +508,6 @@ export function ProviderCard({
                   ? () => onRemoveFromConfig(provider)
                   : undefined
               }
-              onOpenTerminal={
-                onOpenTerminal ? () => onOpenTerminal(provider) : undefined
-              }
-              isAutoFailoverEnabled={isAutoFailoverEnabled}
-              isInFailoverQueue={isInFailoverQueue}
-              onToggleFailover={onToggleFailover}
               isDefaultModel={isDefaultModel}
               onSetAsDefault={onSetAsDefault}
             />
