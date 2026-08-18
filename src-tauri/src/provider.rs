@@ -173,13 +173,7 @@ impl Provider {
                     .unwrap_or_default();
                 (base_url, api_key)
             }
-            // Gemini uses Google-specific env keys (with a legacy GOOGLE_API_KEY fallback).
-            AppType::Gemini => {
-                let env = settings.get("env");
-                let base_url = str_at(env.and_then(|e| e.get("GOOGLE_GEMINI_BASE_URL")));
-                let api_key = first_non_empty(env, &["GEMINI_API_KEY", "GOOGLE_API_KEY"]);
-                (base_url, api_key)
-            }
+            AppType::Gemini => (String::new(), String::new()),
             // GrokBuild 的 base_url 与 api_key 必须各自解析：extract_credentials 在
             // 凭据缺失时整个 Option 变 None，一并 unwrap_or_default 会把明明写在
             // 配置里的 base_url 也清成空串。凭据缺失是常态（env_key 指向的变量在
@@ -202,15 +196,7 @@ impl Provider {
                 str_at(settings.get("base_url")),
                 str_at(settings.get("api_key")),
             ),
-            AppType::OpenClaw => (String::new(), String::new()),
-            // OpenCode nests credentials under `options` (the SDK options object).
-            AppType::OpenCode => {
-                let options = settings.get("options");
-                (
-                    str_at(options.and_then(|o| o.get("baseURL"))),
-                    str_at(options.and_then(|o| o.get("apiKey"))),
-                )
-            }
+            AppType::OpenClaw | AppType::OpenCode => (String::new(), String::new()),
             // Claude and Claude Desktop both use the Anthropic-style env map, keeping
             // the OpenRouter/Google key fallbacks the JS-script path relies on.
             // Listed explicitly (not `_`) so a new AppType fails to compile here.
@@ -1460,9 +1446,10 @@ mod tests {
                 "GOOGLE_API_KEY": "g-legacy",
             }
         }));
-        let (base_url, api_key) = p.resolve_usage_credentials(&AppType::Gemini);
-        assert_eq!(base_url, "https://generativelanguage.googleapis.com");
-        assert_eq!(api_key, "g-legacy");
+        assert_eq!(
+            p.resolve_usage_credentials(&AppType::Gemini),
+            (String::new(), String::new())
+        );
     }
 
     #[test]
@@ -1492,7 +1479,7 @@ mod tests {
             }
         }));
         let (_, api_key) = p.resolve_usage_credentials(&AppType::Gemini);
-        assert_eq!(api_key, "g-real");
+        assert_eq!(api_key, "");
     }
 
     #[test]
@@ -1524,10 +1511,7 @@ mod tests {
         }));
         assert_eq!(
             p.resolve_usage_credentials(&AppType::OpenCode),
-            (
-                "https://api.deepseek.com/v1".to_string(),
-                "sk-opencode".to_string()
-            )
+            (String::new(), String::new())
         );
     }
 

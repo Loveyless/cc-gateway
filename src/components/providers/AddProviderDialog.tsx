@@ -16,7 +16,6 @@ import { UniversalProviderFormModal } from "@/components/universal/UniversalProv
 import { UniversalProviderPanel } from "@/components/universal";
 import { providerPresets } from "@/config/claudeProviderPresets";
 import { codexProviderPresets } from "@/config/codexProviderPresets";
-import { geminiProviderPresets } from "@/config/geminiProviderPresets";
 import { claudeDesktopProviderPresets } from "@/config/claudeDesktopProviderPresets";
 import { extractCodexBaseUrl } from "@/utils/providerConfigUtils";
 import { extractGrokBuildBaseUrl } from "@/utils/grokBuildConfig";
@@ -44,12 +43,8 @@ export function AddProviderDialog({
   onSubmit,
 }: AddProviderDialogProps) {
   const { t } = useTranslation();
-  // OpenCode and Hermes don't support universal providers
   const showUniversalTab =
-    appId !== "opencode" &&
-    appId !== "hermes" &&
-    appId !== "grokbuild" &&
-    appId !== "claude-desktop";
+    appId !== "hermes" && appId !== "grokbuild" && appId !== "claude-desktop";
   const [activeTab, setActiveTab] = useState<"app-specific" | "universal">(
     "app-specific",
   );
@@ -154,8 +149,7 @@ export function AddProviderDialog({
           values.presetId === GROKBUILD_OFFICIAL_PROVIDER_ID;
       }
 
-      // Additive apps use providerKey for ID generation.
-      if ((appId === "opencode" || appId === "hermes") && values.providerKey) {
+      if (appId === "hermes" && values.providerKey) {
         providerData.providerKey = values.providerKey;
       }
 
@@ -192,21 +186,6 @@ export function AddProviderDialog({
           } else if (appId === "codex") {
             const presets = codexProviderPresets;
             const presetIndex = parseInt(values.presetId.replace("codex-", ""));
-            if (
-              !isNaN(presetIndex) &&
-              presetIndex >= 0 &&
-              presetIndex < presets.length
-            ) {
-              const preset = presets[presetIndex];
-              if (Array.isArray(preset.endpointCandidates)) {
-                preset.endpointCandidates.forEach(addUrl);
-              }
-            }
-          } else if (appId === "gemini") {
-            const presets = geminiProviderPresets;
-            const presetIndex = parseInt(
-              values.presetId.replace("gemini-", ""),
-            );
             if (
               !isNaN(presetIndex) &&
               presetIndex >= 0 &&
@@ -254,22 +233,10 @@ export function AddProviderDialog({
               addUrl(extractedBaseUrl);
             }
           }
-        } else if (appId === "gemini") {
-          const env = parsedConfig.env as Record<string, any> | undefined;
-          if (env?.GOOGLE_GEMINI_BASE_URL) {
-            addUrl(env.GOOGLE_GEMINI_BASE_URL);
-          }
         } else if (appId === "grokbuild") {
           const config = parsedConfig.config as string | undefined;
           if (config) {
             addUrl(extractGrokBuildBaseUrl(config));
-          }
-        } else if (appId === "opencode") {
-          const options = parsedConfig.options as
-            | Record<string, any>
-            | undefined;
-          if (options?.baseURL) {
-            addUrl(options.baseURL);
           }
         } else if (appId === "hermes") {
           if (parsedConfig.base_url) {

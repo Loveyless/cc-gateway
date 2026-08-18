@@ -66,17 +66,6 @@ export function EditProviderDialog({
         return;
       }
 
-      // OpenCode uses additive mode - each provider's config is stored independently in DB
-      // Reading live config would return the full opencode.json (with $schema, provider, mcp etc.)
-      // instead of just the provider fragment, causing incorrect nested structure on save
-      if (appId === "opencode") {
-        if (!cancelled) {
-          setLiveSettings(null);
-          setHasLoadedLive(true);
-        }
-        return;
-      }
-
       try {
         const currentId = await providersApi.getCurrent(appId);
         if (currentId && provider.id === currentId) {
@@ -163,13 +152,13 @@ export function EditProviderDialog({
       if (!provider) return;
 
       // 注意：values.settingsConfig 已经是最终的配置字符串
-      // ProviderForm 已经为不同的 app 类型（Claude/Codex/Gemini）正确组装了配置
+      // ProviderForm 已经为不同的 app 类型（Claude/Codex/Hermes）正确组装了配置
       const parsedConfig = JSON.parse(values.settingsConfig) as Record<
         string,
         unknown
       >;
       const nextProviderId =
-        appId === "opencode" && values.providerKey?.trim()
+        appId === "hermes" && values.providerKey?.trim()
           ? values.providerKey.trim()
           : provider.id;
 

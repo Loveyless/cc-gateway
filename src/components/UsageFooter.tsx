@@ -13,7 +13,7 @@ interface UsageFooterProps {
   appId: AppId;
   usageEnabled: boolean; // 是否启用了用量查询
   isCurrent: boolean; // 是否为当前激活的供应商
-  isInConfig?: boolean; // OpenCode: 是否已添加到配置
+  isInConfig?: boolean; // Hermes: 是否已添加到配置
   inline?: boolean; // 是否内联显示（在按钮左侧）
 }
 
@@ -55,9 +55,8 @@ const UsageFooter: React.FC<UsageFooterProps> = ({
   const isTokenPlan =
     provider.meta?.usage_script?.templateType === "token_plan";
 
-  // 统一的用量查询（自动查询仅对当前激活的供应商启用）
-  // OpenCode（累加模式）：使用 isInConfig 代替 isCurrent
-  const shouldAutoQuery = appId === "opencode" ? isInConfig : isCurrent;
+  // 累加模式应用（Hermes）：使用 isInConfig 代替 isCurrent
+  const shouldAutoQuery = appId === "hermes" ? isInConfig : isCurrent;
   const autoQueryInterval = shouldAutoQuery
     ? provider.meta?.usage_script?.autoQueryInterval || 0
     : 0;

@@ -2,9 +2,7 @@ import { describe, expect, it } from "vitest";
 import { claudeDesktopProviderPresets } from "@/config/claudeDesktopProviderPresets";
 import { providerPresets } from "@/config/claudeProviderPresets";
 import { codexProviderPresets } from "@/config/codexProviderPresets";
-import { geminiProviderPresets } from "@/config/geminiProviderPresets";
 import { hermesProviderPresets } from "@/config/hermesProviderPresets";
-import { opencodeProviderPresets } from "@/config/opencodeProviderPresets";
 import { hasIcon } from "@/icons/extracted";
 
 const WEBSITE_URL = "https://subrouter.ai";
@@ -40,35 +38,6 @@ describe("SubRouter provider presets", () => {
     expect(preset?.config).toContain('model = "gpt-5.6-sol"');
     expect(preset?.config).toContain('base_url = "https://subrouter.ai/v1"');
     expect(preset?.config).toContain('wire_api = "responses"');
-  });
-
-  it("uses the Gemini-compatible v1beta endpoint for Gemini", () => {
-    const preset = geminiProviderPresets.find(
-      (item) => item.name === "SubRouter",
-    );
-
-    expect(preset).toBeDefined();
-    expect(preset?.baseURL).toBe("https://subrouter.ai/v1beta");
-    expect(preset?.endpointCandidates).toEqual(["https://subrouter.ai/v1beta"]);
-    expect(preset?.model).toBe("gemini-3.6-flash");
-
-    const env = (preset?.settingsConfig as { env: Record<string, string> }).env;
-    expect(env.GOOGLE_GEMINI_BASE_URL).toBe("https://subrouter.ai/v1beta");
-    expect(env.GEMINI_MODEL).toBe("gemini-3.6-flash");
-  });
-
-  it("uses OpenAI-compatible config for OpenCode", () => {
-    const preset = opencodeProviderPresets.find(
-      (item) => item.name === "SubRouter",
-    );
-
-    expect(preset).toBeDefined();
-    expect(preset?.settingsConfig.npm).toBe("@ai-sdk/openai-compatible");
-    expect(preset?.settingsConfig.options?.baseURL).toBe(
-      "https://subrouter.ai/v1",
-    );
-    expect(preset?.settingsConfig.options?.apiKey).toBe("");
-    expect(preset?.settingsConfig.models).toHaveProperty("gpt-5.6-sol");
   });
 
   it("uses chat completions config for Hermes", () => {

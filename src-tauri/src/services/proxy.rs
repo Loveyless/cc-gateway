@@ -986,8 +986,10 @@ impl ProxyService {
         let live_config = match app_type {
             AppType::Claude => self.read_claude_live()?,
             AppType::Codex => self.read_codex_live()?,
-            AppType::Gemini => self.read_gemini_live()?,
             AppType::GrokBuild => self.read_grok_live()?,
+            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {
+                return Err(app_type.ensure_supported().unwrap_err().to_string());
+            }
             _ => return Err("该应用不支持代理功能".to_string()),
         };
 
@@ -1154,60 +1156,6 @@ impl ProxyService {
                     }
                 }
             }
-            AppType::Gemini => {
-                let provider_id =
-                    crate::settings::get_effective_current_provider(&self.db, &AppType::Gemini)
-                        .map_err(|e| format!("获取 Gemini 当前供应商失败: {e}"))?;
-
-                if let Some(provider_id) = provider_id {
-                    if let Ok(Some(mut provider)) =
-                        self.db.get_provider_by_id(&provider_id, "gemini")
-                    {
-                        if let Some(token) = live_config
-                            .get("env")
-                            .and_then(|v| v.get("GEMINI_API_KEY"))
-                            .and_then(|v| v.as_str())
-                            .map(|s| s.trim())
-                            .filter(|s| !s.is_empty() && !Self::is_any_proxy_token_placeholder(s))
-                        {
-                            if let Some(env_obj) = provider
-                                .settings_config
-                                .get_mut("env")
-                                .and_then(|v| v.as_object_mut())
-                            {
-                                env_obj.insert("GEMINI_API_KEY".to_string(), json!(token));
-                            } else {
-                                if provider.settings_config.is_null() {
-                                    provider.settings_config = json!({});
-                                }
-
-                                if let Some(root) = provider.settings_config.as_object_mut() {
-                                    root.insert(
-                                        "env".to_string(),
-                                        json!({ "GEMINI_API_KEY": token }),
-                                    );
-                                } else {
-                                    log::warn!(
-                                        "Gemini provider settings_config 格式异常（非对象），跳过写入 Token (provider: {provider_id})"
-                                    );
-                                }
-                            }
-
-                            if let Err(e) = self.db.update_provider_settings_config(
-                                "gemini",
-                                &provider_id,
-                                &provider.settings_config,
-                            ) {
-                                log::warn!("同步 Gemini Token 到数据库失败: {e}");
-                            } else {
-                                log::info!(
-                                    "已同步 Gemini Token 到数据库 (provider: {provider_id})"
-                                );
-                            }
-                        }
-                    }
-                }
-            }
             AppType::GrokBuild => {
                 let provider_id =
                     crate::settings::get_effective_current_provider(&self.db, &AppType::GrokBuild)
@@ -1267,11 +1215,6 @@ impl ProxyService {
 
         if let Ok(live_config) = self.read_codex_live() {
             self.sync_live_config_to_provider(&AppType::Codex, &live_config)
-                .await?;
-        }
-
-        if let Ok(live_config) = self.read_gemini_live() {
-            self.sync_live_config_to_provider(&AppType::Gemini, &live_config)
                 .await?;
         }
 
@@ -1431,20 +1374,6 @@ impl ProxyService {
             }
         }
 
-        // Gemini
-        if let Ok(config) = self.read_gemini_live() {
-            if Self::live_has_proxy_placeholder_for_app(&AppType::Gemini, &config) {
-                log::warn!("gemini Live 已被代理接管，不备份（避免把代理配置固化进备份槽）；下次 stop 会从 SSOT 重建 Live");
-            } else {
-                let json_str = serde_json::to_string(&config)
-                    .map_err(|e| format!("序列化 Gemini 配置失败: {e}"))?;
-                self.db
-                    .save_live_backup("gemini", &json_str)
-                    .await
-                    .map_err(|e| format!("备份 Gemini 配置失败: {e}"))?;
-            }
-        }
-
         // Grok Build
         if let Ok(config) = self.read_grok_live() {
             if Self::live_has_proxy_placeholder_for_app(&AppType::GrokBuild, &config) {
@@ -1468,8 +1397,10 @@ impl ProxyService {
         let (app_type_str, config) = match app_type {
             AppType::Claude => ("claude", self.read_claude_live()?),
             AppType::Codex => ("codex", self.read_codex_live()?),
-            AppType::Gemini => ("gemini", self.read_gemini_live()?),
             AppType::GrokBuild => ("grokbuild", self.read_grok_live()?),
+            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {
+                return Err(app_type.ensure_supported().unwrap_err().to_string());
+            }
             _ => return Err("该应用不支持代理功能".to_string()),
         };
 
@@ -1604,22 +1535,6 @@ impl ProxyService {
             log::info!("Codex Live 配置已接管，代理地址: {proxy_codex_base_url}");
         }
 
-        // Gemini: 修改 GOOGLE_GEMINI_BASE_URL，使用占位符替代真实 Token（代理会注入真实 Token）
-        if let Ok(mut live_config) = self.read_gemini_live() {
-            if let Some(env) = live_config.get_mut("env").and_then(|v| v.as_object_mut()) {
-                env.insert("GOOGLE_GEMINI_BASE_URL".to_string(), json!(&proxy_url));
-                // 使用占位符，避免显示缺少 key 的警告
-                env.insert("GEMINI_API_KEY".to_string(), json!(PROXY_TOKEN_PLACEHOLDER));
-            } else {
-                live_config["env"] = json!({
-                    "GOOGLE_GEMINI_BASE_URL": &proxy_url,
-                    "GEMINI_API_KEY": PROXY_TOKEN_PLACEHOLDER
-                });
-            }
-            self.write_gemini_live(&live_config)?;
-            log::info!("Gemini Live 配置已接管，代理地址: {proxy_url}");
-        }
-
         // Grok Build: keep its own provider namespace while reusing Responses forwarding.
         if let Ok(mut live_config) = self.read_grok_live() {
             if Self::grok_live_config_supports_takeover(&live_config) {
@@ -1667,21 +1582,8 @@ impl ProxyService {
                 self.write_codex_takeover_live_for_provider(&live_config, Some(&codex_provider))?;
                 log::info!("Codex Live 配置已接管，代理地址: {proxy_codex_base_url}");
             }
-            AppType::Gemini => {
-                let mut live_config = self.read_gemini_live()?;
-
-                if let Some(env) = live_config.get_mut("env").and_then(|v| v.as_object_mut()) {
-                    env.insert("GOOGLE_GEMINI_BASE_URL".to_string(), json!(&proxy_url));
-                    env.insert("GEMINI_API_KEY".to_string(), json!(PROXY_TOKEN_PLACEHOLDER));
-                } else {
-                    live_config["env"] = json!({
-                        "GOOGLE_GEMINI_BASE_URL": &proxy_url,
-                        "GEMINI_API_KEY": PROXY_TOKEN_PLACEHOLDER
-                    });
-                }
-
-                self.write_gemini_live(&live_config)?;
-                log::info!("Gemini Live 配置已接管，代理地址: {proxy_url}");
+            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {
+                return Err(app_type.ensure_supported().unwrap_err().to_string());
             }
             AppType::GrokBuild => {
                 let mut live_config = self.read_grok_live()?;
@@ -1749,21 +1651,6 @@ impl ProxyService {
                     )?;
                 }
             }
-            AppType::Gemini => {
-                if let Ok(mut live_config) = self.read_gemini_live() {
-                    if let Some(env) = live_config.get_mut("env").and_then(|v| v.as_object_mut()) {
-                        env.insert("GOOGLE_GEMINI_BASE_URL".to_string(), json!(&proxy_url));
-                        env.insert("GEMINI_API_KEY".to_string(), json!(PROXY_TOKEN_PLACEHOLDER));
-                    } else {
-                        live_config["env"] = json!({
-                            "GOOGLE_GEMINI_BASE_URL": &proxy_url,
-                            "GEMINI_API_KEY": PROXY_TOKEN_PLACEHOLDER
-                        });
-                    }
-
-                    let _ = self.write_gemini_live(&live_config);
-                }
-            }
             AppType::GrokBuild => {
                 if let Ok(mut live_config) = self.read_grok_live() {
                     if Self::grok_live_config_supports_takeover(&live_config) {
@@ -1802,14 +1689,6 @@ impl ProxyService {
                     log::info!("Codex Live 配置已恢复");
                 }
             }
-            AppType::Gemini => {
-                if let Ok(Some(backup)) = self.db.get_live_backup("gemini").await {
-                    let config: Value = serde_json::from_str(&backup.original_config)
-                        .map_err(|e| format!("解析 Gemini 备份失败: {e}"))?;
-                    self.write_gemini_live(&config)?;
-                    log::info!("Gemini Live 配置已恢复");
-                }
-            }
             AppType::GrokBuild => {
                 if let Ok(Some(backup)) = self.db.get_live_backup("grokbuild").await {
                     let config: Value = serde_json::from_str(&backup.original_config)
@@ -1828,12 +1707,7 @@ impl ProxyService {
     async fn restore_live_configs(&self) -> Result<(), String> {
         let mut errors = Vec::new();
 
-        for app_type in [
-            AppType::Claude,
-            AppType::Codex,
-            AppType::Gemini,
-            AppType::GrokBuild,
-        ] {
+        for app_type in [AppType::Claude, AppType::Codex, AppType::GrokBuild] {
             if let Err(e) = self
                 .restore_live_config_for_app_with_fallback(&app_type)
                 .await
@@ -1923,8 +1797,10 @@ impl ProxyService {
         match app_type {
             AppType::Claude => self.write_claude_live(config),
             AppType::Codex => self.write_codex_live(config),
-            AppType::Gemini => self.write_gemini_live(config),
             AppType::GrokBuild => self.write_grok_live(config),
+            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {
+                Err(app_type.ensure_supported().unwrap_err().to_string())
+            }
             _ => Err("该应用不支持代理功能".to_string()),
         }
     }
@@ -1937,10 +1813,6 @@ impl ProxyService {
             },
             AppType::Codex => match self.read_codex_live() {
                 Ok(config) => Self::is_codex_live_taken_over(&config),
-                Err(_) => false,
-            },
-            AppType::Gemini => match self.read_gemini_live() {
-                Ok(config) => Self::is_gemini_live_taken_over(&config),
                 Err(_) => false,
             },
             AppType::GrokBuild => match self.read_grok_live() {
@@ -1996,7 +1868,6 @@ impl ProxyService {
         match app_type {
             AppType::Claude => self.cleanup_claude_takeover_placeholders_in_live(),
             AppType::Codex => self.cleanup_codex_takeover_placeholders_in_live(),
-            AppType::Gemini => self.cleanup_gemini_takeover_placeholders_in_live(),
             AppType::GrokBuild => self.cleanup_grok_takeover_placeholders_in_live(),
             _ => Ok(()),
         }
@@ -2081,15 +1952,6 @@ impl ProxyService {
                     });
                 Ok(Self::is_codex_live_taken_over(&config) && base_url_matches)
             }
-            AppType::Gemini => {
-                let config = self.read_gemini_live()?;
-                let base_url_matches = config
-                    .get("env")
-                    .and_then(|value| value.get("GOOGLE_GEMINI_BASE_URL"))
-                    .and_then(|value| value.as_str())
-                    .is_some_and(|url| Self::proxy_urls_match(url, &proxy_url));
-                Ok(Self::is_gemini_live_taken_over(&config) && base_url_matches)
-            }
             AppType::GrokBuild => {
                 let config = self.read_grok_live()?;
                 let base_url_matches =
@@ -2169,30 +2031,6 @@ impl ProxyService {
         crate::codex_config::remove_codex_toml_base_url_if(toml_str, Self::is_local_proxy_url)
     }
 
-    fn cleanup_gemini_takeover_placeholders_in_live(&self) -> Result<(), String> {
-        let mut config = self.read_gemini_live()?;
-
-        let Some(env) = config.get_mut("env").and_then(|v| v.as_object_mut()) else {
-            return Ok(());
-        };
-
-        if env.get("GEMINI_API_KEY").and_then(|v| v.as_str()) == Some(PROXY_TOKEN_PLACEHOLDER) {
-            env.remove("GEMINI_API_KEY");
-        }
-
-        if env
-            .get("GOOGLE_GEMINI_BASE_URL")
-            .and_then(|v| v.as_str())
-            .map(Self::is_local_proxy_url)
-            .unwrap_or(false)
-        {
-            env.remove("GOOGLE_GEMINI_BASE_URL");
-        }
-
-        self.write_gemini_live(&config)?;
-        Ok(())
-    }
-
     fn cleanup_grok_takeover_placeholders_in_live(&self) -> Result<(), String> {
         let config = self.read_grok_live()?;
         let Some(config_toml) = config.get("config").and_then(Value::as_str) else {
@@ -2253,12 +2091,6 @@ impl ProxyService {
 
         if let Ok(config) = self.read_codex_live() {
             if Self::is_codex_live_taken_over(&config) {
-                return true;
-            }
-        }
-
-        if let Ok(config) = self.read_gemini_live() {
-            if Self::is_gemini_live_taken_over(&config) {
                 return true;
             }
         }
@@ -2427,12 +2259,6 @@ impl ProxyService {
                 .is_ok_and(|config| Self::detect_foreign_takeover_for_config(app_type, &config)),
             AppType::Codex => crate::codex_config::read_codex_live_settings()
                 .is_ok_and(|config| Self::detect_foreign_takeover_for_config(app_type, &config)),
-            AppType::Gemini => {
-                use crate::gemini_config::{env_to_json, read_gemini_env};
-                read_gemini_env().is_ok_and(|env| {
-                    Self::detect_foreign_takeover_for_config(app_type, &env_to_json(&env))
-                })
-            }
             AppType::GrokBuild => crate::grok_config::read_grok_live_settings()
                 .is_ok_and(|config| Self::detect_foreign_takeover_for_config(app_type, &config)),
             _ => false,
@@ -2459,12 +2285,7 @@ impl ProxyService {
 
     fn ensure_no_foreign_takeovers_in_live_configs(&self) -> Result<(), String> {
         let mut foreign_apps = Vec::new();
-        for app_type in [
-            AppType::Claude,
-            AppType::Codex,
-            AppType::Gemini,
-            AppType::GrokBuild,
-        ] {
+        for app_type in [AppType::Claude, AppType::Codex, AppType::GrokBuild] {
             if self.detect_foreign_takeover_in_live_config_for_app(&app_type) {
                 foreign_apps.push(app_type.as_str().to_string());
             }
@@ -3196,23 +3017,11 @@ impl ProxyService {
     }
 
     fn read_gemini_live(&self) -> Result<Value, String> {
-        use crate::gemini_config::{env_to_json, get_gemini_env_path, read_gemini_env};
-
-        let env_path = get_gemini_env_path();
-        if !env_path.exists() {
-            return Err("Gemini .env 文件不存在".to_string());
-        }
-
-        let env_map = read_gemini_env().map_err(|e| format!("读取 Gemini env 失败: {e}"))?;
-        Ok(env_to_json(&env_map))
+        Err(AppType::Gemini.ensure_supported().unwrap_err().to_string())
     }
 
-    fn write_gemini_live(&self, config: &Value) -> Result<(), String> {
-        use crate::gemini_config::{json_to_env, write_gemini_env_atomic};
-
-        let env_map = json_to_env(config).map_err(|e| format!("转换 Gemini 配置失败: {e}"))?;
-        write_gemini_env_atomic(&env_map).map_err(|e| format!("写入 Gemini env 失败: {e}"))?;
-        Ok(())
+    fn write_gemini_live(&self, _config: &Value) -> Result<(), String> {
+        Err(AppType::Gemini.ensure_supported().unwrap_err().to_string())
     }
 
     fn read_grok_live(&self) -> Result<Value, String> {
@@ -3313,11 +3122,6 @@ impl ProxyService {
                 }
                 if takeover.codex {
                     self.takeover_live_config_best_effort(&AppType::Codex)
-                        .await?;
-                    updated_any = true;
-                }
-                if takeover.gemini {
-                    self.takeover_live_config_best_effort(&AppType::Gemini)
                         .await?;
                     updated_any = true;
                 }
@@ -7390,23 +7194,14 @@ experimental_bearer_token = "CC_GATEWAY_PROXY_MANAGED"
             r#"{"OPENAI_API_KEY":"CC_GATEWAY_PROXY_MANAGED"}"#,
         )
         .expect("seed codex auth.json");
-        let gemini_env_path = crate::gemini_config::get_gemini_env_path();
-        if let Some(parent) = gemini_env_path.parent() {
-            std::fs::create_dir_all(parent).expect("create gemini dir");
-        }
-        std::fs::write(
-            &gemini_env_path,
-            "GEMINI_API_KEY=CC_GATEWAY_PROXY_MANAGED\n",
-        )
-        .expect("seed gemini env");
 
-        // Call bulk backup: must skip all three apps
+        // Call bulk backup: must skip every remaining live-writable app
         service
             .backup_live_configs()
             .await
             .expect("bulk backup should succeed (no-op when all live are placeholders)");
 
-        // All three good backups must still be intact
+        // Historical Gemini backup is left untouched; Claude/Codex skip placeholder Live.
         for (app_type, original) in [
             ("claude", good_backup.as_str()),
             ("codex", codex_good_backup.as_str()),

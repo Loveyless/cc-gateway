@@ -29,7 +29,6 @@ export function useBaseUrlState({
 }: UseBaseUrlStateProps) {
   const [baseUrl, setBaseUrl] = useState("");
   const [codexBaseUrl, setCodexBaseUrl] = useState("");
-  const [geminiBaseUrl, setGeminiBaseUrl] = useState("");
   const isUpdatingRef = useRef(false);
 
   // 从配置同步到 state（Claude / Claude Desktop）
@@ -62,26 +61,6 @@ export function useBaseUrlState({
     const extracted = extractCodexBaseUrl(codexConfig) || "";
     setCodexBaseUrl((prev) => (prev === extracted ? prev : extracted));
   }, [appType, category, codexConfig]);
-
-  // 从Claude配置同步到 state（Gemini）
-  useEffect(() => {
-    if (appType !== "gemini") return;
-    // 只有 official 类别不显示 Base URL 输入框，其他类别都需要回填
-    if (category === "official") return;
-    if (isUpdatingRef.current) return;
-
-    try {
-      const config = JSON.parse(settingsConfig || "{}");
-      const envUrl: unknown = config?.env?.GOOGLE_GEMINI_BASE_URL;
-      const nextUrl = typeof envUrl === "string" ? envUrl.trim() : "";
-      if (nextUrl !== geminiBaseUrl) {
-        setGeminiBaseUrl(nextUrl);
-        setBaseUrl(nextUrl); // 也更新 baseUrl 用于 UI
-      }
-    } catch {
-      // ignore
-    }
-  }, [appType, category, settingsConfig, geminiBaseUrl]);
 
   // 处理 Claude Base URL 变化
   const handleClaudeBaseUrlChange = useCallback(
@@ -132,41 +111,12 @@ export function useBaseUrlState({
     [codexConfig, onCodexConfigChange],
   );
 
-  // 处理 Gemini Base URL 变化
-  const handleGeminiBaseUrlChange = useCallback(
-    (url: string) => {
-      const sanitized = url.trim();
-      setGeminiBaseUrl(sanitized);
-      setBaseUrl(sanitized); // 也更新 baseUrl 用于 UI
-      isUpdatingRef.current = true;
-
-      try {
-        const config = JSON.parse(settingsConfig || "{}");
-        if (!config.env) {
-          config.env = {};
-        }
-        config.env.GOOGLE_GEMINI_BASE_URL = sanitized;
-        onSettingsConfigChange(JSON.stringify(config, null, 2));
-      } catch {
-        // ignore
-      } finally {
-        setTimeout(() => {
-          isUpdatingRef.current = false;
-        }, 0);
-      }
-    },
-    [settingsConfig, onSettingsConfigChange],
-  );
-
   return {
     baseUrl,
     setBaseUrl,
     codexBaseUrl,
     setCodexBaseUrl,
-    geminiBaseUrl,
-    setGeminiBaseUrl,
     handleClaudeBaseUrlChange,
     handleCodexBaseUrlChange,
-    handleGeminiBaseUrlChange,
   };
 }

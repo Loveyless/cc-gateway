@@ -74,7 +74,6 @@ CC Gateway ユーザーマニュアル
 | [3.2-prompts.md](./3-extensions/3.2-prompts.md) | プリセットの作成、有効化の切り替え、スマートバックフィル |
 | [3.3-skills.md](./3-extensions/3.3-skills.md) | スキルの発見、インストール・アンインストール、リポジトリ管理 |
 | [3.4-sessions.md](./3-extensions/3.4-sessions.md) | セッションマネージャー：閲覧、検索、再開、削除 |
-| [3.5-workspace.md](./3-extensions/3.5-workspace.md) | ワークスペースファイルとデイリーメモリー（OpenClaw） |
 
 ### 4. プロキシと高可用性
 
@@ -113,18 +112,18 @@ CC Gateway ユーザーマニュアル
 ### v3.16.0 の注目機能
 
 - **Codex Chat Completions ルーティング**：DeepSeek、Kimi、GLM、MiniMax など Chat 専用プロバイダーを Codex で利用可能 — 詳細は [2.1 プロバイダーの追加](./2-providers/2.1-add.md)
-- **管理対象 CLI ツールのライフサイクル**：設定 / About で Claude / Codex / Gemini / OpenCode / OpenClaw / Hermes のインストール、更新、一括更新、診断に対応 — 詳細は [1.5 個人設定](./1-getting-started/1.5-settings.md)
+- **管理対象 CLI ツールのライフサイクル**：設定 / About で Claude / Codex / Grok Build / Hermes のインストール、更新、一括更新、診断に対応 — 詳細は [1.5 個人設定](./1-getting-started/1.5-settings.md)
 - **プロバイダーとモデルマトリクス更新**：提携プリセットを追加し、既定モデルと価格表を更新。Claude Opus は 4.8、該当する GPT 既定値は 5.5 に更新
 - **ルーティング対応バッジ**：Claude Code / Codex のプロバイダーカードで Local Routing 対応可否を確認可能
 - **Codex OAuth ライブモデル検出**：ChatGPT Codex 系プロバイダーは必要に応じて ChatGPT バックエンドから利用可能モデルを取得
 - **フィルター連動 Usage Hero**：キャッシュ正規化後の実消費 Token とキャッシュヒット率を表示し、日付 / プロバイダー / モデルフィルターに追従 — 詳細は [4.4 使用量統計](./4-proxy/4.4-usage.md)
 - **軽量モード**：トレイへ最小化時にメインウィンドウを破棄、アイドル時のリソース使用量をほぼゼロに — 詳細は [1.5 個人設定](./1-getting-started/1.5-settings.md)
-- **クォータ・残高表示**：公式サブスクリプション系（Claude/Codex/Gemini/Copilot/Codex OAuth）はカードに自動表示、Token Plan および第三者残高は内蔵テンプレートでワンクリック有効化 — 詳細は [2.5 使用量クエリ](./2-providers/2.5-usage-query.md)
+- **クォータ・残高表示**：公式サブスクリプション系（Claude/Codex/Grok Build/Copilot/Codex OAuth）はカードに自動表示、Token Plan および第三者残高は内蔵テンプレートでワンクリック有効化 — 詳細は [2.5 使用量クエリ](./2-providers/2.5-usage-query.md)
 - **Codex OAuth リバースプロキシ**：ChatGPT アカウントで Claude Code 内から Codex サービスを再利用 — 詳細は [2.1 プロバイダーの追加](./2-providers/2.1-add.md)
-- **アプリ別トレイサブメニュー**：Claude / Codex / Gemini のサブメニューで現在のプロバイダーと使用量サマリーを確認可能 — 詳細は [2.2 プロバイダーの切り替え](./2-providers/2.2-switch.md)
+- **アプリ別トレイサブメニュー**：Claude / Codex / Grok Build のサブメニューで現在のプロバイダーと使用量サマリーを確認可能 — 詳細は [2.2 プロバイダーの切り替え](./2-providers/2.2-switch.md)
 - **Skills の発見と一括更新**：SHA-256 ハッシュによる更新検出、一括更新、skills.sh 公式レジストリ検索 — 詳細は [3.3 Skills スキル管理](./3-extensions/3.3-skills.md)
 - **完全URLエンドポイントモード**：高度なオプションで `base_url` を完全なアップストリームエンドポイントとして扱う — 詳細は [2.1 プロバイダーの追加](./2-providers/2.1-add.md)
-- **OpenCode / OpenClaw / Hermes ストリームチェック対応**：Stream Check は Claude / Codex / Gemini / OpenCode / OpenClaw / Hermes をカバー — 詳細は [4.5 モデルテスト](./4-proxy/4.5-model-test.md)
+- **OpenCode / OpenClaw / Hermes ストリームチェック対応**：Stream Check は Claude / Codex / Grok Build / Hermes をカバー — 詳細は [4.5 モデルテスト](./4-proxy/4.5-model-test.md)
 
 ## コントリビュート
 

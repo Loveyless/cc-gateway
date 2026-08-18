@@ -1016,10 +1016,10 @@ fn create_backup_retains_only_latest_entries() {
 }
 
 #[test]
-fn sync_gemini_packycode_sets_security_selected_type() {
+fn sync_retired_gemini_live_is_rejected() {
     let _guard = test_mutex().lock().expect("acquire test mutex");
     reset_test_fs();
-    let home = ensure_test_home();
+    let _home = ensure_test_home();
 
     let mut config = MultiAppConfig::default();
     {
@@ -1043,76 +1043,12 @@ fn sync_gemini_packycode_sets_security_selected_type() {
         );
     }
 
-    ConfigService::sync_current_providers_to_live(&mut config)
-        .expect("syncing gemini live should succeed");
-
-    // security field is written to ~/.gemini/settings.json, not ~/.cc-gateway/settings.json
-    let gemini_settings = home.join(".gemini").join("settings.json");
+    let err = ConfigService::sync_current_providers_to_live(&mut config)
+        .expect_err("Gemini CLI live sync is retired");
+    let message = err.to_string();
     assert!(
-        gemini_settings.exists(),
-        "Gemini settings.json should exist at {}",
-        gemini_settings.display()
-    );
-
-    let raw = std::fs::read_to_string(&gemini_settings).expect("read gemini settings.json");
-    let value: serde_json::Value = serde_json::from_str(&raw).expect("parse gemini settings.json");
-    assert_eq!(
-        value
-            .pointer("/security/auth/selectedType")
-            .and_then(|v| v.as_str()),
-        Some("gemini-api-key"),
-        "syncing PackyCode Gemini should enforce security.auth.selectedType in Gemini settings"
-    );
-}
-
-#[test]
-fn sync_gemini_google_official_sets_oauth_security() {
-    let _guard = test_mutex().lock().expect("acquire test mutex");
-    reset_test_fs();
-    let home = ensure_test_home();
-
-    let mut config = MultiAppConfig::default();
-    {
-        let manager = config
-            .get_manager_mut(&AppType::Gemini)
-            .expect("gemini manager");
-        manager.current = "google-official".to_string();
-        let mut provider = Provider::with_id(
-            "google-official".to_string(),
-            "Google".to_string(),
-            json!({
-                "env": {}
-            }),
-            Some("https://ai.google.dev".to_string()),
-        );
-        provider.meta = Some(ProviderMeta {
-            partner_promotion_key: Some("google-official".to_string()),
-            ..ProviderMeta::default()
-        });
-        manager
-            .providers
-            .insert("google-official".to_string(), provider);
-    }
-
-    ConfigService::sync_current_providers_to_live(&mut config)
-        .expect("syncing google official gemini should succeed");
-
-    // security field is written to ~/.gemini/settings.json, not ~/.cc-gateway/settings.json
-    let gemini_settings = home.join(".gemini").join("settings.json");
-    assert!(
-        gemini_settings.exists(),
-        "Gemini settings should exist at {}",
-        gemini_settings.display()
-    );
-    let gemini_raw = std::fs::read_to_string(&gemini_settings).expect("read gemini settings");
-    let gemini_value: serde_json::Value =
-        serde_json::from_str(&gemini_raw).expect("parse gemini settings json");
-    assert_eq!(
-        gemini_value
-            .pointer("/security/auth/selectedType")
-            .and_then(|v| v.as_str()),
-        Some("oauth-personal"),
-        "Gemini settings should record oauth-personal for Google Official"
+        message.contains("permanently discontinued") || message.contains("已永久停止"),
+        "expected retired error, got {message}"
     );
 }
 

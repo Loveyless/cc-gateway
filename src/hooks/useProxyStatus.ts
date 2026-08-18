@@ -114,11 +114,11 @@ export function useProxyStatus() {
           ? "Claude"
           : variables.appType === "codex"
             ? "Codex"
-            : variables.appType === "gemini"
-              ? "Gemini"
-              : variables.appType === "grokbuild"
-                ? "Grok Build"
-                : "OpenCode";
+            : variables.appType === "grokbuild"
+              ? "Grok Build"
+              : variables.appType === "hermes"
+                ? "Hermes"
+                : variables.appType;
 
       toast.success(
         variables.enabled

@@ -28,9 +28,7 @@ const PromptFormPanel: React.FC<PromptFormPanelProps> = ({
     claude: "CLAUDE.md",
     "claude-desktop": "CLAUDE.md",
     codex: "AGENTS.md",
-    gemini: "GEMINI.md",
     grokbuild: "AGENTS.md",
-    opencode: "AGENTS.md",
     hermes: "SOUL.md",
   };
   const filename = filenameMap[appId] ?? "AGENTS.md";

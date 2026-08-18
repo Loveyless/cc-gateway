@@ -27,7 +27,6 @@ export function ClaudeDesktopRouteToggle({
   const otherTakeoverActive = Boolean(
     takeoverStatus?.claude ||
       takeoverStatus?.codex ||
-      takeoverStatus?.gemini ||
       takeoverStatus?.grokbuild,
   );
   const routeAddress = status?.address ?? "127.0.0.1";

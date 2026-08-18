@@ -894,24 +894,7 @@ fn parse_gemini_keychain_json(content: &str) -> GeminiCredentials {
 
 /// 从文件读取 Gemini 凭据
 fn read_gemini_credentials_from_file() -> GeminiCredentials {
-    let cred_path = crate::gemini_config::get_gemini_dir().join("oauth_creds.json");
-    if !cred_path.exists() {
-        return (None, None, CredentialStatus::NotFound, None);
-    }
-
-    let content = match std::fs::read_to_string(&cred_path) {
-        Ok(c) => c,
-        Err(e) => {
-            return (
-                None,
-                None,
-                CredentialStatus::ParseError,
-                Some(format!("Failed to read Gemini credentials: {e}")),
-            )
-        }
-    };
-
-    parse_gemini_file_json(&content)
+    (None, None, CredentialStatus::NotFound, None)
 }
 
 /// 解析文件格式的 Gemini 凭据

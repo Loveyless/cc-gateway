@@ -80,14 +80,7 @@ const SESSION_LIST_VIEW_MODE_STORAGE_KEY =
 const SESSION_GROUP_EXPANSION_STORAGE_KEY =
   "cc-gateway.sessionManager.groupExpansionState";
 
-type ProviderFilter =
-  | "all"
-  | "codex"
-  | "grokbuild"
-  | "claude"
-  | "opencode"
-  | "gemini"
-  | "hermes";
+type ProviderFilter = "all" | "codex" | "grokbuild" | "claude" | "hermes";
 
 type SessionListViewMode = "flat" | "grouped";
 
@@ -1095,26 +1088,6 @@ export function SessionManagerPage({ appId }: { appId: string }) {
                                   size={14}
                                 />
                                 <span>Claude Code</span>
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="opencode">
-                              <div className="flex items-center gap-2">
-                                <ProviderIcon
-                                  icon="opencode"
-                                  name="opencode"
-                                  size={14}
-                                />
-                                <span>OpenCode</span>
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="gemini">
-                              <div className="flex items-center gap-2">
-                                <ProviderIcon
-                                  icon="gemini"
-                                  name="gemini"
-                                  size={14}
-                                />
-                                <span>Gemini CLI</span>
                               </div>
                             </SelectItem>
                           </SelectContent>

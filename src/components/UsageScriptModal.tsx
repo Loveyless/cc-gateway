@@ -160,7 +160,7 @@ function detectBalanceProvider(baseUrl: string | undefined): boolean {
 }
 
 function isOfficialSubscriptionProvider(provider: Provider, appId: AppId) {
-  if (!["claude", "codex", "gemini", "grokbuild"].includes(appId)) return false;
+  if (!["claude", "codex", "grokbuild"].includes(appId)) return false;
   if (provider.category === "official") return true;
 
   const config = provider.settingsConfig as Record<string, any>;
@@ -179,19 +179,10 @@ function isOfficialSubscriptionProvider(provider: Provider, appId: AppId) {
       (!apiKey || (typeof apiKey === "string" && apiKey.trim() === ""))
     );
   }
-  if (appId === "gemini") {
-    const env = config?.env || {};
-    const apiKey = env.GEMINI_API_KEY;
-    const baseUrl = env.GOOGLE_GEMINI_BASE_URL;
-    return (
-      (!apiKey || (typeof apiKey === "string" && apiKey.trim() === "")) &&
-      (!baseUrl || (typeof baseUrl === "string" && baseUrl.trim() === ""))
-    );
-  }
   // grokbuild 不做配置启发式，只认上方的 category === "official"：官方态判定
   // 在后端是 TOML 解析（grok_config::is_official_live_config），正则无法忠实
   // 镜像（引号键/inline table/非法 TOML 均会误判为官方），误判会让本组件的
-  // state 初始化丢弃已保存的非官方脚本。claude/codex/gemini 的启发式建立在
+  // state 初始化丢弃已保存的非官方脚本。claude/codex 的启发式建立在
   // 已解析的 JSON 字段上是精确的，不受此限。官方判定以 category 为 SSOT 的
   // 理由见 ProviderCard 中的注释。
   return false;
@@ -261,14 +252,6 @@ const UsageScriptModal: React.FC<UsageScriptModalProps> = ({
             apiKey,
             baseUrl: extractCodexBaseUrl(configToml),
           };
-        } else if (appId === "gemini") {
-          // Gemini: { env: { GEMINI_API_KEY, GOOGLE_GEMINI_BASE_URL } }
-          // Key fallback mirrors the backend resolver (Provider::resolve_usage_credentials).
-          const env = (config as any).env || {};
-          return {
-            apiKey: env.GEMINI_API_KEY || env.GOOGLE_API_KEY,
-            baseUrl: env.GOOGLE_GEMINI_BASE_URL,
-          };
         } else if (appId === "grokbuild") {
           const grokConfig = parseGrokBuildConfig(
             (config as any).config,
@@ -283,13 +266,6 @@ const UsageScriptModal: React.FC<UsageScriptModalProps> = ({
           return {
             apiKey: (config as any).api_key,
             baseUrl: (config as any).base_url,
-          };
-        } else if (appId === "opencode") {
-          // OpenCode 凭据嵌在 options.{baseURL, apiKey}（SDK options 对象）
-          const options = (config as any).options || {};
-          return {
-            apiKey: options.apiKey,
-            baseUrl: options.baseURL,
           };
         }
         return { apiKey: undefined, baseUrl: undefined };

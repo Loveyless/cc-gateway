@@ -70,7 +70,7 @@ export const useAddProviderMutation = (appId: AppId) => {
 
       let id: string;
 
-      if (appId === "opencode" || appId === "hermes") {
+      if (appId === "hermes") {
         if (!providerInput.providerKey) {
           throw new Error(`Provider key is required for ${appId}`);
         }
@@ -237,15 +237,6 @@ export const useSwitchProviderMutation = (appId: AppId) => {
         });
       }
 
-      // OpenCode/Hermes: also invalidate live provider IDs cache to update button state
-      if (appId === "opencode") {
-        await queryClient.invalidateQueries({
-          queryKey: ["opencodeLiveProviderIds"],
-        });
-        await queryClient.invalidateQueries({
-          queryKey: ["opencode", "runtime-models"],
-        });
-      }
       if (appId === "hermes") {
         await invalidateHermesProviderCaches(queryClient);
       }
@@ -335,9 +326,6 @@ export const useSaveSettingsMutation = () => {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["settings"] });
-      await queryClient.invalidateQueries({
-        queryKey: ["opencode", "runtime-models"],
-      });
     },
   });
 };

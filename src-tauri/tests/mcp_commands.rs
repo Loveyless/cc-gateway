@@ -789,8 +789,8 @@ fn import_mcp_from_gemini_sse_url_only_is_valid() {
     .expect("seed ~/.gemini/settings.json");
 
     let state = support::create_test_state().expect("create test state");
-    let changed = McpService::import_from_gemini(&state).expect("import from gemini");
-    assert!(changed > 0, "should import at least 1 server");
+    let changed = McpService::import_from_gemini(&state).expect("retired Gemini import is a no-op");
+    assert_eq!(changed, 0, "retired Gemini MCP import must not write live data");
 
     let servers = state.db.get_all_mcp_servers().expect("get all mcp servers");
     let entry = servers.get("sse-server").expect("sse-server exists");
@@ -844,9 +844,13 @@ fn enabling_gemini_mcp_skips_when_gemini_dir_missing() {
     )
     .expect("insert server without syncing");
 
-    // 启用 Gemini：目录缺失时应跳过写入（不创建 ~/.gemini/settings.json）
-    McpService::toggle_app(&state, "gemini-server", AppType::Gemini, true)
-        .expect("toggle gemini should succeed even when ~/.gemini is missing");
+    let err = McpService::toggle_app(&state, "gemini-server", AppType::Gemini, true)
+        .expect_err("Gemini CLI MCP toggle is retired");
+    let message = err.to_string();
+    assert!(
+        message.contains("permanently discontinued") || message.contains("已永久停止"),
+        "expected retired error, got {message}"
+    );
 
     assert!(
         !home.join(".gemini").exists(),

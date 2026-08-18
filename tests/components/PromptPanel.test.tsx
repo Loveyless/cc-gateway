@@ -639,7 +639,7 @@ describe("PromptPanel", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
 
     view.rerender(
-      <PromptPanel open appId="gemini" onOpenChange={() => undefined} />,
+      <PromptPanel open appId="hermes" onOpenChange={() => undefined} />,
     );
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

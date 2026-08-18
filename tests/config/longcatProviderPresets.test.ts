@@ -3,11 +3,9 @@ import { claudeDesktopProviderPresets } from "@/config/claudeDesktopProviderPres
 import { providerPresets } from "@/config/claudeProviderPresets";
 import { codexProviderPresets } from "@/config/codexProviderPresets";
 import { hermesProviderPresets } from "@/config/hermesProviderPresets";
-import { opencodeProviderPresets } from "@/config/opencodeProviderPresets";
 
 const LONGCAT_MODEL = "LongCat-2.0";
 const LONGCAT_DISPLAY_NAME = "LongCat 2.0";
-const LONGCAT_OPENAI_BASE_URL = "https://api.longcat.chat/openai/v1";
 const LONGCAT_BRAND = "LongCat";
 const FLASH_VARIANT = "Flash";
 const CHAT_SUFFIX = "Chat";
@@ -68,26 +66,6 @@ describe("Longcat provider presets", () => {
     });
   });
 
-  it("uses the official LongCat 2.0 model for OpenCode", () => {
-    const preset = findLongcatPreset(opencodeProviderPresets);
-
-    expect(preset.settingsConfig.options?.baseURL).toBe(
-      LONGCAT_OPENAI_BASE_URL,
-    );
-    expect(preset.templateValues?.baseURL.defaultValue).toBe(
-      LONGCAT_OPENAI_BASE_URL,
-    );
-    expect(preset.templateValues?.baseURL.placeholder).toBe(
-      LONGCAT_OPENAI_BASE_URL,
-    );
-    expect(preset.settingsConfig.models).toEqual({
-      [LONGCAT_MODEL]: {
-        name: LONGCAT_DISPLAY_NAME,
-        options: { thinking: { type: "disabled" } },
-      },
-    });
-  });
-
   it("uses the official LongCat 2.0 model for Codex", () => {
     const preset = findLongcatPreset(codexProviderPresets);
 
@@ -106,7 +84,6 @@ describe("Longcat provider presets", () => {
       findLongcatPreset(providerPresets),
       findLongcatPreset(claudeDesktopProviderPresets),
       findLongcatPreset(hermesProviderPresets),
-      findLongcatPreset(opencodeProviderPresets),
       findLongcatPreset(codexProviderPresets),
     ];
     const serializedPresets = JSON.stringify(longcatPresets);

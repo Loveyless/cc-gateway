@@ -4,12 +4,12 @@
 
 ## 当前状态
 
-- 维护基线建立于 2026-08-11：`HEAD` 与 `origin/main` 均为 `967daa1a06e6177742a28e45731a19d4c476fa07`。
-- 当时 `upstream/main` 为 `8673e9d8d8508b89c48056523c5f86e7916b4c3c`，比维护基线领先 3 个提交；这些上游改动尚未合入。
 - 本维护版采用“独立并存”策略，不覆盖或接管已安装的上游 CC Switch。
+- Gemini CLI、OpenCode、OpenClaw、项目切换和云同步已从运行时下线。旧数据库/设置字段仍可反序列化，但不会再读写这些应用的 live 配置。
 - 应用内 updater 已停用，Release workflow 默认关闭。未启用仓库变量 `CC_GATEWAY_RELEASE_ENABLED=true` 前，不应通过打 tag 发布桌面包。
 - GitHub Funding 和上游商业赞助内容已移除；需要由维护者确认收款主体和披露方式后才能重新配置。
 - 内置供应商预设仍保留部分上游推广 URL 和优惠参数以避免破坏既有入口；界面会明确标注其继承自上游，不代表 CC Gateway 建立了合作关系，也不保证优惠有效。首发前必须决定保留并披露，还是移除这些推广参数。
+- 云同步默认远程根目录 `cc-gateway-sync` 仅作历史隔离记录；当前版本不再提供 WebDAV/S3 同步。
 
 独立运行身份如下：
 
@@ -43,7 +43,7 @@ CC Gateway 不会在启动时读取或迁移 `~/.cc-switch`，Windows 旧版 `HO
 2. 替换或书面确认应用图标、DMG 背景等品牌资产的授权与识别度；安装身份独立不代表视觉品牌已完成。
 3. 配置 Apple Developer ID、Notary 凭据并验证 macOS `.app`/`.dmg` 签名与公证；为 Windows 增加并验证 Authenticode 签名，不能把 Tauri updater 签名当作系统代码签名。
 4. 在 macOS、Windows、Linux 各完成一次干净安装、与上游并装、双开、Deep Link、自动启动、卸载、数据保留和回滚验证；Windows 需覆盖 x64/ARM64，macOS 需覆盖 Intel/Apple Silicon 产物。
-5. 用全新 WebDAV/S3 测试空间验证 `cc-gateway-sync`，并验证显式导入上游 SQL 备份不会自动读取或改写 `~/.cc-switch`。
+5. 验证显式导入上游 SQL 备份不会自动读取或改写 `~/.cc-switch`。
 6. 检查 Release 资产命名、哈希/签名、下载说明、Support/Security、隐私说明和第三方链接披露，再将 GitHub Release 从 prerelease 调整为正式发布。
 
 首次发布可以继续禁用应用内 updater，不需要 Tauri updater signing key。只有决定重新启用自动更新时，才生成 CC Gateway 自己的 updater key、公钥、`latest.json` 和下载 endpoint；不得复用 `dl.ccswitch.io`、上游 manifest 或上游私钥。

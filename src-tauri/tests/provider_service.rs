@@ -1937,10 +1937,10 @@ fn legacy_common_config_migration_flag_roundtrip() {
 }
 
 #[test]
-fn switch_packycode_gemini_updates_security_selected_type() {
+fn switch_retired_gemini_app_is_rejected() {
     let _guard = test_mutex().lock().expect("acquire test mutex");
     reset_test_fs();
-    let home = ensure_test_home();
+    let _home = ensure_test_home();
 
     let mut config = MultiAppConfig::default();
     {
@@ -1966,144 +1966,12 @@ fn switch_packycode_gemini_updates_security_selected_type() {
 
     let state = create_test_state_with_config(&config).expect("create test state");
 
-    ProviderService::switch(&state, AppType::Gemini, "packy-gemini")
-        .expect("switching to PackyCode Gemini should succeed");
-
-    // Gemini security settings are written to ~/.gemini/settings.json, not ~/.cc-gateway/settings.json
-    let settings_path = home.join(".gemini").join("settings.json");
+    let err = ProviderService::switch(&state, AppType::Gemini, "packy-gemini")
+        .expect_err("Gemini CLI app is retired");
+    let message = err.to_string();
     assert!(
-        settings_path.exists(),
-        "Gemini settings.json should exist at {}",
-        settings_path.display()
-    );
-    let raw = std::fs::read_to_string(&settings_path).expect("read gemini settings.json");
-    let value: serde_json::Value =
-        serde_json::from_str(&raw).expect("parse gemini settings.json after switch");
-
-    assert_eq!(
-        value
-            .pointer("/security/auth/selectedType")
-            .and_then(|v| v.as_str()),
-        Some("gemini-api-key"),
-        "PackyCode Gemini should set security.auth.selectedType"
-    );
-}
-
-#[test]
-fn packycode_partner_meta_triggers_security_flag_even_without_keywords() {
-    let _guard = test_mutex().lock().expect("acquire test mutex");
-    reset_test_fs();
-    let home = ensure_test_home();
-
-    let mut config = MultiAppConfig::default();
-    {
-        let manager = config
-            .get_manager_mut(&AppType::Gemini)
-            .expect("gemini manager");
-        manager.current = "packy-meta".to_string();
-        let mut provider = Provider::with_id(
-            "packy-meta".to_string(),
-            "Generic Gemini".to_string(),
-            json!({
-                "env": {
-                    "GEMINI_API_KEY": "pk-meta",
-                    "GOOGLE_GEMINI_BASE_URL": "https://generativelanguage.googleapis.com"
-                }
-            }),
-            Some("https://example.com".to_string()),
-        );
-        provider.meta = Some(ProviderMeta {
-            partner_promotion_key: Some("packycode".to_string()),
-            ..ProviderMeta::default()
-        });
-        manager.providers.insert("packy-meta".to_string(), provider);
-    }
-
-    let state = create_test_state_with_config(&config).expect("create test state");
-
-    ProviderService::switch(&state, AppType::Gemini, "packy-meta")
-        .expect("switching to partner meta provider should succeed");
-
-    // Gemini security settings are written to ~/.gemini/settings.json, not ~/.cc-gateway/settings.json
-    let settings_path = home.join(".gemini").join("settings.json");
-    assert!(
-        settings_path.exists(),
-        "Gemini settings.json should exist at {}",
-        settings_path.display()
-    );
-    let raw = std::fs::read_to_string(&settings_path).expect("read gemini settings.json");
-    let value: serde_json::Value =
-        serde_json::from_str(&raw).expect("parse gemini settings.json after switch");
-
-    assert_eq!(
-        value
-            .pointer("/security/auth/selectedType")
-            .and_then(|v| v.as_str()),
-        Some("gemini-api-key"),
-        "Partner meta should set security.auth.selectedType even without packy keywords"
-    );
-}
-
-#[test]
-fn switch_google_official_gemini_preserves_env_vars() {
-    let _guard = test_mutex().lock().expect("acquire test mutex");
-    reset_test_fs();
-    let home = ensure_test_home();
-
-    let mut config = MultiAppConfig::default();
-    {
-        let manager = config
-            .get_manager_mut(&AppType::Gemini)
-            .expect("gemini manager");
-        manager.current = "google-official".to_string();
-        let mut provider = Provider::with_id(
-            "google-official".to_string(),
-            "Google".to_string(),
-            json!({
-                "env": {
-                    "GEMINI_MODEL": "gemini-2.5-pro"
-                }
-            }),
-            Some("https://ai.google.dev".to_string()),
-        );
-        provider.meta = Some(ProviderMeta {
-            partner_promotion_key: Some("google-official".to_string()),
-            ..ProviderMeta::default()
-        });
-        manager
-            .providers
-            .insert("google-official".to_string(), provider);
-    }
-
-    let state = create_test_state_with_config(&config).expect("create test state");
-
-    ProviderService::switch(&state, AppType::Gemini, "google-official")
-        .expect("switching to Google official Gemini should succeed");
-
-    // Verify env vars are preserved in ~/.gemini/.env
-    let env_path = home.join(".gemini").join(".env");
-    assert!(
-        env_path.exists(),
-        "Gemini .env should exist at {}",
-        env_path.display()
-    );
-    let env_content = std::fs::read_to_string(&env_path).expect("read gemini .env");
-    assert!(
-        env_content.contains("GEMINI_MODEL=gemini-2.5-pro"),
-        "GEMINI_MODEL should be preserved in .env, got: {env_content}"
-    );
-
-    // Verify OAuth security flag is still set correctly
-    let gemini_settings = home.join(".gemini").join("settings.json");
-    let gemini_raw = std::fs::read_to_string(&gemini_settings).expect("read gemini settings");
-    let gemini_value: serde_json::Value =
-        serde_json::from_str(&gemini_raw).expect("parse gemini settings");
-    assert_eq!(
-        gemini_value
-            .pointer("/security/auth/selectedType")
-            .and_then(|v| v.as_str()),
-        Some("oauth-personal"),
-        "OAuth security flag should still be set"
+        message.contains("permanently discontinued") || message.contains("已永久停止"),
+        "expected retired error, got {message}"
     );
 }
 

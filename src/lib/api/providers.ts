@@ -136,22 +136,6 @@ export const providersApi = {
   },
 
   /**
-   * 从 OpenCode live 配置导入供应商到数据库
-   * OpenCode 特有功能：由于累加模式，用户可能已在 opencode.json 中配置供应商
-   */
-  async importOpenCodeFromLive(): Promise<number> {
-    return await invoke("import_opencode_providers_from_live");
-  },
-
-  /**
-   * 获取 OpenCode live 配置中的供应商 ID 列表
-   * 用于前端判断供应商是否已添加到 opencode.json
-   */
-  async getOpenCodeLiveProviderIds(): Promise<string[]> {
-    return await invoke("get_opencode_live_provider_ids");
-  },
-
-  /**
    * 获取 Hermes live 配置中的供应商 ID 列表
    * 用于前端判断供应商是否已添加到 Hermes 配置
    */

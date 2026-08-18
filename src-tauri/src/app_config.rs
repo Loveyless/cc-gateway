@@ -1250,7 +1250,6 @@ mod tests {
         let _home = TempHome::new();
         write_prompt_file(AppType::Claude, "# Claude prompt");
         write_prompt_file(AppType::Codex, "# Codex prompt");
-        write_prompt_file(AppType::Gemini, "# Gemini prompt");
 
         let config = MultiAppConfig::load().expect("load config");
 

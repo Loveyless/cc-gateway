@@ -155,15 +155,12 @@ fn sync_to_app_removes_disabled_and_orphaned_ssot_symlinks() {
         })
         .expect("save disabled skill");
 
-    SkillService::sync_to_app(&state.db, &AppType::OpenCode).expect("reconcile skills");
-
+    let err = SkillService::sync_to_app(&state.db, &AppType::OpenCode)
+        .expect_err("OpenCode skill projection is retired");
+    let message = err.to_string();
     assert!(
-        !opencode_skills_dir.join("disabled-skill").exists(),
-        "DB-known disabled skill should be removed from OpenCode live dir"
-    );
-    assert!(
-        !opencode_skills_dir.join("orphan-skill").exists(),
-        "orphaned symlink into SSOT should be cleaned up"
+        message.contains("permanently discontinued") || message.contains("已永久停止"),
+        "expected retired error, got {message}"
     );
 }
 

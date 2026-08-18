@@ -144,18 +144,15 @@ pub(crate) fn build_provider_from_request(
     app_type: &AppType,
     request: &DeepLinkImportRequest,
 ) -> Result<Provider, AppError> {
+    app_type.ensure_supported()?;
     let settings_config = match app_type {
         AppType::Claude | AppType::ClaudeDesktop => build_claude_settings(request),
         AppType::Codex => build_codex_settings(request),
-        AppType::Gemini => build_gemini_settings(request),
         AppType::GrokBuild => build_grokbuild_settings(request),
-        AppType::OpenCode => build_opencode_settings(request),
-        AppType::OpenClaw => {
-            return Err(AppError::InvalidInput(
-                "OpenClaw support has been permanently discontinued".to_string(),
-            ))
-        }
         AppType::Hermes => build_hermes_settings(request),
+        AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {
+            unreachable!("retired app rejected above")
+        }
     };
 
     // Build usage script configuration if provided
@@ -445,23 +442,6 @@ requires_openai_auth = true
     })
 }
 
-/// Build Gemini settings configuration
-fn build_gemini_settings(request: &DeepLinkImportRequest) -> serde_json::Value {
-    let mut env = serde_json::Map::new();
-    env.insert("GEMINI_API_KEY".to_string(), json!(request.api_key));
-    env.insert(
-        "GOOGLE_GEMINI_BASE_URL".to_string(),
-        json!(get_primary_endpoint(request)),
-    );
-
-    // Add model if provided
-    if let Some(model) = &request.model {
-        env.insert("GEMINI_MODEL".to_string(), json!(model));
-    }
-
-    json!({ "env": env })
-}
-
 fn build_grokbuild_settings(request: &DeepLinkImportRequest) -> serde_json::Value {
     let model = request
         .model
@@ -489,33 +469,6 @@ fn build_grokbuild_settings(request: &DeepLinkImportRequest) -> serde_json::Valu
             crate::grok_config::DEFAULT_API_BACKEND,
             crate::grok_config::DEFAULT_CONTEXT_WINDOW,
         )
-    })
-}
-
-/// Build OpenCode settings configuration
-fn build_opencode_settings(request: &DeepLinkImportRequest) -> serde_json::Value {
-    let endpoint = get_primary_endpoint(request);
-
-    // Build options object
-    let mut options = serde_json::Map::new();
-    if !endpoint.is_empty() {
-        options.insert("baseURL".to_string(), json!(endpoint));
-    }
-    if let Some(api_key) = &request.api_key {
-        options.insert("apiKey".to_string(), json!(api_key));
-    }
-
-    // Build models object
-    let mut models = serde_json::Map::new();
-    if let Some(model) = &request.model {
-        models.insert(model.clone(), json!({ "name": model }));
-    }
-
-    // Default to openai-compatible npm package
-    json!({
-        "npm": "@ai-sdk/openai-compatible",
-        "options": options,
-        "models": models
     })
 }
 
@@ -620,11 +573,14 @@ pub fn parse_and_merge_config(
     match request.app.as_deref().unwrap_or("") {
         "claude" => merge_claude_config(&mut merged, &config_value)?,
         "codex" => merge_codex_config(&mut merged, &config_value)?,
-        "gemini" => merge_gemini_config(&mut merged, &config_value)?,
         "grokbuild" => merge_grokbuild_config(&mut merged, &config_value)?,
-        // Additive mode apps use JSON config directly; pass through as-is
-        "opencode" | "hermes" => {
+        "hermes" => {
             merge_additive_config(&mut merged, &config_value)?;
+        }
+        "gemini" | "opencode" | "openclaw" => {
+            return Err(AppError::InvalidInput(
+                "This app is no longer supported".to_string(),
+            ));
         }
         "" => {
             // No app specified, skip merging
@@ -747,48 +703,6 @@ fn merge_codex_config(
             request.homepage = infer_homepage_from_endpoint(endpoint);
             if request.homepage.is_none() {
                 request.homepage = Some("https://openai.com".to_string());
-            }
-        }
-    }
-
-    Ok(())
-}
-
-/// Merge Gemini configuration from config file
-fn merge_gemini_config(
-    request: &mut DeepLinkImportRequest,
-    config: &serde_json::Value,
-) -> Result<(), AppError> {
-    // Gemini uses flat env structure
-    if request.api_key.as_ref().is_none_or(|s| s.is_empty()) {
-        if let Some(api_key) = config.get("GEMINI_API_KEY").and_then(|v| v.as_str()) {
-            request.api_key = Some(api_key.to_string());
-        }
-    }
-
-    if request.endpoint.as_ref().is_none_or(|s| s.is_empty()) {
-        if let Some(base_url) = config
-            .get("GOOGLE_GEMINI_BASE_URL")
-            .or_else(|| config.get("GEMINI_BASE_URL"))
-            .and_then(|v| v.as_str())
-        {
-            request.endpoint = Some(base_url.to_string());
-        }
-    }
-
-    if request.model.is_none() {
-        request.model = config
-            .get("GEMINI_MODEL")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
-    }
-
-    // Auto-fill homepage from endpoint
-    if request.homepage.as_ref().is_none_or(|s| s.is_empty()) {
-        if let Some(endpoint) = request.endpoint.as_ref().filter(|s| !s.is_empty()) {
-            request.homepage = infer_homepage_from_endpoint(endpoint);
-            if request.homepage.is_none() {
-                request.homepage = Some("https://ai.google.dev".to_string());
             }
         }
     }

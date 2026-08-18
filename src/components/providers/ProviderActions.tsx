@@ -72,7 +72,7 @@ export function ProviderActions({
   const iconButtonClass = "h-8 w-8 p-1";
 
   // 累加模式应用（OpenCode / Hermes）
-  const isAdditiveMode = appId === "opencode" || appId === "hermes";
+  const isAdditiveMode = appId === "hermes";
 
   const handleMainButtonClick = () => {
     if (isAdditiveMode) {

@@ -174,13 +174,7 @@ impl StreamCheckService {
         }
 
         match app_type {
-            // 累加模式应用的 settings_config 结构与 Claude/Codex/Gemini 不同，
-            // 不走 adapter，直接按各自约定提取 base_url。
-            AppType::OpenCode => {
-                let npm = Self::extract_opencode_npm(provider);
-                Self::resolve_opencode_base_url(provider, npm.as_deref())
-            }
-            AppType::OpenClaw => unreachable!("retired app rejected above"),
+            AppType::OpenCode | AppType::OpenClaw => unreachable!("retired app rejected above"),
             AppType::Hermes => Self::extract_hermes_base_url(provider),
             AppType::ClaudeDesktop => ClaudeAdapter::new()
                 .extract_base_url(provider)

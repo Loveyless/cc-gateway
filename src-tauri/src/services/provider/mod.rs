@@ -3,7 +3,6 @@
 //! Handles provider CRUD operations, switching, and configuration management.
 
 mod endpoints;
-mod gemini_auth;
 mod live;
 mod usage;
 
@@ -22,8 +21,7 @@ use crate::store::AppState;
 
 // Re-export sub-module functions for external access
 pub use live::{
-    import_default_config, import_hermes_providers_from_live, import_opencode_providers_from_live,
-    read_live_settings,
+    import_default_config, import_hermes_providers_from_live, read_live_settings,
     should_import_default_config_on_startup, sync_current_to_live,
     update_toml_common_config_snippet,
 };
@@ -37,9 +35,7 @@ pub(crate) use live::{
 };
 
 // Internal re-exports
-use live::{
-    remove_hermes_provider_from_live, remove_opencode_provider_from_live, write_gemini_live,
-};
+use live::remove_hermes_provider_from_live;
 use usage::validate_usage_script;
 
 /// The built-in Codex official provider is safe to select during takeover:
@@ -318,35 +314,6 @@ mod tests {
                 "api": "openai-chat",
                 "base_url": "https://api.example.com/v1",
                 "api_key": "test-key",
-                "models": {
-                    "gpt-4o": {
-                        "name": "GPT-4o"
-                    }
-                }
-            }),
-            website_url: None,
-            category: Some("custom".to_string()),
-            created_at: Some(1),
-            sort_index: Some(0),
-            notes: None,
-            meta: None,
-            icon: None,
-            icon_color: None,
-            in_failover_queue: false,
-        }
-    }
-
-    fn opencode_provider(id: &str) -> Provider {
-        Provider {
-            id: id.to_string(),
-            name: format!("Provider {id}"),
-            settings_config: json!({
-                "npm": "@ai-sdk/openai-compatible",
-                "name": format!("Provider {id}"),
-                "options": {
-                    "baseURL": "https://api.example.com/v1",
-                    "apiKey": "test-key"
-                },
                 "models": {
                     "gpt-4o": {
                         "name": "GPT-4o"
@@ -895,95 +862,6 @@ mod tests {
                 .as_deref(),
             Some("{\"from\":\"an earlier, complete run\"}"),
             "an audit record from an earlier run must survive a retry"
-        );
-    }
-
-    #[tokio::test]
-    #[serial]
-    async fn scrub_gemini_cleans_the_live_env_without_a_current_provider() {
-        let _home = TempHome::new();
-        crate::settings::reload_settings().expect("reload settings");
-        let db = Arc::new(Database::memory().expect("init db"));
-        let state = AppState::new(db.clone());
-        seed_leaked_gemini_state(&db);
-
-        // 没有当前供应商——这正是 sync_current_provider_for_app 直接返回 Ok 而
-        // 根本不写文件的分支。此时 live 若清不掉，片段又已被清空，下次切换的
-        // backfill 就会把残留永久写进受害供应商的配置。
-        crate::gemini_config::write_gemini_env_atomic(&HashMap::from([
-            ("GOOGLE_API_KEY".to_string(), "key-A-leaked".to_string()),
-            ("GEMINI_TIMEOUT_MS".to_string(), "30000".to_string()),
-            // 只存在于 live 的手工修改：定向删除必须保住它，全量重投影会抹掉
-            (
-                "HTTPS_PROXY".to_string(),
-                "http://127.0.0.1:7890".to_string(),
-            ),
-        ]))
-        .expect("seed live env");
-
-        ProviderService::scrub_leaked_gemini_common_config(&state)
-            .await
-            .expect("scrub must succeed");
-
-        let live = crate::gemini_config::read_gemini_env().expect("read live env");
-        assert!(
-            !live.contains_key("GOOGLE_API_KEY"),
-            "the leaked credential must be gone from ~/.gemini/.env: {live:?}"
-        );
-        assert_eq!(
-            live.get("HTTPS_PROXY").map(String::as_str),
-            Some("http://127.0.0.1:7890"),
-            "a hand-added live-only var must survive targeted removal: {live:?}"
-        );
-    }
-
-    #[tokio::test]
-    #[serial]
-    async fn scrub_gemini_live_cleanup_preserves_the_rest_of_the_env_file() {
-        let _home = TempHome::new();
-        crate::settings::reload_settings().expect("reload settings");
-        let db = Arc::new(Database::memory().expect("init db"));
-        let state = AppState::new(db.clone());
-        seed_leaked_gemini_state(&db);
-
-        // 这是一次用户没主动触发的启动期清理，不该顺手重写与泄漏无关的内容。
-        // read→HashMap→write 的往返会把注释、空行、无法识别的行全丢掉并按键名重排。
-        let original = "\
-# my own notes
-GOOGLE_API_KEY=key-C-owned
-
-GOOGLE_API_KEY=key-A-leaked
-this line is not KEY=VALUE at all
-GEMINI_TIMEOUT_MS=30000
-";
-        crate::gemini_config::write_gemini_env_text_atomic(original).expect("seed live env");
-
-        ProviderService::scrub_leaked_gemini_common_config(&state)
-            .await
-            .expect("scrub must succeed");
-
-        let raw = std::fs::read_to_string(crate::gemini_config::get_gemini_env_path())
-            .expect("read live env");
-        assert!(
-            !raw.contains("key-A-leaked"),
-            "the leaked line must be gone: {raw:?}"
-        );
-        assert!(
-            raw.contains("# my own notes"),
-            "comments must survive a targeted removal: {raw:?}"
-        );
-        assert!(
-            raw.contains("this line is not KEY=VALUE at all"),
-            "unparseable lines must survive a targeted removal: {raw:?}"
-        );
-        // 被泄漏值遮住的那条重新生效——正是想要的结果，遮住它的恰恰是泄漏值
-        assert_eq!(
-            crate::gemini_config::read_gemini_env()
-                .expect("read live env")
-                .get("GOOGLE_API_KEY")
-                .map(String::as_str),
-            Some("key-C-owned"),
-            "only the matching line may be dropped: {raw:?}"
         );
     }
 
@@ -1746,145 +1624,6 @@ requires_openai_auth = true
 
     #[test]
     #[serial]
-    fn sync_current_provider_for_app_skips_db_only_opencode_provider() {
-        with_test_home(|state, _| {
-            let provider = opencode_provider("db-only-opencode");
-            ProviderService::add(state, AppType::OpenCode, provider.clone(), false)
-                .expect("seed db-only opencode provider");
-
-            ProviderService::sync_current_provider_for_app(state, AppType::OpenCode)
-                .expect("sync additive opencode providers");
-
-            let live_providers = crate::opencode_config::get_providers()
-                .expect("read opencode providers after sync");
-            assert!(
-                !live_providers.contains_key(&provider.id),
-                "db-only opencode provider should not be written to live during sync"
-            );
-        });
-    }
-
-    #[test]
-    #[serial]
-    fn sync_current_provider_for_app_preserves_legacy_live_opencode_provider() {
-        with_test_home(|state, _| {
-            let provider = opencode_provider("legacy-opencode");
-            crate::opencode_config::set_provider(&provider.id, provider.settings_config.clone())
-                .expect("seed opencode live provider");
-            state
-                .db
-                .save_provider(AppType::OpenCode.as_str(), &provider)
-                .expect("seed legacy opencode provider in db");
-
-            let mut updated = provider.clone();
-            updated.settings_config["options"]["apiKey"] = Value::String("updated-key".to_string());
-            state
-                .db
-                .save_provider(AppType::OpenCode.as_str(), &updated)
-                .expect("update legacy opencode provider in db");
-
-            ProviderService::sync_current_provider_for_app(state, AppType::OpenCode)
-                .expect("sync legacy opencode provider");
-
-            let live_providers =
-                crate::opencode_config::get_providers().expect("read opencode providers");
-            assert_eq!(
-                live_providers
-                    .get(&provider.id)
-                    .and_then(|config| config.get("options"))
-                    .and_then(|options| options.get("apiKey")),
-                Some(&Value::String("updated-key".to_string())),
-                "legacy provider that already exists in live should still be synced"
-            );
-        });
-    }
-
-    #[test]
-    #[serial]
-    fn sync_current_provider_for_app_restores_legacy_opencode_provider_after_live_reset() {
-        with_test_home(|state, _| {
-            let provider = opencode_provider("legacy-opencode-reset");
-            state
-                .db
-                .save_provider(AppType::OpenCode.as_str(), &provider)
-                .expect("seed legacy opencode provider in db");
-
-            ProviderService::sync_current_provider_for_app(state, AppType::OpenCode)
-                .expect("sync legacy opencode provider after reset");
-
-            let live_providers =
-                crate::opencode_config::get_providers().expect("read opencode providers");
-            assert!(
-                live_providers.contains_key(&provider.id),
-                "legacy opencode provider should be restored when live config is reset"
-            );
-        });
-    }
-
-    #[test]
-    #[serial]
-    fn import_opencode_providers_from_live_marks_provider_as_live_managed() {
-        with_test_home(|state, _| {
-            let provider = opencode_provider("imported-opencode");
-            crate::opencode_config::set_provider(&provider.id, provider.settings_config.clone())
-                .expect("seed opencode live provider");
-
-            let imported = import_opencode_providers_from_live(state)
-                .expect("import opencode providers from live");
-            assert_eq!(imported, 1);
-
-            let saved = state
-                .db
-                .get_provider_by_id(&provider.id, AppType::OpenCode.as_str())
-                .expect("query imported opencode provider")
-                .expect("imported opencode provider should exist");
-            assert_eq!(
-                saved
-                    .meta
-                    .as_ref()
-                    .and_then(|meta| meta.live_config_managed),
-                Some(true),
-                "providers imported from live should be treated as live-managed"
-            );
-        });
-    }
-
-    #[test]
-    #[serial]
-    fn import_opencode_providers_from_live_updates_existing_provider_from_live() {
-        with_test_home(|state, _| {
-            let provider = opencode_provider("existing-opencode");
-            state
-                .db
-                .save_provider(AppType::OpenCode.as_str(), &provider)
-                .expect("seed existing opencode provider");
-
-            let mut live_settings = provider.settings_config.clone();
-            live_settings.as_object_mut().unwrap().remove("name");
-            live_settings["npm"] = Value::String("@ai-sdk/anthropic".to_string());
-            live_settings["models"]["gpt-4o"]["name"] = Value::String("Claude Sonnet".to_string());
-            crate::opencode_config::set_provider(&provider.id, live_settings)
-                .expect("seed edited live opencode provider");
-
-            let updated = import_opencode_providers_from_live(state)
-                .expect("import opencode providers from live");
-            assert_eq!(updated, 1);
-
-            let saved = state
-                .db
-                .get_provider_by_id(&provider.id, AppType::OpenCode.as_str())
-                .expect("query updated opencode provider")
-                .expect("opencode provider should exist");
-            assert_eq!(saved.name, provider.name);
-            assert_eq!(saved.settings_config["npm"], json!("@ai-sdk/anthropic"));
-            assert_eq!(
-                saved.settings_config["models"]["gpt-4o"]["name"],
-                json!("Claude Sonnet")
-            );
-        });
-    }
-    #[test]
-    #[serial]
     fn import_hermes_providers_from_live_updates_existing_provider_from_live() {
         with_test_home(|state, _| {
             let provider = hermes_provider("existing-hermes");
@@ -2300,8 +2039,9 @@ impl ProviderService {
                 .and_then(Self::provider_live_config_managed);
             if Self::check_live_config_exists(&app_type, id, live_managed)? {
                 match app_type {
-                    AppType::OpenCode => remove_opencode_provider_from_live(id)?,
-                    AppType::OpenClaw => unreachable!("retired app rejected above"),
+                    AppType::OpenCode | AppType::OpenClaw => {
+                        unreachable!("retired app rejected above")
+                    }
                     AppType::Hermes => remove_hermes_provider_from_live(id)?,
                     _ => {}
                 }
@@ -2335,10 +2075,7 @@ impl ProviderService {
     ) -> Result<(), AppError> {
         app_type.ensure_supported()?;
         match app_type {
-            AppType::OpenCode => {
-                remove_opencode_provider_from_live(id)?;
-            }
-            AppType::OpenClaw => unreachable!("retired app rejected above"),
+            AppType::OpenCode | AppType::OpenClaw => unreachable!("retired app rejected above"),
             AppType::Hermes => {
                 remove_hermes_provider_from_live(id)?;
             }
@@ -2388,7 +2125,7 @@ impl ProviderService {
         // normal live write.
         let _switch_guard = if matches!(
             app_type,
-            AppType::Claude | AppType::Codex | AppType::Gemini | AppType::GrokBuild
+            AppType::Claude | AppType::Codex | AppType::GrokBuild
         ) {
             Some(futures::executor::block_on(
                 state.proxy_service.lock_switch_for_app(app_type.as_str()),
@@ -2519,7 +2256,6 @@ impl ProviderService {
             state.db.set_current_provider(app_type.as_str(), id)?;
         }
 
-        // Sync to live (write_gemini_live handles security flag internally for Gemini)
         write_live_with_common_config(state.db.as_ref(), &app_type, provider)?;
 
         // A material-less official Codex provider gets a config-only live
@@ -2577,8 +2313,9 @@ impl ProviderService {
             Self::set_provider_live_config_managed(&mut updated, true);
             if let Err(e) = state.db.save_provider(app_type.as_str(), &updated) {
                 let rollback_result = match app_type {
-                    AppType::OpenCode => remove_opencode_provider_from_live(&provider.id),
-                    AppType::OpenClaw => unreachable!("retired app rejected above"),
+                    AppType::OpenCode | AppType::OpenClaw => {
+                        unreachable!("retired app rejected above")
+                    }
                     AppType::Hermes => remove_hermes_provider_from_live(&provider.id),
                     _ => Ok(()),
                 };
@@ -2861,10 +2598,11 @@ impl ProviderService {
             AppType::Claude => Self::extract_claude_common_config(&provider.settings_config),
             AppType::ClaudeDesktop => Ok(String::new()),
             AppType::Codex => Self::extract_codex_common_config(&provider.settings_config),
-            AppType::Gemini => Self::extract_gemini_common_config(&provider.settings_config),
             AppType::GrokBuild => Ok(String::new()),
-            AppType::OpenCode => Self::extract_opencode_common_config(&provider.settings_config),
-            AppType::OpenClaw => AppType::OpenClaw.ensure_supported().map(|_| String::new()),
+            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {
+                app_type.ensure_supported()?;
+                Ok(String::new())
+            }
             AppType::Hermes => Ok(String::new()), // Hermes doesn't use common config snippets
         }
     }
@@ -2878,10 +2616,11 @@ impl ProviderService {
             AppType::Claude => Self::extract_claude_common_config(settings_config),
             AppType::ClaudeDesktop => Ok(String::new()),
             AppType::Codex => Self::extract_codex_common_config(settings_config),
-            AppType::Gemini => Self::extract_gemini_common_config(settings_config),
             AppType::GrokBuild => Ok(String::new()),
-            AppType::OpenCode => Self::extract_opencode_common_config(settings_config),
-            AppType::OpenClaw => AppType::OpenClaw.ensure_supported().map(|_| String::new()),
+            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {
+                app_type.ensure_supported()?;
+                Ok(String::new())
+            }
             AppType::Hermes => Ok(String::new()), // Hermes doesn't use common config snippets
         }
     }
@@ -3334,21 +3073,7 @@ impl ProviderService {
         //    文件。全量投影时那无所谓，但这里是一次用户没主动触发的启动期清理，不该
         //    连带改写与泄漏无关的内容。
         //
-        //    失败就带着错误返回：片段此刻还留着毒键，完成标记也没置位，下次启动能
-        //    照原样重来。清片段是不可逆的一步，必须排在所有会失败的步骤之后。
-        let poison_env: HashMap<String, String> = poison_value
-            .as_object()
-            .map(|map| {
-                map.iter()
-                    .filter_map(|(key, value)| {
-                        value.as_str().map(|text| (key.clone(), text.to_string()))
-                    })
-                    .collect()
-            })
-            .unwrap_or_default();
-        if crate::gemini_config::remove_gemini_env_entries(&poison_env)? {
-            log::info!("已从 ~/.gemini/.env 中清除泄漏的共享凭据");
-        }
+        // 5) Gemini CLI live 文件已不再写入；跳过 ~/.gemini/.env 清理。
 
         // 6) 片段本身：保留可共享的部分。全部清空时删行而不是写 "{}"——留着空行会让
         //    should_auto_extract_config_snippet 永远为 false，用户的合法共享配置再也
@@ -3366,29 +3091,6 @@ impl ProviderService {
         state.db.set_setting(FLAG, "true")?;
         log::info!("Gemini 通用配置凭据清理完成");
         Ok(())
-    }
-
-    /// Extract common config for OpenCode (JSON format)
-    fn extract_opencode_common_config(settings: &Value) -> Result<String, AppError> {
-        // OpenCode uses a different config structure with npm, options, models
-        // For common config, we exclude provider-specific fields like apiKey
-        let mut config = settings.clone();
-
-        // Remove provider-specific fields
-        if let Some(obj) = config.as_object_mut() {
-            if let Some(options) = obj.get_mut("options").and_then(|v| v.as_object_mut()) {
-                options.remove("apiKey");
-                options.remove("baseURL");
-            }
-            // Keep npm and models as they might be common
-        }
-
-        if config.is_null() || (config.is_object() && config.as_object().unwrap().is_empty()) {
-            return Ok("{}".to_string());
-        }
-
-        serde_json::to_string_pretty(&config)
-            .map_err(|e| AppError::Message(format!("Serialization failed: {e}")))
     }
 
     /// Import default configuration from live files (re-export)
@@ -3505,10 +3207,6 @@ impl ProviderService {
         .await
     }
 
-    pub(crate) fn write_gemini_live(provider: &Provider) -> Result<(), AppError> {
-        write_gemini_live(provider)
-    }
-
     fn validate_provider_settings(app_type: &AppType, provider: &Provider) -> Result<(), AppError> {
         match app_type {
             AppType::Claude => {
@@ -3563,10 +3261,7 @@ impl ProviderService {
                     }
                 }
             }
-            AppType::Gemini => {
-                use crate::gemini_config::validate_gemini_settings;
-                validate_gemini_settings(&provider.settings_config)?
-            }
+            AppType::Gemini => app_type.ensure_supported()?,
             AppType::GrokBuild => {
                 let settings = provider.settings_config.as_object().ok_or_else(|| {
                     AppError::localized(
@@ -3593,18 +3288,7 @@ impl ProviderService {
                     crate::grok_config::validate_config_toml(config)?;
                 }
             }
-            AppType::OpenCode => {
-                // OpenCode uses a different config structure: { npm, options, models }
-                // Basic validation - must be an object
-                if !provider.settings_config.is_object() {
-                    return Err(AppError::localized(
-                        "provider.opencode.settings.not_object",
-                        "OpenCode 配置必须是 JSON 对象",
-                        "OpenCode configuration must be a JSON object",
-                    ));
-                }
-            }
-            AppType::OpenClaw => AppType::OpenClaw.ensure_supported()?,
+            AppType::OpenCode | AppType::OpenClaw => app_type.ensure_supported()?,
             AppType::Hermes => {
                 // Hermes: accept any JSON object for now
                 if !provider.settings_config.is_object() {
@@ -3765,62 +3449,8 @@ impl ProviderService {
 
                 Ok((api_key, base_url))
             }
-            AppType::Gemini => {
-                use crate::gemini_config::json_to_env;
-
-                let env_map = json_to_env(&provider.settings_config)?;
-
-                let api_key = env_map.get("GEMINI_API_KEY").cloned().ok_or_else(|| {
-                    AppError::localized(
-                        "gemini.missing_api_key",
-                        "缺少 GEMINI_API_KEY",
-                        "Missing GEMINI_API_KEY",
-                    )
-                })?;
-
-                let base_url = env_map
-                    .get("GOOGLE_GEMINI_BASE_URL")
-                    .cloned()
-                    .unwrap_or_else(|| "https://generativelanguage.googleapis.com".to_string());
-
-                Ok((api_key, base_url))
-            }
-            AppType::OpenCode => {
-                // OpenCode uses options.apiKey and options.baseURL
-                let options = provider
-                    .settings_config
-                    .get("options")
-                    .and_then(|v| v.as_object())
-                    .ok_or_else(|| {
-                        AppError::localized(
-                            "provider.opencode.options.missing",
-                            "配置格式错误: 缺少 options",
-                            "Invalid configuration: missing options section",
-                        )
-                    })?;
-
-                let api_key = options
-                    .get("apiKey")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| {
-                        AppError::localized(
-                            "provider.opencode.api_key.missing",
-                            "缺少 API Key",
-                            "API key is missing",
-                        )
-                    })?
-                    .to_string();
-
-                let base_url = options
-                    .get("baseURL")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .to_string();
-
-                Ok((api_key, base_url))
-            }
-            AppType::OpenClaw => {
-                AppType::OpenClaw.ensure_supported()?;
+            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {
+                app_type.ensure_supported()?;
                 unreachable!("retired app rejected above")
             }
             AppType::Hermes => {
@@ -4004,6 +3634,61 @@ impl ProviderService {
         if let Some(mut claude_provider) = provider.to_claude_provider() {
             // 合并已有配置
             if let Some(existing) = state.db.get_provider_by_id(&claude_provider.id, "claude")? {
+                let mut merged = existing.settings_config.clone();
+                Self::merge_json(&mut merged, &claude_provider.settings_config);
+                claude_provider.settings_config = merged;
+            }
+            state.db.save_provider("claude", &claude_provider)?;
+        } else {
+            // 如果禁用了 Claude，删除对应的子供应商
+            let claude_id = format!("universal-claude-{id}");
+            let _ = state.db.delete_provider("claude", &claude_id);
+        }
+
+        // 同步到 Codex
+        if let Some(mut codex_provider) = provider.to_codex_provider() {
+            // 合并已有配置
+            if let Some(existing) = state.db.get_provider_by_id(&codex_provider.id, "codex")? {
+                let mut merged = existing.settings_config.clone();
+                Self::merge_json(&mut merged, &codex_provider.settings_config);
+                codex_provider.settings_config = merged;
+            }
+            state.db.save_provider("codex", &codex_provider)?;
+        } else {
+            let codex_id = format!("universal-codex-{id}");
+            let _ = state.db.delete_provider("codex", &codex_id);
+        }
+
+        // Gemini CLI is retired: never write new child providers, drop leftovers.
+        let gemini_id = format!("universal-gemini-{id}");
+        let _ = state.db.delete_provider("gemini", &gemini_id);
+
+        Ok(true)
+    }
+
+    /// 递归合并 JSON：base 为底，patch 覆盖同名字段
+    fn merge_json(base: &mut serde_json::Value, patch: &serde_json::Value) {
+        use serde_json::Value;
+
+        match (base, patch) {
+            (Value::Object(base_map), Value::Object(patch_map)) => {
+                for (k, v_patch) in patch_map {
+                    match base_map.get_mut(k) {
+                        Some(v_base) => Self::merge_json(v_base, v_patch),
+                        None => {
+                            base_map.insert(k.clone(), v_patch.clone());
+                        }
+                    }
+                }
+            }
+            // 其它类型：直接覆盖
+            (base_val, patch_val) => {
+                *base_val = patch_val.clone();
+            }
+        }
+    }
+}
+der.id, "claude")? {
                 let mut merged = existing.settings_config.clone();
                 Self::merge_json(&mut merged, &claude_provider.settings_config);
                 claude_provider.settings_config = merged;

@@ -1,8 +1,8 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import CodexConfigEditor from "@/components/providers/forms/CodexConfigEditor";
-import GeminiConfigEditor from "@/components/providers/forms/GeminiConfigEditor";
+import { CommonConfigEditor } from "@/components/providers/forms/CommonConfigEditor";
 import { isCodexGoalModeEnabled } from "@/utils/providerConfigUtils";
 
 vi.mock("@/components/common/FullScreenPanel", () => ({
@@ -131,29 +131,32 @@ describe("Common config modals", () => {
     expect(disabledConfig).not.toContain("goals = true");
   });
 
-  it("keeps the Gemini common config modal closed after user closes it with an error present", async () => {
-    render(
-      <GeminiConfigEditor
-        envValue="{}"
-        configValue="{}"
-        onEnvChange={() => {}}
-        onConfigChange={() => {}}
-        useCommonConfig={false}
-        onCommonConfigToggle={() => {}}
-        commonConfigSnippet={`{"GEMINI_MODEL":"gemini-2.5-pro"}`}
-        onCommonConfigSnippetChange={() => false}
-        onCommonConfigErrorClear={() => {}}
-        commonConfigError="Invalid JSON"
-        envError=""
-        configError=""
-      />,
-    );
+  it("keeps the Claude common config modal closed after user closes it with an error present", async () => {
+    function Harness() {
+      const [isModalOpen, setIsModalOpen] = useState(false);
+      return (
+        <CommonConfigEditor
+          value="{}"
+          onChange={() => {}}
+          useCommonConfig={false}
+          onCommonConfigToggle={() => {}}
+          commonConfigSnippet={`{"env":{"CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC":"1"}}`}
+          onCommonConfigSnippetChange={() => {}}
+          commonConfigError="Invalid JSON"
+          onEditClick={() => setIsModalOpen(true)}
+          isModalOpen={isModalOpen}
+          onModalClose={() => setIsModalOpen(false)}
+        />
+      );
+    }
+
+    render(<Harness />);
 
     expect(screen.queryByTestId("common-config-panel")).not.toBeInTheDocument();
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: /geminiConfig.editCommonConfig|编辑通用配置/,
+        name: /claudeConfig.editCommonConfig|编辑通用配置/,
       }),
     );
 
