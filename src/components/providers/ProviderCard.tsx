@@ -27,11 +27,9 @@ interface ProviderCardProps {
   provider: Provider;
   isCurrent: boolean;
   appId: AppId;
-  isInConfig?: boolean; // Hermes: 是否已添加到 live 配置
   onSwitch: (provider: Provider) => void;
   onEdit: (provider: Provider) => void;
   onDelete: (provider: Provider) => void;
-  onRemoveFromConfig?: (provider: Provider) => void;
   onConfigureUsage?: (provider: Provider) => void;
   onOpenWebsite: (url: string) => void;
   onDuplicate: (provider: Provider) => void;
@@ -39,9 +37,6 @@ interface ProviderCardProps {
   isTesting?: boolean;
   isProxyTakeover?: boolean; // 代理接管模式（Live配置已被接管，切换为热切换）
   dragHandleProps?: DragHandleProps;
-  // Hermes current provider marker
-  isDefaultModel?: boolean;
-  onSetAsDefault?: () => void;
 }
 
 const extractApiUrl = (provider: Provider, fallbackText: string) => {
@@ -80,23 +75,17 @@ export function ProviderCard({
   provider,
   isCurrent,
   appId,
-  isInConfig = true,
   onSwitch,
   onEdit,
   onDelete,
-  onRemoveFromConfig,
   onOpenWebsite,
   onDuplicate,
   onTest,
   isTesting,
   isProxyTakeover = false,
   dragHandleProps,
-  isDefaultModel,
-  onSetAsDefault,
 }: ProviderCardProps) {
   const { t } = useTranslation();
-
-  const isAdditiveMode = false;
 
   const fallbackUrlText = t("provider.notConfigured", {
     defaultValue: "未配置接口地址",
@@ -137,9 +126,7 @@ export function ProviderCard({
   const isActiveProvider = isCurrent;
 
   const shouldUseGreen = isProxyTakeover && isActiveProvider;
-  const hasPersistentConfigHighlight = isAdditiveMode && isInConfig;
-  const shouldUseBlue =
-    !isProxyTakeover && (isActiveProvider || hasPersistentConfigHighlight);
+  const shouldUseBlue = !isProxyTakeover && isActiveProvider;
 
   return (
     <div
@@ -152,8 +139,7 @@ export function ProviderCard({
         shouldUseGreen &&
           "border-emerald-500/60 shadow-sm shadow-emerald-500/10",
         shouldUseBlue && "border-blue-500/60 shadow-sm shadow-blue-500/10",
-        !(isActiveProvider || hasPersistentConfigHighlight) &&
-          "hover:shadow-sm",
+        !isActiveProvider && "hover:shadow-sm",
         dragHandleProps?.isDragging &&
           "cursor-grabbing border-primary shadow-lg scale-105 z-10",
       )}
@@ -164,9 +150,7 @@ export function ProviderCard({
           shouldUseGreen && "from-emerald-500/10",
           shouldUseBlue && "from-blue-500/10",
           !shouldUseGreen && !shouldUseBlue && "from-primary/10",
-          isActiveProvider || hasPersistentConfigHighlight
-            ? "opacity-100"
-            : "opacity-0",
+          isActiveProvider ? "opacity-100" : "opacity-0",
         )}
       />
       <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -284,9 +268,7 @@ export function ProviderCard({
         <div className="flex items-center ml-auto min-w-0 gap-3">
           <div className="flex items-center gap-1.5 flex-shrink-0 opacity-0 pointer-events-none group-hover:opacity-100 group-focus-within:opacity-100 group-hover:pointer-events-auto group-focus-within:pointer-events-auto transition-opacity duration-200">
             <ProviderActions
-              appId={appId}
               isCurrent={isCurrent}
-              isInConfig={isInConfig}
               isTesting={isTesting}
               isProxyTakeover={isProxyTakeover}
               isOfficialBlockedByProxy={isOfficialBlockedByProxy}
@@ -299,13 +281,6 @@ export function ProviderCard({
                   : undefined
               }
               onDelete={() => onDelete(provider)}
-              onRemoveFromConfig={
-                onRemoveFromConfig
-                  ? () => onRemoveFromConfig(provider)
-                  : undefined
-              }
-              isDefaultModel={isDefaultModel}
-              onSetAsDefault={onSetAsDefault}
             />
           </div>
         </div>

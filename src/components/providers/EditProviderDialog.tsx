@@ -152,19 +152,15 @@ export function EditProviderDialog({
       if (!provider) return;
 
       // 注意：values.settingsConfig 已经是最终的配置字符串
-      // ProviderForm 已经为不同的 app 类型（Claude/Codex/Hermes）正确组装了配置
+      // ProviderForm 已经为不同的 app 类型（Claude/Codex）正确组装了配置
       const parsedConfig = JSON.parse(values.settingsConfig) as Record<
         string,
         unknown
       >;
-      const nextProviderId =
-        appId === "hermes" && values.providerKey?.trim()
-          ? values.providerKey.trim()
-          : provider.id;
 
       const updatedProvider: Provider = {
         ...provider,
-        id: nextProviderId,
+        id: provider.id,
         name: values.name.trim(),
         notes: values.notes?.trim() || undefined,
         websiteUrl: values.websiteUrl?.trim() || undefined,

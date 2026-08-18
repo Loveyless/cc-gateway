@@ -43,8 +43,7 @@ export function AddProviderDialog({
   onSubmit,
 }: AddProviderDialogProps) {
   const { t } = useTranslation();
-  const showUniversalTab =
-    appId !== "hermes" && appId !== "grokbuild" && appId !== "claude-desktop";
+  const showUniversalTab = appId !== "grokbuild" && appId !== "claude-desktop";
   const [activeTab, setActiveTab] = useState<"app-specific" | "universal">(
     "app-specific",
   );
@@ -149,10 +148,6 @@ export function AddProviderDialog({
           values.presetId === GROKBUILD_OFFICIAL_PROVIDER_ID;
       }
 
-      if (appId === "hermes" && values.providerKey) {
-        providerData.providerKey = values.providerKey;
-      }
-
       const hasCustomEndpoints =
         providerData.meta?.custom_endpoints &&
         Object.keys(providerData.meta.custom_endpoints).length > 0;
@@ -237,10 +232,6 @@ export function AddProviderDialog({
           const config = parsedConfig.config as string | undefined;
           if (config) {
             addUrl(extractGrokBuildBaseUrl(config));
-          }
-        } else if (appId === "hermes") {
-          if (parsedConfig.base_url) {
-            addUrl(parsedConfig.base_url as string);
           }
         }
 

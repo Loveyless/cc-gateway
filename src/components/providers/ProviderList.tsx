@@ -6,6 +6,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -25,7 +26,6 @@ import { useDragSort } from "@/hooks/useDragSort";
 import { useStreamCheck } from "@/hooks/useStreamCheck";
 import { ProviderCard } from "@/components/providers/ProviderCard";
 import { ProviderEmptyState } from "@/components/providers/ProviderEmptyState";
-import { useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { isTextEditableTarget } from "@/utils/domUtils";
@@ -37,7 +37,6 @@ interface ProviderListProps {
   onSwitch: (provider: Provider) => void;
   onEdit: (provider: Provider) => void;
   onDelete: (provider: Provider) => void;
-  onRemoveFromConfig?: (provider: Provider) => void;
   onDuplicate: (provider: Provider) => void;
   onConfigureUsage?: (provider: Provider) => void;
   onOpenWebsite: (url: string) => void;
@@ -53,7 +52,6 @@ export function ProviderList({
   onSwitch,
   onEdit,
   onDelete,
-  onRemoveFromConfig,
   onDuplicate,
   onConfigureUsage,
   onOpenWebsite,
@@ -67,10 +65,6 @@ export function ProviderList({
     providers,
     appId,
   );
-
-  const isProviderInConfig = useCallback((_providerId: string): boolean => {
-    return true;
-  }, []);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -263,19 +257,15 @@ export function ProviderList({
                 provider={provider}
                 isCurrent={provider.id === currentProviderId}
                 appId={appId}
-                isInConfig={isProviderInConfig(provider.id)}
                 onSwitch={onSwitch}
                 onEdit={onEdit}
                 onDelete={onDelete}
-                onRemoveFromConfig={onRemoveFromConfig}
                 onDuplicate={onDuplicate}
                 onConfigureUsage={onConfigureUsage}
                 onOpenWebsite={onOpenWebsite}
                 onTest={handleTest}
                 isTesting={isChecking(provider.id)}
                 isProxyTakeover={isProxyTakeover}
-                // Hermes: model.provider === provider.id
-                isDefaultModel={false}
               />
             );
           })}
@@ -382,36 +372,30 @@ interface SortableProviderCardProps {
   provider: Provider;
   isCurrent: boolean;
   appId: AppId;
-  isInConfig: boolean;
   onSwitch: (provider: Provider) => void;
   onEdit: (provider: Provider) => void;
   onDelete: (provider: Provider) => void;
-  onRemoveFromConfig?: (provider: Provider) => void;
   onDuplicate: (provider: Provider) => void;
   onConfigureUsage?: (provider: Provider) => void;
   onOpenWebsite: (url: string) => void;
   onTest?: (provider: Provider) => void;
   isTesting: boolean;
   isProxyTakeover: boolean;
-  isDefaultModel?: boolean;
 }
 
 function SortableProviderCard({
   provider,
   isCurrent,
   appId,
-  isInConfig,
   onSwitch,
   onEdit,
   onDelete,
-  onRemoveFromConfig,
   onDuplicate,
   onConfigureUsage,
   onOpenWebsite,
   onTest,
   isTesting,
   isProxyTakeover,
-  isDefaultModel,
 }: SortableProviderCardProps) {
   const {
     setNodeRef,
@@ -433,11 +417,9 @@ function SortableProviderCard({
         provider={provider}
         isCurrent={isCurrent}
         appId={appId}
-        isInConfig={isInConfig}
         onSwitch={onSwitch}
         onEdit={onEdit}
         onDelete={onDelete}
-        onRemoveFromConfig={onRemoveFromConfig}
         onDuplicate={onDuplicate}
         onConfigureUsage={
           onConfigureUsage ? (item) => onConfigureUsage(item) : () => undefined
@@ -451,7 +433,6 @@ function SortableProviderCard({
           listeners,
           isDragging,
         }}
-        isDefaultModel={isDefaultModel}
       />
     </div>
   );
