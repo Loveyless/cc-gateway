@@ -24,7 +24,6 @@ const APP_CONFIG: Array<{
   },
   { id: "codex", icon: "openai", nameKey: "apps.codex" },
   { id: "grokbuild", icon: "grok", nameKey: "apps.grokbuild" },
-  { id: "hermes", icon: "hermes", nameKey: "apps.hermes" },
 ];
 
 export function AppVisibilitySettings({
@@ -38,7 +37,6 @@ export function AppVisibilitySettings({
     "claude-desktop": true,
     codex: true,
     grokbuild: true,
-    hermes: true,
   };
 
   // Count how many apps are currently visible

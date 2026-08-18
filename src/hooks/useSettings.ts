@@ -110,7 +110,6 @@ export function useSettings(): UseSettingsResult {
       claude: sanitizeDir(data?.claudeConfigDir),
       codex: sanitizeDir(data?.codexConfigDir),
       grokbuild: sanitizeDir(data?.grokConfigDir),
-      hermes: sanitizeDir(data?.hermesConfigDir),
     });
     setRequiresRestart(false);
   }, [

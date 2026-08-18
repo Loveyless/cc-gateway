@@ -270,7 +270,7 @@ export interface VisibleApps {
   "claude-desktop": boolean;
   codex: boolean;
   grokbuild: boolean;
-  hermes: boolean;
+  hermes?: boolean;
   gemini?: boolean;
   opencode?: boolean;
 }

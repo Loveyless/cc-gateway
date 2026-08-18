@@ -461,6 +461,7 @@ impl Default for SkillService {
     }
 }
 
+#[allow(dead_code)]
 impl SkillService {
     pub fn new() -> Self {
         Self
@@ -546,13 +547,8 @@ impl SkillService {
                     return Ok(custom.join("skills"));
                 }
             }
-            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {
+            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => {
                 unreachable!("retired app rejected above")
-            }
-            AppType::Hermes => {
-                if let Some(custom) = crate::settings::get_hermes_override_dir() {
-                    return Ok(custom.join("skills"));
-                }
             }
         }
 
@@ -566,8 +562,7 @@ impl SkillService {
             AppType::ClaudeDesktop => home.join(".claude-desktop").join("skills"),
             AppType::Codex => home.join(".codex").join("skills"),
             AppType::GrokBuild => home.join(".grok").join("skills"),
-            AppType::Hermes => crate::hermes_config::get_hermes_dir().join("skills"),
-            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {
+            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => {
                 unreachable!("retired app rejected above")
             }
         })

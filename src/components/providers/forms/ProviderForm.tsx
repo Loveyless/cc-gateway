@@ -6,14 +6,12 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Form, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { providerSchema, type ProviderFormData } from "@/lib/schemas/provider";
 import {
   buildLocalProxyRequestOverrides,
   formatRequestOverrideObject,
 } from "@/lib/requestOverrides";
 import { settingsApi, type AppId } from "@/lib/api";
-import { useDarkMode } from "@/hooks/useDarkMode";
 import type {
   ProviderCategory,
   ProviderMeta,
@@ -32,11 +30,6 @@ import {
   codexProviderPresets,
   type CodexProviderPreset,
 } from "@/config/codexProviderPresets";
-import {
-  hermesProviderPresets,
-  type HermesProviderPreset,
-} from "@/config/hermesProviderPresets";
-import { HermesFormFields } from "./HermesFormFields";
 import type { UniversalProviderPreset } from "@/config/universalProviderPresets";
 import {
   applyTemplateValues,
@@ -54,8 +47,6 @@ import { isNonNegativeDecimalString } from "@/types/usage";
 import { getCodexCustomTemplate } from "@/config/codexTemplates";
 import CodexConfigEditor from "./CodexConfigEditor";
 import { CommonConfigEditor } from "./CommonConfigEditor";
-import JsonEditor from "@/components/JsonEditor";
-import { Label } from "@/components/ui/label";
 import { ProviderPresetSelector } from "./ProviderPresetSelector";
 import { BasicFormFields } from "./BasicFormFields";
 import { ClaudeFormFields } from "./ClaudeFormFields";
@@ -78,7 +69,6 @@ import {
   useCodexCommonConfig,
   useSpeedTestEndpoints,
   useCodexTomlValidation,
-  useHermesFormState,
   useCopilotAuth,
   useCodexOauth,
   useXaiOauth,
@@ -90,13 +80,11 @@ import {
   CODEX_DEFAULT_CONFIG,
   normalizePricingSource,
 } from "./helpers/opencodeFormUtils";
-import { HERMES_DEFAULT_CONFIG } from "./hooks/useHermesFormState";
 import { resolveManagedAccountId } from "@/lib/authBinding";
-import { useHermesLiveProviderIds } from "@/hooks/useHermes";
 
 type PresetEntry = {
   id: string;
-  preset: ProviderPreset | CodexProviderPreset | HermesProviderPreset;
+  preset: ProviderPreset | CodexProviderPreset;
 };
 
 export const normalizeCodexCatalogModelsForSave = (
@@ -239,7 +227,6 @@ function ProviderFormFull({
   const { data: settingsData } = useSettingsQuery();
   const showCommonConfigNotice =
     settingsData != null && settingsData.commonConfigConfirmed !== true;
-  const isDarkMode = useDarkMode();
 
   const handleCommonConfigConfirm = async () => {
     try {
@@ -346,9 +333,7 @@ function ProviderFormFull({
         ? JSON.stringify(initialData.settingsConfig, null, 2)
         : appId === "codex"
           ? CODEX_DEFAULT_CONFIG
-          : appId === "hermes"
-            ? HERMES_DEFAULT_CONFIG
-            : CLAUDE_DEFAULT_CONFIG,
+          : CLAUDE_DEFAULT_CONFIG,
       icon: initialData?.icon ?? "",
       iconColor: initialData?.iconColor ?? "",
     }),
@@ -641,11 +626,6 @@ function ProviderFormFull({
         id: `codex-${index}`,
         preset,
       }));
-    } else if (appId === "hermes") {
-      return hermesProviderPresets.map<PresetEntry>((preset, index) => ({
-        id: `hermes-${index}`,
-        preset,
-      }));
     }
     return providerPresets
       .filter((p) => !p.hidden)
@@ -715,48 +695,6 @@ function ProviderFormFull({
     selectedPresetId: selectedPresetId ?? undefined,
   });
 
-  const hermesForm = useHermesFormState({
-    initialData,
-    appId,
-    providerId,
-    onSettingsConfigChange: (config) => form.setValue("settingsConfig", config),
-    getSettingsConfig: () => form.getValues("settingsConfig"),
-  });
-  const {
-    data: hermesLiveProviderIds = [],
-    isLoading: isHermesLiveProviderIdsLoading,
-  } = useHermesLiveProviderIds(appId === "hermes");
-
-  const additiveExistingProviderKeys = useMemo(() => {
-    if (appId === "hermes") {
-      return Array.from(
-        new Set(
-          [...hermesForm.existingHermesKeys, ...hermesLiveProviderIds].filter(
-            (key) => key !== providerId,
-          ),
-        ),
-      );
-    }
-
-    return [];
-  }, [appId, hermesForm.existingHermesKeys, hermesLiveProviderIds, providerId]);
-
-  const isProviderKeyLockStateLoading = useMemo(() => {
-    if (!isEditMode) return false;
-    if (appId === "hermes") {
-      return isHermesLiveProviderIdsLoading;
-    }
-    return false;
-  }, [appId, isEditMode, isHermesLiveProviderIdsLoading]);
-
-  const isProviderKeyLocked = useMemo(() => {
-    if (!isEditMode || !providerId) return false;
-    if (appId === "hermes") {
-      return hermesLiveProviderIds.includes(providerId);
-    }
-    return false;
-  }, [appId, hermesLiveProviderIds, isEditMode, providerId]);
-
   const [isCommonConfigModalOpen, setIsCommonConfigModalOpen] = useState(false);
 
   const shouldApplyLocalProxyRequestOverrides =
@@ -816,36 +754,6 @@ function ProviderFormFull({
         }),
       );
       return;
-    }
-
-    // hermes: providerKey 相关
-    // A 类（空）归到 issues；B 类（正则不合法 / 重复 / 状态加载中）仍硬拒绝
-    const keyPattern = /^[a-z0-9]+(-[a-z0-9]+)*$/;
-
-    if (appId === "hermes") {
-      if (!hermesForm.hermesProviderKey.trim()) {
-        toast.error(t("hermes.form.providerKeyRequired"));
-        return;
-      }
-      if (!keyPattern.test(hermesForm.hermesProviderKey)) {
-        toast.error(t("hermes.form.providerKeyInvalid"));
-        return;
-      }
-      if (isProviderKeyLockStateLoading) {
-        toast.error(
-          t("providerForm.providerKeyStatusLoading", {
-            defaultValue: "正在加载供应商标识状态，请稍后再试",
-          }),
-        );
-        return;
-      }
-      if (
-        !isProviderKeyLocked &&
-        additiveExistingProviderKeys.includes(hermesForm.hermesProviderKey)
-      ) {
-        toast.error(t("hermes.form.providerKeyDuplicate"));
-        return;
-      }
     }
 
     // OAuth 未登录：B 类（token 根本不存在，保存了也没法建立）
@@ -1060,10 +968,6 @@ function ProviderFormFull({
       settingsConfig,
     };
 
-    if (appId === "hermes") {
-      payload.providerKey = hermesForm.hermesProviderKey;
-    }
-
     if (activePreset) {
       payload.presetId = activePreset.id;
       if (activePreset.category) {
@@ -1250,18 +1154,6 @@ function ProviderFormFull({
     formWebsiteUrl: form.watch("websiteUrl") || "",
   });
 
-  // 使用 API Key 链接 hook (Hermes)
-  const {
-    shouldShowApiKeyLink: shouldShowHermesApiKeyLink,
-    websiteUrl: hermesWebsiteUrl,
-  } = useApiKeyLink({
-    appId: "hermes",
-    category,
-    selectedPresetId,
-    presetEntries,
-    formWebsiteUrl: form.watch("websiteUrl") || "",
-  });
-
   // 使用端点测速候选 hook
   const speedTestEndpoints = useSpeedTestEndpoints({
     appId,
@@ -1287,9 +1179,6 @@ function ProviderFormFull({
           codexApiFormatFromWireApi(extractCodexWireApi(template.config)) ??
             "openai_responses",
         );
-      }
-      if (appId === "hermes") {
-        hermesForm.resetHermesState();
       }
       return;
     }
@@ -1322,23 +1211,6 @@ function ProviderFormFull({
         name: preset.nameKey ? t(preset.nameKey) : preset.name,
         websiteUrl: preset.websiteUrl ?? "",
         settingsConfig: JSON.stringify({ auth, config }, null, 2),
-        icon: preset.icon ?? "",
-        iconColor: preset.iconColor ?? "",
-      });
-      return;
-    }
-
-    // Hermes preset handling
-    if (appId === "hermes") {
-      const preset = entry.preset as HermesProviderPreset;
-      const config = preset.settingsConfig;
-
-      hermesForm.resetHermesState(config);
-
-      form.reset({
-        name: preset.nameKey ? t(preset.nameKey) : preset.name,
-        websiteUrl: preset.websiteUrl ?? "",
-        settingsConfig: JSON.stringify(config, null, 2),
         icon: preset.icon ?? "",
         iconColor: preset.iconColor ?? "",
       });
@@ -1401,85 +1273,7 @@ function ProviderFormFull({
             />
           )}
 
-          <BasicFormFields
-            form={form}
-            beforeNameSlot={
-              appId === "hermes" ? (
-                <div className="space-y-2">
-                  <Label htmlFor="hermes-key">
-                    {t("hermes.form.providerKey", {
-                      defaultValue: "Provider Key",
-                    })}
-                    <span className="text-destructive ml-1">*</span>
-                  </Label>
-                  <Input
-                    id="hermes-key"
-                    value={hermesForm.hermesProviderKey}
-                    onChange={(e) =>
-                      hermesForm.setHermesProviderKey(
-                        e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
-                      )
-                    }
-                    placeholder={t("hermes.form.providerKeyPlaceholder", {
-                      defaultValue: "my-provider",
-                    })}
-                    disabled={
-                      isProviderKeyLocked || isProviderKeyLockStateLoading
-                    }
-                    className={
-                      (additiveExistingProviderKeys.includes(
-                        hermesForm.hermesProviderKey,
-                      ) &&
-                        !isProviderKeyLocked) ||
-                      (hermesForm.hermesProviderKey.trim() !== "" &&
-                        !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(
-                          hermesForm.hermesProviderKey,
-                        ))
-                        ? "border-destructive"
-                        : ""
-                    }
-                  />
-                  {additiveExistingProviderKeys.includes(
-                    hermesForm.hermesProviderKey,
-                  ) &&
-                    !isProviderKeyLocked && (
-                      <p className="text-xs text-destructive">
-                        {t("hermes.form.providerKeyDuplicate")}
-                      </p>
-                    )}
-                  {hermesForm.hermesProviderKey.trim() !== "" &&
-                    !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(
-                      hermesForm.hermesProviderKey,
-                    ) && (
-                      <p className="text-xs text-destructive">
-                        {t("hermes.form.providerKeyInvalid")}
-                      </p>
-                    )}
-                  {!(
-                    additiveExistingProviderKeys.includes(
-                      hermesForm.hermesProviderKey,
-                    ) && !isProviderKeyLocked
-                  ) &&
-                    (hermesForm.hermesProviderKey.trim() === "" ||
-                      /^[a-z0-9]+(-[a-z0-9]+)*$/.test(
-                        hermesForm.hermesProviderKey,
-                      )) && (
-                      <p className="text-xs text-muted-foreground">
-                        {isProviderKeyLocked
-                          ? t("hermes.form.providerKeyLockedHint", {
-                              defaultValue:
-                                "This provider is in Hermes config; key is locked.",
-                            })
-                          : t("hermes.form.providerKeyHint", {
-                              defaultValue:
-                                "Lowercase letters, numbers, and hyphens only. Used as the provider name in config.yaml.",
-                            })}
-                      </p>
-                    )}
-                </div>
-              ) : undefined
-            }
-          />
+          <BasicFormFields form={form} />
 
           {appId === "claude" && (
             <ClaudeFormFields
@@ -1624,28 +1418,7 @@ function ProviderFormFull({
             />
           )}
 
-          {/* Hermes 专属字段 */}
-          {appId === "hermes" && (
-            <HermesFormFields
-              baseUrl={hermesForm.hermesBaseUrl}
-              onBaseUrlChange={hermesForm.handleHermesBaseUrlChange}
-              apiKey={hermesForm.hermesApiKey}
-              onApiKeyChange={hermesForm.handleHermesApiKeyChange}
-              category={category}
-              shouldShowApiKeyLink={shouldShowHermesApiKeyLink}
-              websiteUrl={hermesWebsiteUrl}
-              apiMode={hermesForm.hermesApiMode}
-              onApiModeChange={hermesForm.handleHermesApiModeChange}
-              models={hermesForm.hermesModels}
-              onModelsChange={hermesForm.handleHermesModelsChange}
-              rateLimitDelay={hermesForm.hermesRateLimitDelay}
-              onRateLimitDelayChange={
-                hermesForm.handleHermesRateLimitDelayChange
-              }
-            />
-          )}
-
-          {/* 配置编辑器：Codex、Claude、Hermes 分别使用不同的编辑器 */}
+          {/* 配置编辑器：Codex 与 Claude 分别使用不同的编辑器 */}
           {appId === "codex" ? (
             <>
               <CodexConfigEditor
@@ -1671,40 +1444,6 @@ function ProviderFormFull({
               />
               {settingsConfigErrorField}
             </>
-          ) : appId === "hermes" ? (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="settingsConfig">
-                  {t("provider.configJson")}
-                </Label>
-                <JsonEditor
-                  value={form.getValues("settingsConfig")}
-                  onChange={(config) => form.setValue("settingsConfig", config)}
-                  placeholder={
-                    appId === "hermes"
-                      ? `{
-  "name": "my-provider",
-  "base_url": "https://api.example.com/v1",
-  "api_key": ""
-}`
-                      : "{}"
-                  }
-                  rows={14}
-                  showValidation={true}
-                  language="json"
-                  darkMode={isDarkMode}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="settingsConfig"
-                render={() => (
-                  <FormItem className="space-y-0">
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </>
           ) : (
             <>
               <CommonConfigEditor
@@ -1725,12 +1464,10 @@ function ProviderFormFull({
             </>
           )}
 
-          {appId !== "hermes" && (
-            <ProviderAdvancedConfig
-              pricingConfig={pricingConfig}
-              onPricingConfigChange={setPricingConfig}
-            />
-          )}
+          <ProviderAdvancedConfig
+            pricingConfig={pricingConfig}
+            onPricingConfigChange={setPricingConfig}
+          />
 
           {showButtons && (
             <div className="flex justify-end gap-2">

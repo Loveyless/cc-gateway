@@ -65,10 +65,10 @@ describe("CodexOAuthSection", () => {
     expect(screen.queryByTestId("account-quota")).not.toBeInTheDocument();
   });
 
-  it("renders account quota in Auth Center", () => {
+  it("does not render account quota in Auth Center", () => {
     render(<AuthCenterPanel />);
 
-    expect(mocks.renderAccountQuota).toHaveBeenCalledWith("account-1");
-    expect(screen.getByTestId("account-quota")).toHaveTextContent("account-1");
+    expect(mocks.renderAccountQuota).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("account-quota")).not.toBeInTheDocument();
   });
 });

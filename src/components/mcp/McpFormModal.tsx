@@ -42,7 +42,7 @@ const McpFormModal: React.FC<McpFormModalProps> = ({
   onClose,
   existingIds = [],
   defaultFormat = "json",
-  defaultEnabledApps = ["claude", "codex", "grokbuild", "hermes"],
+  defaultEnabledApps = ["claude", "codex", "grokbuild"],
 }) => {
   const { t } = useTranslation();
   const { formatTomlError, validateTomlConfig, validateJsonConfig } =
@@ -584,21 +584,6 @@ const McpFormModal: React.FC<McpFormModalProps> = ({
                   </label>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="enable-hermes"
-                    checked={enabledApps.hermes}
-                    onCheckedChange={(checked: boolean) =>
-                      setEnabledApps({ ...enabledApps, hermes: checked })
-                    }
-                  />
-                  <label
-                    htmlFor="enable-hermes"
-                    className="text-sm text-foreground cursor-pointer select-none"
-                  >
-                    {t("mcp.unifiedPanel.apps.hermes")}
-                  </label>
-                </div>
               </div>
             </div>
 

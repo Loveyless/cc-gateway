@@ -17,7 +17,6 @@ interface DirectorySettingsProps {
   claudeDir?: string;
   codexDir?: string;
   grokDir?: string;
-  hermesDir?: string;
   onDirectoryChange: (app: DirectoryAppId, value?: string) => void;
   onBrowseDirectory: (app: DirectoryAppId) => Promise<void>;
   onResetDirectory: (app: DirectoryAppId) => Promise<void>;
@@ -32,7 +31,6 @@ export function DirectorySettings({
   claudeDir,
   codexDir,
   grokDir,
-  hermesDir,
   onDirectoryChange,
   onBrowseDirectory,
   onResetDirectory,
@@ -122,16 +120,6 @@ export function DirectorySettings({
           onReset={() => onResetDirectory("grokbuild")}
         />
 
-        <DirectoryInput
-          label={t("settings.hermesConfigDir")}
-          description={undefined}
-          value={hermesDir}
-          resolvedValue={resolvedDirs.hermes}
-          placeholder={t("settings.browsePlaceholderHermes")}
-          onChange={(val) => onDirectoryChange("hermes", val)}
-          onBrowse={() => onBrowseDirectory("hermes")}
-          onReset={() => onResetDirectory("hermes")}
-        />
       </section>
     </div>
   );

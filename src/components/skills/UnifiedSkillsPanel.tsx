@@ -23,16 +23,12 @@ import {
   useUninstallSkill,
   useScanUnmanagedSkills,
   useImportSkillsFromApps,
-  useInstallSkillsFromZip,
-  useCheckSkillUpdates,
-  useUpdateSkill,
   type InstalledSkill,
-  type SkillUpdateInfo,
 } from "@/hooks/useSkills";
 import type { AppId, RuntimeAppId } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { settingsApi, skillsApi } from "@/lib/api";
+import { settingsApi } from "@/lib/api";
 import { toast } from "sonner";
 import { SKILLS_APP_IDS } from "@/config/appConfig";
 import { AppCountBar } from "@/components/common/AppCountBar";
@@ -50,24 +46,14 @@ import {
 } from "@/components/ui/dialog";
 
 interface UnifiedSkillsPanelProps {
-  onOpenDiscovery: () => void;
   currentApp: AppId;
   onInteractionBlockedChange?: (blocked: boolean) => void;
   onNavigationBlockedChange?: (blocked: boolean) => void;
-  onCheckUpdatesStateChange?: (state: SkillsCheckUpdatesState) => void;
-}
-
-export interface SkillsCheckUpdatesState {
-  isChecking: boolean;
-  hasSkills: boolean;
 }
 
 export interface UnifiedSkillsPanelHandle {
-  openDiscovery: () => void;
   openImport: () => void;
-  openInstallFromZip: () => void;
   openRestoreFromBackup: () => void;
-  checkUpdates: () => void;
 }
 
 function formatSkillBackupDate(unixSeconds: number): string {
@@ -82,11 +68,9 @@ const UnifiedSkillsPanel = React.forwardRef<
   UnifiedSkillsPanelProps
 >((props, ref) => {
   const {
-    onOpenDiscovery,
     currentApp,
     onInteractionBlockedChange,
     onNavigationBlockedChange,
-    onCheckUpdatesStateChange,
   } = props;
   const { t } = useTranslation();
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -119,14 +103,8 @@ const UnifiedSkillsPanel = React.forwardRef<
   const { data: unmanagedSkills, refetch: scanUnmanaged } =
     useScanUnmanagedSkills({ enabled: true });
   const importMutation = useImportSkillsFromApps();
-  const installFromZipMutation = useInstallSkillsFromZip();
-  const {
-    data: skillUpdates,
-    refetch: checkUpdates,
-    isFetching: isCheckingUpdates,
-  } = useCheckSkillUpdates();
-  const updateSkillMutation = useUpdateSkill();
-  const [isUpdatingAll, setIsUpdatingAll] = useState(false);
+  const skillUpdates: Array<{ id: string }> = [];
+  const isCheckingUpdates = false;
 
   const mutationPending =
     deleteBackupMutation.isPending ||
@@ -134,14 +112,11 @@ const UnifiedSkillsPanel = React.forwardRef<
     bulkToggleAppMutation.isPending ||
     uninstallMutation.isPending ||
     restoreBackupMutation.isPending ||
-    importMutation.isPending ||
-    installFromZipMutation.isPending ||
-    updateSkillMutation.isPending ||
-    isUpdatingAll;
+    importMutation.isPending;
   const dialogOpen =
     importDialogOpen || restoreDialogOpen || confirmDialog !== null;
   const navigationBlocked = writePending || mutationPending || dialogOpen;
-  const interactionBlocked = navigationBlocked || isCheckingUpdates;
+  const interactionBlocked = navigationBlocked;
 
   React.useEffect(() => {
     onInteractionBlockedChange?.(interactionBlocked);
@@ -157,21 +132,6 @@ const UnifiedSkillsPanel = React.forwardRef<
       onNavigationBlockedChange?.(false);
     },
     [onInteractionBlockedChange, onNavigationBlockedChange],
-  );
-
-  const hasSkills = (skills?.length ?? 0) > 0;
-
-  React.useEffect(() => {
-    onCheckUpdatesStateChange?.({
-      isChecking: isCheckingUpdates,
-      hasSkills,
-    });
-  }, [hasSkills, isCheckingUpdates, onCheckUpdatesStateChange]);
-
-  React.useEffect(
-    () => () =>
-      onCheckUpdatesStateChange?.({ isChecking: false, hasSkills: false }),
-    [onCheckUpdatesStateChange],
   );
 
   const beginWrite = (allowOpenDialog = false) => {
@@ -198,14 +158,6 @@ const UnifiedSkillsPanel = React.forwardRef<
     const installedIds = new Set((skills ?? []).map((skill) => skill.id));
     return (skillUpdates ?? []).filter((update) => installedIds.has(update.id));
   }, [skillUpdates, skills]);
-
-  const updatesMap = useMemo(() => {
-    const map: Record<string, SkillUpdateInfo> = {};
-    for (const update of applicableSkillUpdates) {
-      map[update.id] = update;
-    }
-    return map;
-  }, [applicableSkillUpdates]);
 
   const enabledCounts = useMemo(() => {
     const counts = {
@@ -368,110 +320,7 @@ const UnifiedSkillsPanel = React.forwardRef<
     }
   };
 
-  const handleInstallFromZip = async () => {
-    if (!beginWrite()) return;
-    try {
-      const filePath = await skillsApi.openZipFileDialog();
-      if (!filePath) return;
-
-      const installed = await installFromZipMutation.mutateAsync({
-        filePath,
-        currentApp,
-      });
-
-      if (installed.length === 0) {
-        toast.info(t("skills.installFromZip.noSkillsFound"), {
-          closeButton: true,
-        });
-      } else if (installed.length === 1) {
-        toast.success(
-          t("skills.installFromZip.successSingle", {
-            name: installed[0].name,
-          }),
-          { closeButton: true },
-        );
-      } else {
-        toast.success(
-          t("skills.installFromZip.successMultiple", {
-            count: installed.length,
-          }),
-          { closeButton: true },
-        );
-      }
-    } catch (error) {
-      toast.error(t("skills.installFailed"), { description: String(error) });
-    } finally {
-      endWrite();
-    }
-  };
-
-  const handleCheckUpdates = async () => {
-    if (
-      checkUpdatesLockRef.current ||
-      writeLockRef.current ||
-      interactionBlocked
-    ) {
-      return;
-    }
-    checkUpdatesLockRef.current = true;
-    try {
-      const result = await checkUpdates();
-      const updates = result.data || [];
-      if (updates.length === 0) {
-        toast.success(t("skills.noUpdates"), { closeButton: true });
-      } else {
-        toast.info(t("skills.updatesFound", { count: updates.length }), {
-          closeButton: true,
-        });
-      }
-    } catch (error) {
-      toast.error(t("common.error"), { description: String(error) });
-    } finally {
-      checkUpdatesLockRef.current = false;
-    }
-  };
-
-  const handleUpdateSkill = async (skill: InstalledSkill) => {
-    if (!beginWrite()) return;
-    try {
-      const updated = await updateSkillMutation.mutateAsync(skill.id);
-      toast.success(t("skills.updateSuccess", { name: updated.name }), {
-        closeButton: true,
-      });
-    } catch (error) {
-      toast.error(t("skills.updateFailed"), { description: String(error) });
-    } finally {
-      endWrite();
-    }
-  };
-
-  const handleUpdateAll = async () => {
-    if (applicableSkillUpdates.length === 0 || !beginWrite()) {
-      return;
-    }
-    setIsUpdatingAll(true);
-    let successCount = 0;
-    try {
-      for (const update of applicableSkillUpdates) {
-        try {
-          await updateSkillMutation.mutateAsync(update.id);
-          successCount++;
-        } catch (error) {
-          toast.error(t("skills.updateFailed"), {
-            description: `${update.name}: ${String(error)}`,
-          });
-        }
-      }
-    } finally {
-      setIsUpdatingAll(false);
-      endWrite();
-    }
-    if (successCount > 0) {
-      toast.success(t("skills.updateAllSuccess", { count: successCount }), {
-        closeButton: true,
-      });
-    }
-  };
+  const handleUpdateSkill = async (_skill: InstalledSkill) => {};
 
   const handleOpenRestoreFromBackup = async () => {
     if (!beginWrite()) return;
@@ -581,19 +430,8 @@ const UnifiedSkillsPanel = React.forwardRef<
   };
 
   React.useImperativeHandle(ref, () => ({
-    openDiscovery: () => {
-      if (
-        !checkUpdatesLockRef.current &&
-        !writeLockRef.current &&
-        !interactionBlocked
-      ) {
-        onOpenDiscovery();
-      }
-    },
     openImport: handleOpenImport,
-    openInstallFromZip: handleInstallFromZip,
     openRestoreFromBackup: handleOpenRestoreFromBackup,
-    checkUpdates: handleCheckUpdates,
   }));
 
   return (
@@ -622,19 +460,12 @@ const UnifiedSkillsPanel = React.forwardRef<
             variant="outline"
             size="sm"
             className="h-7 text-xs gap-1 whitespace-nowrap disabled:opacity-100"
-            onClick={handleUpdateAll}
-            disabled={interactionBlocked}
+            onClick={() => undefined}
+            disabled
           >
-            {isUpdatingAll ? (
-              <Loader2 size={12} className="animate-spin" />
-            ) : (
-              <RefreshCw size={12} />
-            )}
-            {isUpdatingAll
-              ? t("skills.updatingAll")
-              : t("skills.updateAll", {
-                  count: applicableSkillUpdates.length,
-                })}
+            {t("skills.updateAll", {
+              count: applicableSkillUpdates.length,
+            })}
           </Button>
         </div>
       </div>
@@ -677,11 +508,8 @@ const UnifiedSkillsPanel = React.forwardRef<
                   <InstalledSkillListItem
                     key={skill.id}
                     skill={skill}
-                    hasUpdate={!!updatesMap[skill.id]}
-                    isUpdating={
-                      updateSkillMutation.isPending &&
-                      updateSkillMutation.variables === skill.id
-                    }
+                    hasUpdate={false}
+                    isUpdating={false}
                     actionsDisabled={interactionBlocked}
                     onToggleApp={handleToggleApp}
                     onUninstall={() => handleUninstall(skill)}

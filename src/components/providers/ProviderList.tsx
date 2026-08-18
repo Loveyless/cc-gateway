@@ -22,10 +22,6 @@ import type { AppId } from "@/lib/api";
 import { providersApi } from "@/lib/api/providers";
 import { extractErrorMessage } from "@/utils/errorUtils";
 import { useDragSort } from "@/hooks/useDragSort";
-import {
-  useHermesLiveProviderIds,
-  useHermesModelConfig,
-} from "@/hooks/useHermes";
 import { useStreamCheck } from "@/hooks/useStreamCheck";
 import { ProviderCard } from "@/components/providers/ProviderCard";
 import { ProviderEmptyState } from "@/components/providers/ProviderEmptyState";
@@ -72,21 +68,9 @@ export function ProviderList({
     appId,
   );
 
-  const { data: hermesLiveIds } = useHermesLiveProviderIds(appId === "hermes");
-
-  // Hermes: 读取当前 model.provider，用于判断哪个供应商是"当前激活"（高亮）
-  const { data: hermesModelConfig } = useHermesModelConfig(appId === "hermes");
-  const hermesCurrentProviderId = hermesModelConfig?.provider;
-
-  const isProviderInConfig = useCallback(
-    (providerId: string): boolean => {
-      if (appId === "hermes") {
-        return hermesLiveIds?.includes(providerId) ?? false;
-      }
-      return true;
-    },
-    [appId, hermesLiveIds],
-  );
+  const isProviderInConfig = useCallback((_providerId: string): boolean => {
+    return true;
+  }, []);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -110,10 +94,6 @@ export function ProviderList({
   const queryClient = useQueryClient();
   const importMutation = useMutation({
     mutationFn: async (): Promise<boolean> => {
-      if (appId === "hermes") {
-        const count = await providersApi.importHermesFromLive();
-        return count > 0;
-      }
       if (appId === "claude-desktop") {
         const count = await providersApi.importClaudeDesktopFromClaude();
         return count > 0;
@@ -277,17 +257,11 @@ export function ProviderList({
       >
         <div className="space-y-3">
           {filteredProviders.map((provider) => {
-            const isHermesCurrent =
-              appId === "hermes" && hermesCurrentProviderId === provider.id;
             return (
               <SortableProviderCard
                 key={provider.id}
                 provider={provider}
-                isCurrent={
-                  appId === "hermes"
-                    ? isHermesCurrent
-                    : provider.id === currentProviderId
-                }
+                isCurrent={provider.id === currentProviderId}
                 appId={appId}
                 isInConfig={isProviderInConfig(provider.id)}
                 onSwitch={onSwitch}
@@ -301,7 +275,7 @@ export function ProviderList({
                 isTesting={isChecking(provider.id)}
                 isProxyTakeover={isProxyTakeover}
                 // Hermes: model.provider === provider.id
-                isDefaultModel={appId === "hermes" ? isHermesCurrent : false}
+                isDefaultModel={false}
               />
             );
           })}

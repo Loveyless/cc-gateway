@@ -40,7 +40,9 @@ vi.mock("@/components/providers/ProviderList", () => ({
       <button onClick={() => onDuplicate(providers[currentProviderId])}>
         duplicate
       </button>
-      <button onClick={() => onConfigureUsage(providers[currentProviderId])}>
+      <button
+        onClick={() => onConfigureUsage?.(providers[currentProviderId])}
+      >
         usage
       </button>
       <button onClick={() => onOpenWebsite("https://example.com")}>
@@ -206,11 +208,6 @@ describe("App integration with MSW", () => {
       ),
     );
 
-    fireEvent.click(screen.getByText("usage"));
-    expect(screen.getByTestId("usage-modal")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("save-script"));
-    fireEvent.click(screen.getByText("close-usage"));
-
     fireEvent.click(screen.getByText("create"));
     expect(screen.getByTestId("add-provider-dialog")).toBeInTheDocument();
     fireEvent.click(screen.getByText("confirm-add"));
@@ -246,7 +243,7 @@ describe("App integration with MSW", () => {
     expect(toastSuccessMock).toHaveBeenCalled();
   }, 10_000);
 
-  it("hosts the Skills check-update action in the App toolbar", async () => {
+  it("hosts local Skills import and restore actions in the App toolbar", async () => {
     localStorage.setItem("cc-gateway-last-view", "skills");
     const { default: App } = await import("@/App");
     renderApp(App);
@@ -254,30 +251,11 @@ describe("App integration with MSW", () => {
     expect(
       await screen.findByTestId("unified-skills-panel"),
     ).toBeInTheDocument();
-    const checkUpdatesButton = await screen.findByRole("button", {
-      name: "skills.checkUpdates",
-    });
-    await waitFor(() => expect(checkUpdatesButton).toBeEnabled());
-
-    fireEvent.click(checkUpdatesButton);
-    expect(skillsPanelMocks.checkUpdates).toHaveBeenCalledTimes(1);
-  });
-
-  it("routes the Skills discover toolbar action through the panel guard", async () => {
-    localStorage.setItem("cc-gateway-last-view", "skills");
-    const { default: App } = await import("@/App");
-    renderApp(App);
-
     expect(
-      await screen.findByTestId("unified-skills-panel"),
+      await screen.findByRole("button", { name: "skills.import" }),
     ).toBeInTheDocument();
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: "skills.discover",
-      }),
-    );
-
-    expect(skillsPanelMocks.openDiscovery).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId("unified-skills-panel")).toBeInTheDocument();
+    expect(screen.getByText("skills.restoreFromBackup.button")).toBeInTheDocument();
+    expect(screen.queryByText("skills.discover")).not.toBeInTheDocument();
+    expect(screen.queryByText("skills.checkUpdates")).not.toBeInTheDocument();
   });
 });

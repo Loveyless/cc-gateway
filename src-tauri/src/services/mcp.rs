@@ -37,9 +37,6 @@ impl McpService {
         if prev_apps.grokbuild && !server.apps.grokbuild {
             Self::remove_server_from_app(state, &server.id, &AppType::GrokBuild)?;
         }
-        if prev_apps.hermes && !server.apps.hermes {
-            Self::remove_server_from_app(state, &server.id, &AppType::Hermes)?;
-        }
 
         // 同步到各个启用的应用
         Self::sync_server_to_apps(state, &server)?;
@@ -115,7 +112,7 @@ impl McpService {
                 // Codex uses TOML format, must use the correct function
                 mcp::sync_single_server_to_codex(&Default::default(), &server.id, &server.server)?;
             }
-            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {
+            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => {
                 return app.ensure_supported();
             }
             AppType::GrokBuild => {
@@ -124,9 +121,6 @@ impl McpService {
                     &server.id,
                     &server.server,
                 )?;
-            }
-            AppType::Hermes => {
-                mcp::sync_single_server_to_hermes(&Default::default(), &server.id, &server.server)?;
             }
         }
         Ok(())
@@ -152,13 +146,10 @@ impl McpService {
                 log::debug!("Claude Desktop 3P profiles do not use CC Gateway MCP sync, skipping");
             }
             AppType::Codex => mcp::remove_server_from_codex(id)?,
-            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {
+            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => {
                 return app.ensure_supported();
             }
             AppType::GrokBuild => mcp::remove_server_from_grokbuild(id)?,
-            AppType::Hermes => {
-                mcp::remove_server_from_hermes(id)?;
-            }
         }
         Ok(())
     }
@@ -377,44 +368,6 @@ impl McpService {
         Ok(0)
     }
 
-    /// 从 Hermes 导入 MCP
-    pub fn import_from_hermes(state: &AppState) -> Result<usize, AppError> {
-        // 创建临时 MultiAppConfig 用于导入
-        let mut temp_config = crate::app_config::MultiAppConfig::default();
-
-        // 调用导入逻辑（从 mcp/hermes.rs）
-        let count = crate::mcp::import_from_hermes(&mut temp_config)?;
-
-        let mut new_count = 0;
-
-        // 如果有导入的服务器，保存到数据库
-        if count > 0 {
-            if let Some(servers) = &temp_config.mcp.servers {
-                let mut existing = state.db.get_all_mcp_servers()?;
-                for server in servers.values() {
-                    // 已存在：仅启用 Hermes，不覆盖其他字段（与导入模块语义保持一致）
-                    let to_save = if let Some(existing_server) = existing.get(&server.id) {
-                        let mut merged = existing_server.clone();
-                        merged.apps.hermes = true;
-                        merged
-                    } else {
-                        // 真正的新服务器
-                        new_count += 1;
-                        server.clone()
-                    };
-
-                    state.db.save_mcp_server(&to_save)?;
-                    existing.insert(to_save.id.clone(), to_save.clone());
-
-                    // 导入是读取已有配置，不应反向写回任何应用的 live 配置。
-                    // 显式编辑、启用/禁用或手动同步时再执行写回。
-                }
-            }
-        }
-
-        Ok(new_count)
-    }
-
     /// 从所有支持 MCP 的应用导入服务器，返回新导入的数量。
     ///
     /// Best-effort：单个应用导入失败（如坏 config.toml）不阻断其余应用；
@@ -425,11 +378,10 @@ impl McpService {
         let mut total = 0;
         let mut failures: Vec<String> = Vec::new();
 
-        let results: [(&str, Result<usize, AppError>); 4] = [
+        let results: [(&str, Result<usize, AppError>); 3] = [
             ("claude", Self::import_from_claude(state)),
             ("codex", Self::import_from_codex(state)),
             ("grokbuild", Self::import_from_grokbuild(state)),
-            ("hermes", Self::import_from_hermes(state)),
         ];
         for (app, result) in results {
             match result {

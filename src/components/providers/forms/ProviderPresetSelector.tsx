@@ -8,7 +8,6 @@ import { ArrowUpAZ, Search, Zap, Layers, Settings2 } from "lucide-react";
 import type { ProviderPreset } from "@/config/claudeProviderPresets";
 import type { CodexProviderPreset } from "@/config/codexProviderPresets";
 import type { ClaudeDesktopProviderPreset } from "@/config/claudeDesktopProviderPresets";
-import type { HermesProviderPreset } from "@/config/hermesProviderPresets";
 import type { ProviderCategory } from "@/types";
 import {
   universalProviderPresets,
@@ -29,8 +28,7 @@ export type PresetSortMode =
 export type AnyPreset =
   | ProviderPreset
   | CodexProviderPreset
-  | ClaudeDesktopProviderPreset
-  | HermesProviderPreset;
+  | ClaudeDesktopProviderPreset;
 
 export type PresetEntry = {
   id: string;

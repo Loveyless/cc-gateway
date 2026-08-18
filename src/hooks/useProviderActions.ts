@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { providersApi, settingsApi, type AppId } from "@/lib/api";
 import type { Provider, UsageScript } from "@/types";
-import { injectCodingPlanUsageScript } from "@/config/codingPlanProviders";
 import {
   useAddProviderMutation,
   useUpdateProviderMutation,
@@ -79,8 +78,7 @@ export function useProviderActions(
         ensureGrokBuildOfficialSeed?: boolean;
       },
     ) => {
-      const enhanced = injectCodingPlanUsageScript(activeApp, provider);
-      await addProviderMutation.mutateAsync(enhanced);
+      await addProviderMutation.mutateAsync(provider);
     },
     [addProviderMutation, activeApp, queryClient, t],
   );

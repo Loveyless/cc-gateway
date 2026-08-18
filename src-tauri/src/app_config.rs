@@ -28,8 +28,7 @@ impl McpApps {
             AppType::Claude => self.claude,
             AppType::Codex => self.codex,
             AppType::GrokBuild => self.grokbuild,
-            AppType::Hermes => self.hermes,
-            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => false, // legacy only
+            AppType::Hermes | AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => false, // legacy only
             AppType::ClaudeDesktop => false,
         }
     }
@@ -40,8 +39,7 @@ impl McpApps {
             AppType::Claude => self.claude = enabled,
             AppType::Codex => self.codex = enabled,
             AppType::GrokBuild => self.grokbuild = enabled,
-            AppType::Hermes => self.hermes = enabled,
-            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {} // legacy only
+            AppType::Hermes | AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {} // legacy only
             AppType::ClaudeDesktop => {} // Claude Desktop 3P provider config doesn't support MCP here
         }
     }
@@ -57,9 +55,6 @@ impl McpApps {
         }
         if self.grokbuild {
             apps.push(AppType::GrokBuild);
-        }
-        if self.hermes {
-            apps.push(AppType::Hermes);
         }
         apps
     }
@@ -99,8 +94,7 @@ impl SkillApps {
             AppType::Claude => self.claude,
             AppType::Codex => self.codex,
             AppType::GrokBuild => self.grokbuild,
-            AppType::Hermes => self.hermes,
-            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => false, // legacy only
+            AppType::Hermes | AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => false, // legacy only
             AppType::ClaudeDesktop => false,
         }
     }
@@ -111,8 +105,7 @@ impl SkillApps {
             AppType::Claude => self.claude = enabled,
             AppType::Codex => self.codex = enabled,
             AppType::GrokBuild => self.grokbuild = enabled,
-            AppType::Hermes => self.hermes = enabled,
-            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {} // legacy only
+            AppType::Hermes | AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {} // legacy only
             AppType::ClaudeDesktop => {} // Claude Desktop 3P profiles don't use CC Gateway skill sync
         }
     }
@@ -128,9 +121,6 @@ impl SkillApps {
         }
         if self.grokbuild {
             apps.push(AppType::GrokBuild);
-        }
-        if self.hermes {
-            apps.push(AppType::Hermes);
         }
         apps
     }
@@ -283,8 +273,8 @@ pub struct McpRoot {
     /// OpenClaw MCP 配置，legacy deserialization only。
     #[serde(default, skip_serializing)]
     pub openclaw: McpConfig,
-    /// Hermes MCP 配置（实际使用 config.yaml）
-    #[serde(default, skip_serializing_if = "McpConfig::is_empty")]
+    /// Hermes MCP 配置，legacy deserialization only。
+    #[serde(default, skip_serializing)]
     pub hermes: McpConfig,
 }
 
@@ -339,6 +329,7 @@ pub struct PromptRoot {
     #[serde(skip_serializing)]
     pub openclaw: PromptConfig,
     #[serde(default)]
+    #[serde(skip_serializing)]
     pub hermes: PromptConfig,
 }
 
@@ -384,7 +375,7 @@ impl AppType {
     pub fn is_retired(&self) -> bool {
         matches!(
             self,
-            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw
+            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw | AppType::Hermes
         )
     }
 
@@ -406,16 +397,20 @@ impl AppType {
                 "OpenCode 支持已永久停止",
                 "OpenCode support has been permanently discontinued",
             )),
+            AppType::Hermes => Err(AppError::localized(
+                "app.hermes_retired",
+                "Hermes 支持已永久停止",
+                "Hermes support has been permanently discontinued",
+            )),
             _ => Ok(()),
         }
     }
 
     /// Check if this app uses additive mode
     ///
-    /// - Switch mode (false): Only the current provider is written to live config
-    /// - Additive mode (true): All providers are written to live config (Hermes)
+    /// Retired Hermes used additive live writes. No remaining runtime app does.
     pub fn is_additive_mode(&self) -> bool {
-        matches!(self, AppType::Hermes)
+        false
     }
 
     /// Return an iterator over currently supported runtime app types
@@ -425,7 +420,6 @@ impl AppType {
             AppType::ClaudeDesktop,
             AppType::Codex,
             AppType::GrokBuild,
-            AppType::Hermes,
         ]
         .into_iter()
     }
@@ -441,11 +435,10 @@ impl FromStr for AppType {
             "claude-desktop" | "claude_desktop" | "claudedesktop" => Ok(AppType::ClaudeDesktop),
             "codex" => Ok(AppType::Codex),
             "grokbuild" | "grok-build" | "grok_build" | "grok" => Ok(AppType::GrokBuild),
-            "hermes" => Ok(AppType::Hermes),
             other => Err(AppError::localized(
                 "unsupported_app",
-                format!("不支持的应用标识: '{other}'。可选值: claude, claude-desktop, codex, grokbuild, hermes。"),
-                format!("Unsupported app id: '{other}'. Allowed: claude, claude-desktop, codex, grokbuild, hermes."),
+                format!("不支持的应用标识: '{other}'。可选值: claude, claude-desktop, codex, grokbuild。"),
+                format!("Unsupported app id: '{other}'. Allowed: claude, claude-desktop, codex, grokbuild."),
             )),
         }
     }
@@ -469,7 +462,7 @@ pub struct CommonConfigSnippets {
     #[serde(default, skip_serializing)]
     pub openclaw: Option<String>,
 
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing)]
     pub hermes: Option<String>,
 }
 
@@ -539,7 +532,6 @@ impl Default for MultiAppConfig {
         apps.insert("claude-desktop".to_string(), ProviderManager::default());
         apps.insert("codex".to_string(), ProviderManager::default());
         apps.insert("grokbuild".to_string(), ProviderManager::default());
-        apps.insert("hermes".to_string(), ProviderManager::default());
 
         Self {
             version: 2,
@@ -670,6 +662,7 @@ impl MultiAppConfig {
             object.remove("openclaw");
             object.remove("gemini");
             object.remove("opencode");
+            object.remove("hermes");
         }
         write_json_file(&config_path, &serialized)?;
         Ok(())
@@ -731,7 +724,6 @@ impl MultiAppConfig {
         Self::auto_import_prompt_if_exists(&mut config, AppType::Claude)?;
         Self::auto_import_prompt_if_exists(&mut config, AppType::Codex)?;
         Self::auto_import_prompt_if_exists(&mut config, AppType::GrokBuild)?;
-        Self::auto_import_prompt_if_exists(&mut config, AppType::Hermes)?;
 
         Ok(config)
     }
@@ -763,12 +755,7 @@ impl MultiAppConfig {
         log::info!("检测到已存在配置文件且 Prompt 列表为空，将尝试从现有提示词文件自动导入");
 
         let mut imported = false;
-        for app in [
-            AppType::Claude,
-            AppType::Codex,
-            AppType::GrokBuild,
-            AppType::Hermes,
-        ] {
+        for app in [AppType::Claude, AppType::Codex, AppType::GrokBuild] {
             // 复用已有的单应用导入逻辑
             if Self::auto_import_prompt_if_exists(self, app)? {
                 imported = true;
@@ -1017,7 +1004,7 @@ mod tests {
     fn save_drops_retired_app_config_fields() {
         let _home = TempHome::new();
         let mut config = MultiAppConfig::default();
-        for app in ["openclaw", "gemini", "opencode"] {
+        for app in ["openclaw", "gemini", "opencode", "hermes"] {
             config.apps.insert(
                 app.to_string(),
                 ProviderManager {
@@ -1059,7 +1046,7 @@ mod tests {
             &fs::read_to_string(crate::config::get_app_config_path()).expect("read config"),
         )
         .expect("parse saved config");
-        for app in ["openclaw", "gemini", "opencode"] {
+        for app in ["openclaw", "gemini", "opencode", "hermes"] {
             assert!(serialized.get(app).is_none());
             assert!(serialized
                 .get("mcp")
@@ -1078,7 +1065,7 @@ mod tests {
 
     #[test]
     fn retired_app_ids_are_rejected_by_from_str() {
-        for app in ["gemini", "opencode", "openclaw"] {
+        for app in ["gemini", "opencode", "openclaw", "hermes"] {
             assert!(
                 app.parse::<AppType>().is_err(),
                 "{app} should no longer parse as a runtime app"
@@ -1087,6 +1074,7 @@ mod tests {
         assert!(AppType::Gemini.ensure_supported().is_err());
         assert!(AppType::OpenCode.ensure_supported().is_err());
         assert!(AppType::OpenClaw.ensure_supported().is_err());
+        assert!(AppType::Hermes.ensure_supported().is_err());
     }
 
     struct TempHome {

@@ -29,7 +29,6 @@ const ALL_APPS: RuntimeAppId[] = [
   "claude-desktop",
   "codex",
   "grokbuild",
-  "hermes",
 ];
 const STORAGE_KEY = "cc-gateway-last-app";
 
@@ -38,7 +37,6 @@ const APP_ICON_NAME: Partial<Record<RuntimeAppId, string>> = {
   "claude-desktop": "claude",
   codex: "openai",
   grokbuild: "grok",
-  hermes: "hermes",
 };
 
 const APP_DISPLAY_NAME: Partial<Record<RuntimeAppId, string>> = {
@@ -46,7 +44,6 @@ const APP_DISPLAY_NAME: Partial<Record<RuntimeAppId, string>> = {
   "claude-desktop": "Claude Desktop",
   codex: "Codex",
   grokbuild: "Grok Build",
-  hermes: "Hermes",
 };
 
 /** 应用图标 + 角标（Claude Code / Desktop 用角标区分终端与桌面） */

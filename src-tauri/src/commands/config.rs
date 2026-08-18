@@ -102,15 +102,7 @@ pub async fn get_config_status(
         }
         AppType::OpenCode => Err(AppType::OpenCode.ensure_supported().unwrap_err().to_string()),
         AppType::OpenClaw => Err(AppType::OpenClaw.ensure_supported().unwrap_err().to_string()),
-        AppType::Hermes => {
-            let config_path = crate::hermes_config::get_hermes_config_path();
-            let exists = config_path.exists();
-            let path = crate::hermes_config::get_hermes_dir()
-                .to_string_lossy()
-                .to_string();
-
-            Ok(ConfigStatus { exists, path })
-        }
+        AppType::Hermes => Err(AppType::Hermes.ensure_supported().unwrap_err().to_string()),
     }
 }
 
@@ -137,7 +129,9 @@ pub async fn get_config_dir(app: String) -> Result<String, String> {
         AppType::OpenClaw => {
             return Err(AppType::OpenClaw.ensure_supported().unwrap_err().to_string())
         }
-        AppType::Hermes => crate::hermes_config::get_hermes_dir(),
+        AppType::Hermes => {
+            return Err(AppType::Hermes.ensure_supported().unwrap_err().to_string())
+        }
     };
 
     Ok(dir.to_string_lossy().to_string())
@@ -161,7 +155,9 @@ pub async fn open_config_folder(handle: AppHandle, app: String) -> Result<bool, 
         AppType::OpenClaw => {
             return Err(AppType::OpenClaw.ensure_supported().unwrap_err().to_string())
         }
-        AppType::Hermes => crate::hermes_config::get_hermes_dir(),
+        AppType::Hermes => {
+            return Err(AppType::Hermes.ensure_supported().unwrap_err().to_string())
+        }
     };
 
     if !config_dir.exists() {

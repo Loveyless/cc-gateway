@@ -455,7 +455,6 @@ describe("useSettings hook", () => {
       claude: "/server/claude",
       codex: undefined,
       grokbuild: undefined,
-      hermes: undefined,
     });
     expect(metadataMock.setRequiresRestart).toHaveBeenCalledWith(false);
   });

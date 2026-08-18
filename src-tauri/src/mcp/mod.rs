@@ -7,12 +7,9 @@
 //! - `validation` - 服务器配置验证
 //! - `claude` - Claude MCP 同步和导入
 //! - `codex` - Codex MCP 同步和导入（含 TOML 转换）
-//! - `hermes` - Hermes MCP 同步和导入
-
 mod claude;
 mod codex;
 mod grokbuild;
-mod hermes;
 mod validation;
 
 // 重新导出公共 API
@@ -26,4 +23,3 @@ pub use codex::{
 pub use grokbuild::{
     import_from_grokbuild, remove_server_from_grokbuild, sync_single_server_to_grokbuild,
 };
-pub use hermes::{import_from_hermes, remove_server_from_hermes, sync_single_server_to_hermes};

@@ -10,7 +10,6 @@ export { useCodexCommonConfig } from "./useCodexCommonConfig";
 export { useSpeedTestEndpoints } from "./useSpeedTestEndpoints";
 export { useCodexTomlValidation } from "./useCodexTomlValidation";
 export { useManagedAuth } from "./useManagedAuth";
-export { useHermesFormState } from "./useHermesFormState";
 export { useCopilotAuth } from "./useCopilotAuth";
 export { useCodexOauth } from "./useCodexOauth";
 export { useXaiOauth } from "./useXaiOauth";

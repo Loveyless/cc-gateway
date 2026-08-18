@@ -1,15 +1,12 @@
 #![allow(non_snake_case)]
 
 mod auth;
-mod balance;
 mod codex_oauth;
-mod coding_plan;
 mod config;
 mod copilot;
 mod deeplink;
 mod env;
 mod global_proxy;
-mod hermes;
 mod import_export;
 mod mcp;
 mod misc;
@@ -18,11 +15,8 @@ mod plugin;
 mod prompt;
 mod provider;
 mod proxy;
-mod session_manager;
 mod settings;
 pub mod skill;
-mod stream_check;
-mod subscription;
 mod sync_support;
 mod xai_oauth;
 
@@ -30,15 +24,12 @@ mod lightweight;
 mod usage;
 
 pub use auth::*;
-pub use balance::*;
 pub use codex_oauth::*;
-pub use coding_plan::*;
 pub use config::*;
 pub use copilot::*;
 pub use deeplink::*;
 pub use env::*;
 pub use global_proxy::*;
-pub use hermes::*;
 pub use import_export::*;
 pub use mcp::*;
 pub use misc::*;
@@ -47,11 +38,8 @@ pub use plugin::*;
 pub use prompt::*;
 pub use provider::*;
 pub use proxy::*;
-pub use session_manager::*;
 pub use settings::*;
 pub use skill::*;
-pub use stream_check::*;
-pub use subscription::*;
 pub use xai_oauth::*;
 
 pub use lightweight::*;

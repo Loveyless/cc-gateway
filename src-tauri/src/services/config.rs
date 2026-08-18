@@ -128,9 +128,7 @@ impl ConfigService {
                 app_type.ensure_supported()?
             }
             AppType::GrokBuild => crate::grok_config::write_grok_provider_live(&provider)?,
-            AppType::Hermes => {
-                // Hermes uses additive mode, no live sync needed
-            }
+            AppType::Hermes => app_type.ensure_supported()?,
         }
 
         Ok(())

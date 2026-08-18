@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import { useCodexOauth } from "./hooks/useCodexOauth";
 import { copyText } from "@/lib/clipboard";
-import CodexOauthAccountQuota from "@/components/CodexOauthAccountQuota";
 
 interface CodexOAuthSectionProps {
   className?: string;
@@ -48,7 +47,7 @@ interface CodexOAuthSectionProps {
  */
 export const CodexOAuthSection: React.FC<CodexOAuthSectionProps> = ({
   className,
-  showAccountQuota = false,
+  showAccountQuota: _showAccountQuota = false,
   selectedAccountId,
   onAccountSelect,
   fastModeEnabled = false,
@@ -225,9 +224,7 @@ export const CodexOAuthSection: React.FC<CodexOAuthSectionProps> = ({
                     </Button>
                   </div>
                 </div>
-                {showAccountQuota && (
-                  <CodexOauthAccountQuota accountId={account.id} />
-                )}
+
               </div>
             ))}
           </div>

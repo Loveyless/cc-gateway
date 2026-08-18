@@ -14,12 +14,7 @@ vi.mock("@/lib/api", () => ({
   providersApi: {
     update: (...args: unknown[]) => apiMocks.update(...args),
   },
-  sessionsApi: {},
   settingsApi: {},
-}));
-
-vi.mock("@/hooks/useHermes", () => ({
-  invalidateHermesProviderCaches: vi.fn(),
 }));
 
 vi.mock("react-i18next", () => ({

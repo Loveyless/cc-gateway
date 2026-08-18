@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { claudeDesktopProviderPresets } from "@/config/claudeDesktopProviderPresets";
 import { providerPresets } from "@/config/claudeProviderPresets";
 import { codexProviderPresets } from "@/config/codexProviderPresets";
-import { hermesProviderPresets } from "@/config/hermesProviderPresets";
 import { hasIcon } from "@/icons/extracted";
 
 const WEBSITE_URL = "https://subrouter.ai";
@@ -38,24 +37,6 @@ describe("SubRouter provider presets", () => {
     expect(preset?.config).toContain('model = "gpt-5.6-sol"');
     expect(preset?.config).toContain('base_url = "https://subrouter.ai/v1"');
     expect(preset?.config).toContain('wire_api = "responses"');
-  });
-
-  it("uses chat completions config for Hermes", () => {
-    const preset = hermesProviderPresets.find(
-      (item) => item.name === "SubRouter",
-    );
-
-    expect(preset).toBeDefined();
-    expect(preset?.settingsConfig).toMatchObject({
-      name: "subrouter",
-      base_url: "https://subrouter.ai/v1",
-      api_key: "",
-      api_mode: "chat_completions",
-    });
-    expect(preset?.suggestedDefaults?.model).toEqual({
-      default: "gpt-5.6-sol",
-      provider: "subrouter",
-    });
   });
 
   it("uses direct Anthropic routing for Claude Desktop", () => {

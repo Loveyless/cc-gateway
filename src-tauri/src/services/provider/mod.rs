@@ -21,9 +21,8 @@ use crate::store::AppState;
 
 // Re-export sub-module functions for external access
 pub use live::{
-    import_default_config, import_hermes_providers_from_live, read_live_settings,
-    should_import_default_config_on_startup, sync_current_to_live,
-    update_toml_common_config_snippet,
+    import_default_config, read_live_settings, should_import_default_config_on_startup,
+    sync_current_to_live, update_toml_common_config_snippet,
 };
 
 // Internal re-exports (pub(crate))
@@ -34,8 +33,6 @@ pub(crate) use live::{
     sync_current_provider_for_app_to_live, write_live_with_common_config,
 };
 
-// Internal re-exports
-use live::remove_hermes_provider_from_live;
 use usage::validate_usage_script;
 
 /// The built-in Codex official provider is safe to select during takeover:
@@ -304,32 +301,6 @@ mod tests {
             ..Default::default()
         });
         provider
-    }
-
-    fn hermes_provider(id: &str) -> Provider {
-        Provider {
-            id: id.to_string(),
-            name: format!("Provider {id}"),
-            settings_config: json!({
-                "api": "openai-chat",
-                "base_url": "https://api.example.com/v1",
-                "api_key": "test-key",
-                "models": {
-                    "gpt-4o": {
-                        "name": "GPT-4o"
-                    }
-                }
-            }),
-            website_url: None,
-            category: Some("custom".to_string()),
-            created_at: Some(1),
-            sort_index: Some(0),
-            notes: None,
-            meta: None,
-            icon: None,
-            icon_color: None,
-            in_failover_queue: false,
-        }
     }
 
     #[test]
@@ -1622,46 +1593,6 @@ requires_openai_auth = true
         );
     }
 
-    #[test]
-    #[serial]
-    fn import_hermes_providers_from_live_updates_existing_provider_from_live() {
-        with_test_home(|state, _| {
-            let provider = hermes_provider("existing-hermes");
-            state
-                .db
-                .save_provider(AppType::Hermes.as_str(), &provider)
-                .expect("seed existing hermes provider");
-
-            let mut live_settings = provider.settings_config.clone();
-            live_settings["base_url"] = Value::String("https://api.hermes.example/v1".to_string());
-            live_settings["models"]["gpt-4o"]["name"] = Value::String("GPT-4o Updated".to_string());
-            crate::hermes_config::set_provider(&provider.id, live_settings)
-                .expect("seed edited live hermes provider");
-
-            let updated = import_hermes_providers_from_live(state)
-                .expect("import hermes providers from live");
-            assert_eq!(updated, 1);
-
-            let saved = state
-                .db
-                .get_provider_by_id(&provider.id, AppType::Hermes.as_str())
-                .expect("query updated hermes provider")
-                .expect("hermes provider should exist");
-            assert_eq!(saved.name, provider.name);
-            assert_eq!(
-                saved.settings_config["base_url"],
-                json!("https://api.hermes.example/v1")
-            );
-            // models are denormalized from YAML dict to UI-friendly array by
-            // get_providers(), so access by index rather than dict key
-            assert_eq!(
-                saved.settings_config["models"][0]["name"],
-                json!("GPT-4o Updated")
-            );
-            assert_eq!(saved.settings_config["models"][0]["id"], json!("gpt-4o"));
-        });
-    }
-
 }
 
 impl ProviderService {
@@ -2039,10 +1970,9 @@ impl ProviderService {
                 .and_then(Self::provider_live_config_managed);
             if Self::check_live_config_exists(&app_type, id, live_managed)? {
                 match app_type {
-                    AppType::OpenCode | AppType::OpenClaw => {
+                    AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => {
                         unreachable!("retired app rejected above")
                     }
-                    AppType::Hermes => remove_hermes_provider_from_live(id)?,
                     _ => {}
                 }
             }
@@ -2075,9 +2005,8 @@ impl ProviderService {
     ) -> Result<(), AppError> {
         app_type.ensure_supported()?;
         match app_type {
-            AppType::OpenCode | AppType::OpenClaw => unreachable!("retired app rejected above"),
-            AppType::Hermes => {
-                remove_hermes_provider_from_live(id)?;
+            AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => {
+                unreachable!("retired app rejected above")
             }
             _ => {
                 return Err(AppError::Message(format!(
@@ -2287,20 +2216,6 @@ impl ProviderService {
         // provider's first declared model. Without this, clicking "switch" would
         // only shuffle entries in custom_providers[] while Hermes keeps using
         // whatever `model.provider` was set before.
-        if matches!(app_type, AppType::Hermes) {
-            if let Err(e) =
-                crate::hermes_config::apply_switch_defaults(&provider.id, &provider.settings_config)
-            {
-                log::warn!(
-                    "Failed to update Hermes model defaults after switching to '{}': {e}",
-                    provider.id
-                );
-                result
-                    .warnings
-                    .push(format!("hermes_model_defaults_failed:{}", provider.id));
-            }
-        }
-
         // For additive-mode providers that were DB-only (live_config_managed == Some(false)),
         // flip the flag to true now that the provider has been successfully written to the live
         // file. This ensures sync_all_providers_to_live() will include it on future syncs.
@@ -2313,10 +2228,9 @@ impl ProviderService {
             Self::set_provider_live_config_managed(&mut updated, true);
             if let Err(e) = state.db.save_provider(app_type.as_str(), &updated) {
                 let rollback_result = match app_type {
-                    AppType::OpenCode | AppType::OpenClaw => {
+                    AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => {
                         unreachable!("retired app rejected above")
                     }
-                    AppType::Hermes => remove_hermes_provider_from_live(&provider.id),
                     _ => Ok(()),
                 };
 
@@ -2599,11 +2513,10 @@ impl ProviderService {
             AppType::ClaudeDesktop => Ok(String::new()),
             AppType::Codex => Self::extract_codex_common_config(&provider.settings_config),
             AppType::GrokBuild => Ok(String::new()),
-            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {
+            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => {
                 app_type.ensure_supported()?;
                 Ok(String::new())
             }
-            AppType::Hermes => Ok(String::new()), // Hermes doesn't use common config snippets
         }
     }
 
@@ -2617,11 +2530,10 @@ impl ProviderService {
             AppType::ClaudeDesktop => Ok(String::new()),
             AppType::Codex => Self::extract_codex_common_config(settings_config),
             AppType::GrokBuild => Ok(String::new()),
-            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {
+            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => {
                 app_type.ensure_supported()?;
                 Ok(String::new())
             }
-            AppType::Hermes => Ok(String::new()), // Hermes doesn't use common config snippets
         }
     }
 
@@ -3169,44 +3081,6 @@ impl ProviderService {
         Ok(true)
     }
 
-    /// Query provider usage (re-export)
-    pub async fn query_usage(
-        state: &AppState,
-        app_type: AppType,
-        provider_id: &str,
-    ) -> Result<UsageResult, AppError> {
-        usage::query_usage(state, app_type, provider_id).await
-    }
-
-    /// Test usage script (re-export)
-    #[allow(clippy::too_many_arguments)]
-    pub async fn test_usage_script(
-        state: &AppState,
-        app_type: AppType,
-        provider_id: &str,
-        script_code: &str,
-        timeout: u64,
-        api_key: Option<&str>,
-        base_url: Option<&str>,
-        access_token: Option<&str>,
-        user_id: Option<&str>,
-        template_type: Option<&str>,
-    ) -> Result<UsageResult, AppError> {
-        usage::test_usage_script(
-            state,
-            app_type,
-            provider_id,
-            script_code,
-            timeout,
-            api_key,
-            base_url,
-            access_token,
-            user_id,
-            template_type,
-        )
-        .await
-    }
-
     fn validate_provider_settings(app_type: &AppType, provider: &Provider) -> Result<(), AppError> {
         match app_type {
             AppType::Claude => {
@@ -3288,16 +3162,8 @@ impl ProviderService {
                     crate::grok_config::validate_config_toml(config)?;
                 }
             }
-            AppType::OpenCode | AppType::OpenClaw => app_type.ensure_supported()?,
-            AppType::Hermes => {
-                // Hermes: accept any JSON object for now
-                if !provider.settings_config.is_object() {
-                    return Err(AppError::localized(
-                        "provider.hermes.settings.not_object",
-                        "Hermes 配置必须是 JSON 对象",
-                        "Hermes configuration must be a JSON object",
-                    ));
-                }
+            AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => {
+                app_type.ensure_supported()?
             }
         }
 
@@ -3449,33 +3315,9 @@ impl ProviderService {
 
                 Ok((api_key, base_url))
             }
-            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {
+            AppType::Gemini | AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => {
                 app_type.ensure_supported()?;
                 unreachable!("retired app rejected above")
-            }
-            AppType::Hermes => {
-                // Hermes uses apiKey and baseUrl directly on the object
-                let api_key = provider
-                    .settings_config
-                    .get("apiKey")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| {
-                        AppError::localized(
-                            "provider.hermes.api_key.missing",
-                            "缺少 API Key",
-                            "API key is missing",
-                        )
-                    })?
-                    .to_string();
-
-                let base_url = provider
-                    .settings_config
-                    .get("baseUrl")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .to_string();
-
-                Ok((api_key, base_url))
             }
         }
     }

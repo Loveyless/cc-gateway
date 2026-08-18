@@ -248,7 +248,7 @@ describe("McpFormModal", () => {
         gemini: false,
         grokbuild: true,
         opencode: false,
-        hermes: true,
+        hermes: false,
       },
     });
     expect(onSave).toHaveBeenCalledTimes(1);
@@ -429,12 +429,6 @@ type = "stdio"
     ) as HTMLInputElement;
     expect(grokbuildCheckbox.checked).toBe(true);
     fireEvent.click(grokbuildCheckbox);
-
-    const hermesCheckbox = screen.getByLabelText(
-      "mcp.unifiedPanel.apps.hermes",
-    ) as HTMLInputElement;
-    expect(hermesCheckbox.checked).toBe(true);
-    fireEvent.click(hermesCheckbox);
 
     fireEvent.click(screen.getByText("common.add"));
 

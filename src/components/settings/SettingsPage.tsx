@@ -339,7 +339,7 @@ export function SettingsPage({
                             claudeDir={settings.claudeConfigDir}
                             codexDir={settings.codexConfigDir}
                             grokDir={settings.grokConfigDir}
-                            hermesDir={settings.hermesConfigDir}
+
                             onDirectoryChange={updateDirectory}
                             onBrowseDirectory={browseDirectory}
                             onResetDirectory={resetDirectory}

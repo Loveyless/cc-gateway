@@ -177,12 +177,8 @@ pub(crate) fn provider_exists_in_live_config(
     provider_id: &str,
 ) -> Result<bool, AppError> {
     app_type.ensure_supported()?;
-    match app_type {
-        AppType::OpenCode | AppType::OpenClaw => unreachable!("retired app rejected above"),
-        AppType::Hermes => crate::hermes_config::get_providers()
-            .map(|providers| providers.contains_key(provider_id)),
-        _ => Ok(false),
-    }
+    let _ = provider_id;
+    Ok(false)
 }
 
 fn json_is_subset(target: &Value, source: &Value) -> bool {
@@ -1060,15 +1056,11 @@ pub(crate) fn write_live_snapshot(app_type: &AppType, provider: &Provider) -> Re
                 profile,
             )?;
         }
-        AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {
+        AppType::Gemini | AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => {
             unreachable!("retired app rejected above")
         }
         AppType::GrokBuild => {
             crate::grok_config::write_grok_provider_live(provider)?;
-        }
-        AppType::Hermes => {
-            crate::hermes_config::set_provider(&provider.id, provider.settings_config.clone())?;
-            log::debug!("Hermes provider '{}' written to live config", provider.id);
         }
     }
     Ok(())
@@ -1249,23 +1241,10 @@ pub fn read_live_settings(app_type: AppType) -> Result<Value, AppError> {
             "Claude Desktop 3P 配置不支持作为通用 live 配置导入，请使用“从 Claude 导入兼容供应商”。",
             "Claude Desktop 3P configuration cannot be imported as a generic live config. Use 'Import compatible providers from Claude' instead.",
         )),
-        AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {
+        AppType::Gemini | AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => {
             unreachable!("retired app rejected above")
         }
         AppType::GrokBuild => crate::grok_config::read_grok_live_settings(),
-        AppType::Hermes => {
-            let config_path = crate::hermes_config::get_hermes_config_path();
-            if !config_path.exists() {
-                return Err(AppError::localized(
-                    "hermes.config.missing",
-                    "Hermes 配置文件不存在",
-                    "Hermes configuration file not found",
-                ));
-            }
-            let yaml_config = crate::hermes_config::read_hermes_config()?;
-            let config = crate::hermes_config::yaml_to_json(&yaml_config)?;
-            Ok(config)
-        }
     }
 }
 
@@ -1343,10 +1322,8 @@ pub fn import_default_config(state: &AppState, app_type: AppType) -> Result<bool
                 "Claude Desktop 3P config cannot be imported through the generic import flow. Use 'Import compatible providers from Claude' instead.",
             ));
         }
-        AppType::Gemini | AppType::OpenClaw => unreachable!("retired app rejected above"),
-        // OpenCode and Hermes use additive mode and are handled by the early return above.
-        AppType::OpenCode | AppType::Hermes => {
-            unreachable!("additive mode apps are handled by early return")
+        AppType::Gemini | AppType::OpenClaw | AppType::OpenCode | AppType::Hermes => {
+            unreachable!("retired app rejected above")
         }
     };
 
@@ -1422,93 +1399,6 @@ pub fn should_import_default_config_on_startup(
     }
 
     Ok(!state.db.has_any_provider_for_app(app_type.as_str())?)
-}
-
-/// Import all providers from Hermes live config to database
-///
-/// This imports existing providers from ~/.hermes/config.yaml
-/// into the CC Gateway database. Each provider found will be added to the
-/// database with is_current set to false.
-pub fn import_hermes_providers_from_live(state: &AppState) -> Result<usize, AppError> {
-    use crate::hermes_config;
-
-    let providers = hermes_config::get_providers()?;
-    if providers.is_empty() {
-        return Ok(0);
-    }
-
-    let mut imported = 0;
-    let mut updated = 0;
-    let existing_ids = state.db.get_provider_ids("hermes")?;
-
-    for (name, config) in providers {
-        // Validate: skip entries with empty name
-        if name.trim().is_empty() {
-            log::warn!("Skipping Hermes provider with empty name");
-            continue;
-        }
-
-        if existing_ids.contains(&name) {
-            match state.db.get_provider_by_id(&name, "hermes") {
-                Ok(Some(existing)) => {
-                    if existing.settings_config != config {
-                        let mut provider = existing;
-                        provider.settings_config = config;
-                        if let Err(e) = state.db.save_provider("hermes", &provider) {
-                            log::warn!(
-                                "Failed to update Hermes provider '{name}' from live config: {e}"
-                            );
-                        } else {
-                            updated += 1;
-                            log::info!("Updated Hermes provider '{name}' from live config");
-                        }
-                    }
-                }
-                Ok(None) => {
-                    log::warn!("Hermes provider '{name}' disappeared while importing live config")
-                }
-                Err(e) => log::warn!("Failed to look up Hermes provider '{name}': {e}"),
-            }
-            continue;
-        }
-
-        // Create provider
-        let mut provider = Provider::with_id(name.clone(), name.clone(), config, None);
-        provider.meta = Some(crate::provider::ProviderMeta {
-            live_config_managed: Some(true),
-            ..Default::default()
-        });
-
-        // Save to database
-        if let Err(e) = state.db.save_provider("hermes", &provider) {
-            log::warn!("Failed to import Hermes provider '{name}': {e}");
-            continue;
-        }
-
-        imported += 1;
-        log::info!("Imported Hermes provider '{name}' from live config");
-    }
-
-    Ok(imported + updated)
-}
-
-/// Remove a Hermes provider from live config
-///
-/// This removes a specific provider from ~/.hermes/config.yaml
-/// without affecting other providers in the file.
-pub fn remove_hermes_provider_from_live(provider_id: &str) -> Result<(), AppError> {
-    use crate::hermes_config;
-
-    // Check if Hermes config directory exists
-    if !hermes_config::get_hermes_dir().exists() {
-        log::debug!("Hermes config directory doesn't exist, skipping removal of '{provider_id}'");
-        return Ok(());
-    }
-
-    hermes_config::remove_provider(provider_id)?;
-    log::info!("Hermes provider '{provider_id}' removed from live config");
-
-    Ok(())
 }
 
 #[cfg(test)]

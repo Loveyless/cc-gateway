@@ -32,6 +32,15 @@ pub fn get_grok_config_path() -> PathBuf {
     get_grok_config_dir().join("config.toml")
 }
 
+/// Session log roots used by usage import (`~/.grok/sessions` and archive).
+pub fn session_roots() -> Vec<PathBuf> {
+    let config_dir = get_grok_config_dir();
+    vec![
+        config_dir.join("sessions"),
+        config_dir.join("archived_sessions"),
+    ]
+}
+
 fn required_non_empty_string<'a>(
     table: &'a toml::value::Table,
     key: &str,

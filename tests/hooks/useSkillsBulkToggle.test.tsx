@@ -8,23 +8,19 @@ import {
   useRestoreSkillBackup,
   useToggleSkillApp,
   useUninstallSkill,
-  useUpdateSkill,
 } from "@/hooks/useSkills";
-import type { SkillBackupEntry, SkillUpdateInfo } from "@/lib/api/skills";
+import type { SkillBackupEntry } from "@/lib/api/skills";
 
 const toggleAppMock = vi.hoisted(() => vi.fn());
 const restoreBackupMock = vi.hoisted(() => vi.fn());
 const uninstallMock = vi.hoisted(() => vi.fn());
 const deleteBackupMock = vi.hoisted(() => vi.fn());
-const updateSkillMock = vi.hoisted(() => vi.fn());
-
 vi.mock("@/lib/api/skills", () => ({
   skillsApi: {
     toggleApp: toggleAppMock,
     restoreBackup: restoreBackupMock,
     uninstallUnified: uninstallMock,
     deleteBackup: deleteBackupMock,
-    updateSkill: updateSkillMock,
   },
 }));
 
@@ -42,7 +38,6 @@ describe("Skills management mutation hooks", () => {
     restoreBackupMock.mockReset();
     uninstallMock.mockReset();
     deleteBackupMock.mockReset();
-    updateSkillMock.mockReset();
   });
 
   it("stays pending until the refreshed skill list is available", async () => {
@@ -201,31 +196,6 @@ describe("Skills management mutation hooks", () => {
     await waitFor(() => expect(result.current.isPending).toBe(false));
   });
 
-  it("removes an uninstalled Skill from cached update results", async () => {
-    uninstallMock.mockResolvedValueOnce({ backupPath: null });
-    const queryClient = new QueryClient({
-      defaultOptions: { mutations: { retry: false } },
-    });
-    queryClient.setQueryData<SkillUpdateInfo[]>(
-      ["skills", "updates"],
-      [
-        { id: "alpha", name: "Alpha", remoteHash: "alpha-remote" },
-        { id: "beta", name: "Beta", remoteHash: "beta-remote" },
-      ],
-    );
-    const { result } = renderHook(() => useUninstallSkill(), {
-      wrapper: createWrapper(queryClient),
-    });
-
-    await act(async () => {
-      await result.current.mutateAsync("alpha");
-    });
-
-    expect(
-      queryClient.getQueryData<SkillUpdateInfo[]>(["skills", "updates"]),
-    ).toEqual([{ id: "beta", name: "Beta", remoteHash: "beta-remote" }]);
-  });
-
   it("keeps a rejected uninstall pending until backups and unmanaged Skills refresh", async () => {
     let releaseInvalidation: (() => void) | undefined;
     const invalidationPending = new Promise<void>((resolve) => {
@@ -260,41 +230,6 @@ describe("Skills management mutation hooks", () => {
     releaseInvalidation?.();
     await act(async () => {
       await expect(mutation).rejects.toThrow("remove failed");
-    });
-    await waitFor(() => expect(result.current.isPending).toBe(false));
-  });
-
-  it("keeps a rejected update pending until backups refresh", async () => {
-    let releaseInvalidation: (() => void) | undefined;
-    const invalidationPending = new Promise<void>((resolve) => {
-      releaseInvalidation = resolve;
-    });
-    updateSkillMock.mockRejectedValueOnce(new Error("replace failed"));
-    const queryClient = new QueryClient({
-      defaultOptions: { mutations: { retry: false } },
-    });
-    const invalidateSpy = vi
-      .spyOn(queryClient, "invalidateQueries")
-      .mockImplementation(() => invalidationPending);
-    const { result } = renderHook(() => useUpdateSkill(), {
-      wrapper: createWrapper(queryClient),
-    });
-
-    let mutation!: Promise<unknown>;
-    act(() => {
-      mutation = result.current.mutateAsync("alpha");
-      void mutation.catch(() => undefined);
-    });
-
-    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledTimes(1));
-    expect(result.current.isPending).toBe(true);
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ["skills", "backups"],
-    });
-
-    releaseInvalidation?.();
-    await act(async () => {
-      await expect(mutation).rejects.toThrow("replace failed");
     });
     await waitFor(() => expect(result.current.isPending).toBe(false));
   });

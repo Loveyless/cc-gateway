@@ -149,8 +149,7 @@ pub(crate) fn build_provider_from_request(
         AppType::Claude | AppType::ClaudeDesktop => build_claude_settings(request),
         AppType::Codex => build_codex_settings(request),
         AppType::GrokBuild => build_grokbuild_settings(request),
-        AppType::Hermes => build_hermes_settings(request),
-        AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {
+        AppType::Gemini | AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => {
             unreachable!("retired app rejected above")
         }
     };
@@ -472,47 +471,6 @@ fn build_grokbuild_settings(request: &DeepLinkImportRequest) -> serde_json::Valu
     })
 }
 
-/// Build Hermes provider settings (snake_case YAML-native fields).
-///
-/// Hermes' `custom_providers:` entries use `base_url` / `api_key` / `api_mode`
-/// (see `_VALID_CUSTOM_PROVIDER_FIELDS` in upstream `hermes_cli/config.py`).
-/// Emitting camelCase would poison the YAML with unknown root fields the
-/// Hermes runtime ignores.
-///
-/// `api_mode` is always written explicitly. Deeplinks have no field to carry
-/// it, so we default to `chat_completions` (the most widely compatible
-/// protocol) and let the user adjust via the UI after import. We never rely
-/// on Hermes' built-in URL heuristics, which only recognize a handful of
-/// official endpoints.
-fn build_hermes_settings(request: &DeepLinkImportRequest) -> serde_json::Value {
-    let endpoint = get_primary_endpoint(request);
-
-    let mut config = serde_json::Map::new();
-
-    if let Some(name) = request.name.as_deref().filter(|s| !s.is_empty()) {
-        config.insert("name".to_string(), json!(name));
-    }
-
-    if !endpoint.is_empty() {
-        config.insert("base_url".to_string(), json!(endpoint));
-    }
-
-    if let Some(api_key) = &request.api_key {
-        config.insert("api_key".to_string(), json!(api_key));
-    }
-
-    config.insert("api_mode".to_string(), json!("chat_completions"));
-
-    if let Some(model) = &request.model {
-        config.insert(
-            "models".to_string(),
-            json!([{ "id": model, "name": model }]),
-        );
-    }
-
-    json!(config)
-}
-
 // =============================================================================
 // Config Merge Logic
 // =============================================================================
@@ -574,10 +532,7 @@ pub fn parse_and_merge_config(
         "claude" => merge_claude_config(&mut merged, &config_value)?,
         "codex" => merge_codex_config(&mut merged, &config_value)?,
         "grokbuild" => merge_grokbuild_config(&mut merged, &config_value)?,
-        "hermes" => {
-            merge_additive_config(&mut merged, &config_value)?;
-        }
-        "gemini" | "opencode" | "openclaw" => {
+        "gemini" | "opencode" | "openclaw" | "hermes" => {
             return Err(AppError::InvalidInput(
                 "This app is no longer supported".to_string(),
             ));
@@ -785,47 +740,6 @@ fn merge_grokbuild_config(
     Ok(())
 }
 
-/// Merge configuration for additive mode apps (OpenCode, Hermes)
-///
-/// These apps use JSON config directly, so we only extract common fields
-/// (api_key, endpoint, model) from the config if not already set in URL params.
-fn merge_additive_config(
-    request: &mut DeepLinkImportRequest,
-    config: &serde_json::Value,
-) -> Result<(), AppError> {
-    // Extract api_key from config if not provided in URL
-    if request.api_key.as_ref().is_none_or(|s| s.is_empty()) {
-        if let Some(api_key) = config
-            .get("apiKey")
-            .or_else(|| config.get("api_key"))
-            .and_then(|v| v.as_str())
-        {
-            request.api_key = Some(api_key.to_string());
-        }
-    }
-
-    // Extract endpoint from config if not provided in URL
-    if request.endpoint.as_ref().is_none_or(|s| s.is_empty()) {
-        if let Some(base_url) = config
-            .get("baseUrl")
-            .or_else(|| config.get("base_url"))
-            .or_else(|| config.get("options").and_then(|o| o.get("baseURL")))
-            .and_then(|v| v.as_str())
-        {
-            request.endpoint = Some(base_url.to_string());
-        }
-    }
-
-    // Auto-fill homepage from endpoint
-    if request.homepage.as_ref().is_none_or(|s| s.is_empty()) {
-        if let Some(endpoint) = request.endpoint.as_ref().filter(|s| !s.is_empty()) {
-            request.homepage = infer_homepage_from_endpoint(endpoint);
-        }
-    }
-
-    Ok(())
-}
-
 /// Extract base_url from Codex TOML config
 fn extract_codex_base_url(toml_value: &toml::Value) -> Option<String> {
     // Try to find base_url in model_providers section
@@ -842,18 +756,6 @@ fn extract_codex_base_url(toml_value: &toml::Value) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn hermes_request() -> DeepLinkImportRequest {
-        DeepLinkImportRequest {
-            resource: "provider".to_string(),
-            app: Some("hermes".to_string()),
-            name: Some("MyHermes".to_string()),
-            endpoint: Some("https://api.example.com/v1".to_string()),
-            api_key: Some("sk-test".to_string()),
-            model: Some("anthropic/claude-opus-4-8".to_string()),
-            ..Default::default()
-        }
-    }
 
     /// deeplink 同时声明 `api_key` 与 `env_key` 时，导入结果只保留用户可见的
     /// `api_key`：既不能带上解析后的明文环境变量，也不能把 `env_key` 这个间接
@@ -959,57 +861,6 @@ mod tests {
             err.to_string().contains("env_key"),
             "the rejection must name env_key so it is not mistaken for a malformed link: {err}"
         );
-    }
-
-    #[test]
-    fn build_hermes_settings_emits_snake_case() {
-        let settings = build_hermes_settings(&hermes_request());
-        let obj = settings.as_object().expect("settings must be object");
-
-        assert_eq!(obj.get("name").unwrap(), "MyHermes");
-        assert_eq!(obj.get("base_url").unwrap(), "https://api.example.com/v1");
-        assert_eq!(obj.get("api_key").unwrap(), "sk-test");
-
-        // camelCase and legacy fields must NOT be present
-        assert!(obj.get("baseUrl").is_none(), "no camelCase baseUrl");
-        assert!(obj.get("apiKey").is_none(), "no camelCase apiKey");
-        assert!(obj.get("api").is_none(), "no legacy 'api' field");
-
-        // models array with the deeplink model id
-        let models = obj.get("models").unwrap().as_array().unwrap();
-        assert_eq!(models.len(), 1);
-        assert_eq!(models[0]["id"], "anthropic/claude-opus-4-8");
-    }
-
-    #[test]
-    fn build_hermes_settings_writes_default_api_mode() {
-        let settings = build_hermes_settings(&hermes_request());
-        assert_eq!(
-            settings.as_object().unwrap().get("api_mode").unwrap(),
-            "chat_completions",
-            "api_mode must be written explicitly so Hermes never falls back to URL auto-detection"
-        );
-    }
-
-    #[test]
-    fn build_hermes_settings_skips_missing_optional_fields() {
-        let request = DeepLinkImportRequest {
-            resource: "provider".to_string(),
-            app: Some("hermes".to_string()),
-            name: Some("Minimal".to_string()),
-            endpoint: None,
-            api_key: None,
-            model: None,
-            ..Default::default()
-        };
-        let settings = build_hermes_settings(&request);
-        let obj = settings.as_object().unwrap();
-
-        assert_eq!(obj.get("name").unwrap(), "Minimal");
-        assert!(obj.get("base_url").is_none());
-        assert!(obj.get("api_key").is_none());
-        assert!(obj.get("models").is_none());
-        assert_eq!(obj.get("api_mode").unwrap(), "chat_completions");
     }
 
     #[test]

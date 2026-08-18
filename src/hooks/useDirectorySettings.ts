@@ -6,7 +6,7 @@ import { settingsApi, type RuntimeAppId } from "@/lib/api";
 import type { SettingsFormState } from "./useSettingsForm";
 
 export type DirectoryAppId = Exclude<RuntimeAppId, "claude-desktop">;
-type AppDirectoryKey = "claude" | "codex" | "grokbuild" | "hermes";
+type AppDirectoryKey = "claude" | "codex" | "grokbuild";
 type DirectoryKey = "appConfig" | AppDirectoryKey;
 
 export interface ResolvedDirectories {
@@ -14,7 +14,6 @@ export interface ResolvedDirectories {
   claude: string;
   codex: string;
   grokbuild: string;
-  hermes: string;
 }
 
 // Single source of truth for per-app directory metadata.
@@ -25,7 +24,6 @@ const APP_DIRECTORY_META: Record<
   claude: { key: "claude", defaultFolder: ".claude" },
   codex: { key: "codex", defaultFolder: ".codex" },
   grokbuild: { key: "grokbuild", defaultFolder: ".grok" },
-  hermes: { key: "hermes", defaultFolder: ".hermes" },
 };
 
 const DIRECTORY_KEY_TO_SETTINGS_FIELD: Record<
@@ -35,7 +33,6 @@ const DIRECTORY_KEY_TO_SETTINGS_FIELD: Record<
   claude: "claudeConfigDir",
   codex: "codexConfigDir",
   grokbuild: "grokConfigDir",
-  hermes: "hermesConfigDir",
 };
 
 const sanitizeDir = (value?: string | null): string | undefined => {
@@ -118,7 +115,6 @@ export function useDirectorySettings({
     claude: "",
     codex: "",
     grokbuild: "",
-    hermes: "",
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -127,7 +123,6 @@ export function useDirectorySettings({
     claude: "",
     codex: "",
     grokbuild: "",
-    hermes: "",
   });
   const initialAppConfigDirRef = useRef<string | undefined>(undefined);
 
@@ -143,23 +138,19 @@ export function useDirectorySettings({
           claudeDir,
           codexDir,
           grokDir,
-          hermesDir,
           defaultAppConfig,
           defaultClaudeDir,
           defaultCodexDir,
           defaultGrokDir,
-          defaultHermesDir,
         ] = await Promise.all([
           settingsApi.getAppConfigDirOverride(),
           settingsApi.getConfigDir("claude"),
           settingsApi.getConfigDir("codex"),
           settingsApi.getConfigDir("grokbuild"),
-          settingsApi.getConfigDir("hermes"),
           computeDefaultAppConfigDir(),
           computeDefaultConfigDir("claude"),
           computeDefaultConfigDir("codex"),
           computeDefaultConfigDir("grokbuild"),
-          computeDefaultConfigDir("hermes"),
         ]);
 
         if (!active) return;
@@ -171,7 +162,6 @@ export function useDirectorySettings({
           claude: defaultClaudeDir ?? "",
           codex: defaultCodexDir ?? "",
           grokbuild: defaultGrokDir ?? "",
-          hermes: defaultHermesDir ?? "",
         };
 
         setAppConfigDir(normalizedOverride);
@@ -182,7 +172,6 @@ export function useDirectorySettings({
           claude: claudeDir || defaultsRef.current.claude,
           codex: codexDir || defaultsRef.current.codex,
           grokbuild: grokDir || defaultsRef.current.grokbuild,
-          hermes: hermesDir || defaultsRef.current.hermes,
         });
       } catch (error) {
         console.error(
@@ -321,7 +310,6 @@ export function useDirectorySettings({
         claude: overrides?.claude ?? defaultsRef.current.claude,
         codex: overrides?.codex ?? defaultsRef.current.codex,
         grokbuild: overrides?.grokbuild ?? defaultsRef.current.grokbuild,
-        hermes: overrides?.hermes ?? defaultsRef.current.hermes,
       });
     },
     [],

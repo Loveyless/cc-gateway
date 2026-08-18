@@ -13,7 +13,6 @@ mod database;
 mod deeplink;
 mod error;
 mod grok_config;
-pub mod hermes_config;
 mod init_status;
 mod lightweight;
 #[cfg(target_os = "linux")]
@@ -26,13 +25,11 @@ mod prompt_files;
 mod provider;
 mod proxy;
 mod services;
-mod session_manager;
 mod settings;
 mod store;
 
 mod tray;
 mod usage_events;
-mod usage_script;
 
 pub use app_config::{AppType, InstalledSkill, McpApps, McpServer, MultiAppConfig, SkillApps};
 pub use codex_config::{
@@ -56,7 +53,7 @@ pub use services::{
     provider::reapply_current_codex_official_live,
     skill::{migrate_skills_to_ssot, ImportSkillSelection},
     ConfigService, EndpointLatency, McpService, PromptService, ProviderService, ProxyService,
-    SkillService, SpeedtestService,
+    SpeedtestService,
 };
 pub use settings::{update_settings, AppSettings};
 pub use store::AppState;
@@ -779,14 +776,6 @@ pub fn run() {
                 log::info!("✓ First-run welcome notice pending");
             }
 
-            match crate::services::provider::import_hermes_providers_from_live(&app_state) {
-                Ok(count) if count > 0 => {
-                    log::info!("✓ Synced {count} Hermes provider(s) from live config");
-                }
-                Ok(_) => log::debug!("○ No Hermes provider changes from live config"),
-                Err(e) => log::warn!("✗ Failed to import Hermes providers: {e}"),
-            }
-
             // 3. 导入 MCP 服务器配置（表空时触发）
             if app_state.db.is_mcp_table_empty().unwrap_or(false) {
                 log::info!("MCP table empty, importing from live configurations...");
@@ -815,13 +804,6 @@ pub fn run() {
                     Err(e) => log::warn!("✗ Failed to import Grok Build MCP: {e}"),
                 }
 
-                match crate::services::mcp::McpService::import_from_hermes(&app_state) {
-                    Ok(count) if count > 0 => {
-                        log::info!("✓ Imported {count} MCP server(s) from Hermes");
-                    }
-                    Ok(_) => log::debug!("○ No Hermes MCP servers found to import"),
-                    Err(e) => log::warn!("✗ Failed to import Hermes MCP: {e}"),
-                }
             }
 
             // 4. 导入提示词文件（表空时触发）
@@ -832,7 +814,6 @@ pub fn run() {
                     crate::app_config::AppType::Claude,
                     crate::app_config::AppType::Codex,
                     crate::app_config::AppType::GrokBuild,
-                    crate::app_config::AppType::Hermes,
                 ] {
                     match crate::services::prompt::PromptService::import_from_file_on_first_launch(
                         &app_state,
@@ -967,10 +948,6 @@ pub fn run() {
             let _tray = tray_builder.build(app)?;
             // 将同一个实例注入到全局状态，避免重复创建导致的不一致
             app.manage(app_state);
-
-            // 初始化 SkillService
-            let skill_service = SkillService::new();
-            app.manage(commands::skill::SkillServiceState(Arc::new(skill_service)));
 
             // 初始化 CopilotAuthManager
             {
@@ -1258,17 +1235,8 @@ pub fn run() {
             commands::upsert_claude_mcp_server,
             commands::delete_claude_mcp_server,
             commands::validate_mcp_command,
-            // usage query
-            commands::queryProviderUsage,
-            commands::testUsageScript,
-            // subscription quota
-            commands::get_subscription_quota,
-            commands::get_codex_oauth_quota,
             commands::get_codex_oauth_models,
             commands::get_xai_oauth_models,
-            commands::get_xai_oauth_quota,
-            commands::get_coding_plan_quota,
-            commands::get_balance,
             // New MCP via config.json (SSOT)
             commands::get_mcp_config,
             commands::upsert_mcp_server_in_config,
@@ -1305,7 +1273,7 @@ pub fn run() {
             commands::import_config_from_file,
             commands::save_file_dialog,
             commands::open_file_dialog,
-            commands::open_zip_file_dialog,
+
             commands::sync_current_providers_live,
             // Deep link import
             commands::parse_deeplink,
@@ -1321,28 +1289,12 @@ pub fn run() {
             commands::get_installed_skills,
             commands::get_skill_backups,
             commands::delete_skill_backup,
-            commands::install_skill_unified,
             commands::uninstall_skill_unified,
             commands::restore_skill_backup,
             commands::toggle_skill_app,
             commands::scan_unmanaged_skills,
             commands::import_skills_from_apps,
-            commands::discover_available_skills,
-            commands::check_skill_updates,
-            commands::update_skill,
             commands::migrate_skill_storage,
-            commands::search_skills_sh,
-            // Skill management (legacy API compatibility)
-            commands::get_skills,
-            commands::get_skills_for_app,
-            commands::install_skill,
-            commands::install_skill_for_app,
-            commands::uninstall_skill,
-            commands::uninstall_skill_for_app,
-            commands::get_skill_repos,
-            commands::add_skill_repo,
-            commands::remove_skill_repo,
-            commands::install_skills_from_zip,
             // Auto launch
             commands::set_auto_launch,
             commands::get_auto_launch_status,
@@ -1392,15 +1344,6 @@ pub fn run() {
             commands::sync_session_usage,
             commands::rebuild_codex_usage,
             commands::get_usage_data_sources,
-            // Stream health check
-            commands::stream_check_provider,
-            commands::stream_check_all_providers,
-            // Session manager
-            commands::list_sessions,
-            commands::get_session_messages,
-            commands::delete_session,
-            commands::delete_sessions,
-            commands::launch_session_terminal,
             commands::get_tool_versions,
             commands::run_tool_lifecycle_action,
             commands::probe_tool_installations,
@@ -1410,17 +1353,6 @@ pub fn run() {
             commands::upsert_universal_provider,
             commands::delete_universal_provider,
             commands::sync_universal_provider,
-            // Hermes specific
-            commands::import_hermes_providers_from_live,
-            commands::get_hermes_live_provider_ids,
-            commands::get_hermes_live_provider,
-            commands::get_hermes_model_config,
-            commands::open_hermes_web_ui,
-            commands::launch_hermes_dashboard,
-            commands::get_hermes_memory,
-            commands::set_hermes_memory,
-            commands::get_hermes_memory_limits,
-            commands::set_hermes_memory_enabled,
             // Global upstream proxy
             commands::get_global_proxy_url,
             commands::set_global_proxy_url,

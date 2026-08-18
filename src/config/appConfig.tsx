@@ -20,7 +20,6 @@ export const APP_IDS: RuntimeAppId[] = [
   "claude-desktop",
   "codex",
   "grokbuild",
-  "hermes",
 ];
 
 /** App IDs shown in Skills panels. */
@@ -28,7 +27,6 @@ export const SKILLS_APP_IDS: RuntimeAppId[] = [
   "claude",
   "codex",
   "grokbuild",
-  "hermes",
 ];
 
 /** App IDs shown in MCP panels. */

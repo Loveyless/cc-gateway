@@ -1,6 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { copilotGetUsage, copilotGetUsageForAccount } from "@/lib/api/copilot";
-import type { QuotaTier } from "@/types/subscription";
+
+interface QuotaTier {
+  name: string;
+  utilization: number;
+  resetsAt?: string | null;
+}
 
 const REFETCH_INTERVAL = 5 * 60 * 1000; // 5 minutes
 

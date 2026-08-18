@@ -20,9 +20,8 @@ pub fn prompt_file_path(app: &AppType) -> Result<PathBuf, AppError> {
         AppType::Claude => get_base_dir_with_fallback(get_claude_settings_path(), ".claude")?,
         AppType::Codex => get_base_dir_with_fallback(get_codex_auth_path(), ".codex")?,
         AppType::GrokBuild => crate::grok_config::get_grok_config_dir(),
-        AppType::Hermes => crate::hermes_config::get_hermes_dir(),
         AppType::ClaudeDesktop => unreachable!("handled above"),
-        AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {
+        AppType::Gemini | AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => {
             unreachable!("retired app rejected above")
         }
     };
@@ -30,9 +29,8 @@ pub fn prompt_file_path(app: &AppType) -> Result<PathBuf, AppError> {
     let filename = match app {
         AppType::Claude => "CLAUDE.md",
         AppType::Codex | AppType::GrokBuild => "AGENTS.md",
-        AppType::Hermes => "SOUL.md",
         AppType::ClaudeDesktop => unreachable!("handled above"),
-        AppType::Gemini | AppType::OpenCode | AppType::OpenClaw => {
+        AppType::Gemini | AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => {
             unreachable!("retired app rejected above")
         }
     };
@@ -45,13 +43,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn hermes_prompt_file_uses_soul_md() {
-        let path = prompt_file_path(&AppType::Hermes).expect("Hermes prompt path");
-
-        assert_eq!(
-            path.file_name().and_then(|name| name.to_str()),
-            Some("SOUL.md")
-        );
+    fn hermes_prompt_file_is_retired() {
+        assert!(prompt_file_path(&AppType::Hermes).is_err());
     }
 }
 

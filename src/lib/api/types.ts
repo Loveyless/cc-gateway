@@ -10,4 +10,7 @@ export type AppId =
   | "hermes";
 
 /** Applications that remain supported by current UI and runtime actions. */
-export type RuntimeAppId = Exclude<AppId, "openclaw" | "gemini" | "opencode">;
+export type RuntimeAppId = Exclude<
+  AppId,
+  "openclaw" | "gemini" | "opencode" | "hermes"
+>;
