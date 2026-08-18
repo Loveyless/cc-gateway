@@ -1,6 +1,6 @@
 # CC Gateway User Manual / 用户手册 / ユーザーマニュアル
 
-> Claude Code / Claude Desktop / Codex / Gemini CLI / OpenCode / OpenClaw / Hermes
+> Claude Code / Claude Desktop / Codex / Grok Build
 
 ## Language / 语言 / 言語
 
@@ -12,9 +12,9 @@
 
 ## Version / 版本 / バージョン
 
-- Documentation version: v3.16.0
-- Last updated: 2026-05-29
-- Compatible with CC Gateway v3.16.0+
+- Documentation version: current maintenance boundary
+- Last updated: 2026-08-18
+- Compatible with this repository's four-tool build (Claude Code / Claude Desktop / Codex / Grok Build)
 
 ## Links
 

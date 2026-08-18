@@ -2,7 +2,7 @@
 
 # CC Gateway
 
-### Claude Code、Claude Desktop、Codex、Grok Build 和 Hermes Agent 的全方位管理工具
+### Claude Code、Claude Desktop、Codex 和 Grok Build 的全方位管理工具
 
 [![Version](https://img.shields.io/github/v/release/Loveyless/cc-gateway?color=blue&label=version)](https://github.com/Loveyless/cc-gateway/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/Loveyless/cc-gateway/releases)
@@ -21,13 +21,13 @@
 
 ## 为什么选择 CC Gateway？
 
-现代 AI 编程依赖于 Claude Code、Claude Desktop、Codex、Grok Build 和 Hermes 等工具——但每个工具都有自己的配置格式。切换 API 供应商意味着手动编辑 JSON、TOML 或配置文件，而在多个工具之间缺乏一个统一管理 MCP, SKILLS 的方式。
+现代 AI 编程依赖于 Claude Code、Claude Desktop、Codex 和 Grok Build 等工具——但每个工具都有自己的配置格式。切换 API 供应商意味着手动编辑 JSON、TOML 或配置文件，而在多个工具之间缺乏一个统一管理 MCP, SKILLS 的方式。
 
 **CC Gateway** 为你提供一个桌面应用来管理所有支持的 AI 工具。无需手动编辑配置文件，你将获得一个可视化界面，一键将供应商导入应用，一键在不同的供应商之间进行切换，内置供应商预设、统一的 MCP, SKILLS 管理以及系统托盘即时切换功能——所有操作都基于可靠的 SQLite 数据库和原子写入机制，保护你的配置不被损坏。
 
-- **一个应用，五个工具** — 在单一界面中管理 Claude Code、Claude Desktop、Codex、Grok Build 和 Hermes
+- **一个应用，四个工具** — 在单一界面中管理 Claude Code、Claude Desktop、Codex 和 Grok Build
 - **告别手动编辑** — 内置供应商预设，包括 AWS Bedrock、NVIDIA NIM 和社区中转服务；一键即可切换
-- **统一 MCP, SKILLS 管理** — 一个面板管理 Claude、Codex、Grok Build 和 Hermes 的 MCP, SKILLS, 支持双向同步
+- **统一 MCP, SKILLS 管理** — 一个面板管理 Claude、Codex 和 Grok Build 的 MCP, SKILLS, 支持双向同步
 - **系统托盘快速切换** — 从托盘菜单即时切换供应商，无需打开完整应用
 - **目录覆盖** — 可把各工具配置目录指到 Dropbox、OneDrive、iCloud 等本地同步文件夹
 - **跨平台** — 基于 Tauri 2 构建的原生桌面应用，支持 Windows、macOS 和 Linux
@@ -45,7 +45,7 @@
 
 ### 供应商管理
 
-- **5 个支持工具** — Claude Code、Claude Desktop、Codex、Grok Build、Hermes；复制 key 即可一键导入
+- **4 个支持工具** — Claude Code、Claude Desktop、Codex、Grok Build；复制 key 即可一键导入
 - **通用供应商** — 一份配置同步到 Claude Code 和 Codex
 - 一键切换、系统托盘快速访问、拖拽排序、导入导出
 
@@ -56,17 +56,13 @@
 
 ### MCP、Prompts 与 Skills
 
-- **统一 MCP 面板** — 管理 Claude、Codex、Grok Build 和 Hermes 的 MCP 服务器，双向同步，支持 Deep Link 导入
+- **统一 MCP 面板** — 管理 Claude、Codex 和 Grok Build 的 MCP 服务器，双向同步，支持 Deep Link 导入
 - **Prompts** — Markdown 编辑器，跨应用同步（CLAUDE.md / AGENTS.md），回填保护
-- **Skills** — 从 GitHub 仓库或 ZIP 文件一键安装，自定义仓库管理，支持软连接和文件复制
+- **Skills** — 从本机已有技能目录导入，按应用开关并投影到本地目录
 
 ### 用量与成本追踪
 
 - **用量仪表盘** — 跨供应商追踪支出、请求数和 Token 用量，趋势图表、详细请求日志和自定义模型定价
-
-### 会话管理器
-
-- 浏览、搜索和恢复 Claude Code、Codex、Grok Build、Hermes 的会话来源
 
 ### 系统与平台
 
@@ -79,7 +75,7 @@
 <details>
 <summary><strong>CC Gateway 支持哪些 AI 工具？</strong></summary>
 
-CC Gateway 支持五个工具：**Claude Code**、**Claude Desktop**、**Codex**、**Grok Build** 和 **Hermes**。每个工具都有专属的供应商预设和配置管理。
+CC Gateway 支持四个工具：**Claude Code**、**Claude Desktop**、**Codex** 和 **Grok Build**。每个工具都有专属的供应商预设和配置管理。
 
 </details>
 
@@ -159,12 +155,11 @@ CC_GATEWAY_GDK_BACKEND=wayland ./CC-Gateway-*.AppImage
 3. **生效方式**：重启终端或对应的 CLI 工具以应用更改（CLaude Code 无需重启）
 4. **恢复官方登录**：添加"官方登录"预设，重启 CLI 工具后按照其登录/OAuth 流程操作
 
-### MCP、Prompts、Skills 与会话
+### MCP、Prompts 与 Skills
 
 - **MCP**：点击"MCP"按钮 → 通过模板或自定义配置添加服务器 → 切换各应用同步开关
 - **Prompts**：点击"Prompts" → 使用 Markdown 编辑器创建预设 → 激活后同步到 live 文件
-- **Skills**：点击"Skills" → 浏览 GitHub 仓库 → 一键安装到支持的应用
-- **会话**：点击"Sessions" → 浏览、搜索和恢复支持的会话来源
+- **Skills**：点击"Skills" → 从本机已有技能目录导入 → 按应用开关投影
 
 > **注意**：首次启动可以手动导入现有 CLI 工具配置作为默认供应商。
 
@@ -348,10 +343,8 @@ pnpm test:unit --coverage
 │   │   ├── mcp/                # MCP 面板
 │   │   ├── prompts/            # Prompts 管理
 │   │   ├── skills/             # Skills 管理
-│   │   ├── sessions/           # 会话管理器
 │   │   ├── proxy/              # Proxy 模式面板
-│   │   ├── openclaw/           # OpenClaw 配置面板
-│   │   ├── settings/           # 设置（终端/备份/关于）
+│   │   ├── settings/           # 设置（目录/备份/关于）
 │   │   ├── deeplink/           # Deep Link 导入
 │   │   ├── env/                # 环境变量管理
 │   │   ├── universal/          # 跨应用配置
@@ -370,7 +363,6 @@ pnpm test:unit --coverage
 │       ├── services/           # 业务逻辑层
 │       ├── database/           # SQLite DAO 层
 │       ├── proxy/              # Proxy 模块
-│       ├── session_manager/    # 会话管理
 │       ├── deeplink/           # Deep Link 处理
 │       └── mcp/                # MCP 同步模块
 ├── tests/                      # 前端测试

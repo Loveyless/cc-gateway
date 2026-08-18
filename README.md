@@ -2,7 +2,7 @@
 
 # CC Gateway
 
-### The All-in-One Manager for Claude Code, Claude Desktop, Codex, Grok Build & Hermes Agent
+### The All-in-One Manager for Claude Code, Claude Desktop, Codex & Grok Build
 
 [![Version](https://img.shields.io/github/v/release/Loveyless/cc-gateway?color=blue&label=version)](https://github.com/Loveyless/cc-gateway/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/Loveyless/cc-gateway/releases)
@@ -21,13 +21,13 @@ English | [中文](README_ZH.md) | [日本語](README_JA.md) | [Deutsch](README_
 
 ## Why CC Gateway?
 
-Modern AI-powered coding relies on tools like Claude Code, Claude Desktop, Codex, Grok Build, and Hermes — but each has its own configuration format. Switching API providers means manually editing JSON, TOML, or config files, and there is no unified way to manage MCP and Skills across multiple tools.
+Modern AI-powered coding relies on tools like Claude Code, Claude Desktop, Codex, and Grok Build — but each has its own configuration format. Switching API providers means manually editing JSON, TOML, or config files, and there is no unified way to manage MCP and Skills across multiple tools.
 
 **CC Gateway** gives you a single desktop app to manage all supported AI tools. Instead of editing config files by hand, you get a visual interface to import providers with one click, switch between them instantly, with built-in provider presets, unified MCP and Skills management, and system tray quick switching — all backed by a reliable SQLite database with atomic writes that protect your configs from corruption.
 
-- **One App, Five Tools** — Manage Claude Code, Claude Desktop, Codex, Grok Build, and Hermes from a single interface
+- **One App, Four Tools** — Manage Claude Code, Claude Desktop, Codex, and Grok Build from a single interface
 - **No More Manual Editing** — Built-in provider presets including AWS Bedrock, NVIDIA NIM, and community relays; just pick and switch
-- **Unified MCP & Skills Management** — One panel to manage MCP servers and Skills across Claude, Codex, Grok Build, and Hermes with bidirectional sync
+- **Unified MCP & Skills Management** — One panel to manage MCP servers and Skills across Claude, Codex, and Grok Build with bidirectional sync
 - **System Tray Quick Switch** — Switch providers instantly from the tray menu, no need to open the full app
 - **Directory Override** — Point each tool's config directory at a local Dropbox, OneDrive, or iCloud folder
 - **Cross-Platform** — Native desktop app for Windows, macOS, and Linux, built with Tauri 2
@@ -45,7 +45,7 @@ Modern AI-powered coding relies on tools like Claude Code, Claude Desktop, Codex
 
 ### Provider Management
 
-- **5 supported tools** — Claude Code, Claude Desktop, Codex, Grok Build, Hermes; copy your key and import with one click
+- **4 supported tools** — Claude Code, Claude Desktop, Codex, Grok Build; copy your key and import with one click
 - **Universal providers** — One config syncs to Claude Code and Codex
 - One-click switching, system tray quick access, drag-and-drop sorting, import/export
 
@@ -56,17 +56,13 @@ Modern AI-powered coding relies on tools like Claude Code, Claude Desktop, Codex
 
 ### MCP, Prompts & Skills
 
-- **Unified MCP panel** — Manage MCP servers across Claude, Codex, Grok Build, and Hermes with bidirectional sync and Deep Link import
+- **Unified MCP panel** — Manage MCP servers across Claude, Codex, and Grok Build with bidirectional sync and Deep Link import
 - **Prompts** — Markdown editor with cross-app sync (CLAUDE.md / AGENTS.md) and backfill protection
-- **Skills** — One-click install from GitHub repos or ZIP files, custom repository management, with symlink and file copy support
+- **Skills** — Import already-installed local skills, toggle per app, and project them into app directories
 
 ### Usage & Cost Tracking
 
 - **Usage dashboard** — Track spending, requests, and tokens with trend charts, detailed request logs, and custom per-model pricing
-
-### Session Manager
-
-- Browse, search, and restore conversation history for Claude Code, Codex, Grok Build, and Hermes
 
 ### System & Platform
 
@@ -79,7 +75,7 @@ Modern AI-powered coding relies on tools like Claude Code, Claude Desktop, Codex
 <details>
 <summary><strong>Which AI tools does CC Gateway support?</strong></summary>
 
-CC Gateway supports five tools: **Claude Code**, **Claude Desktop**, **Codex**, **Grok Build**, and **Hermes**. Each tool has dedicated provider presets and configuration management.
+CC Gateway supports four tools: **Claude Code**, **Claude Desktop**, **Codex**, and **Grok Build**. Each tool has dedicated provider presets and configuration management.
 
 </details>
 
@@ -157,12 +153,11 @@ For detailed guides on every feature, check out the **[User Manual](docs/user-ma
 3. **Takes Effect**: Restart your terminal or the corresponding CLI tool to apply changes (Claude Code does not require a restart)
 4. **Back to Official**: Add an "Official Login" preset, restart the CLI tool, then follow its login/OAuth flow
 
-### MCP, Prompts, Skills & Sessions
+### MCP, Prompts & Skills
 
 - **MCP**: Click the "MCP" button → Add servers via templates or custom config → Toggle per-app sync
 - **Prompts**: Click "Prompts" → Create presets with Markdown editor → Activate to sync to live files
-- **Skills**: Click "Skills" → Browse GitHub repos → One-click install to supported apps
-- **Sessions**: Click "Sessions" → Browse, search, and restore conversation history across supported session sources
+- **Skills**: Click "Skills" → Import skills already present on this machine → Toggle per app
 
 > **Note**: On first launch, you can manually import existing CLI tool configs as the default provider.
 
@@ -347,10 +342,8 @@ pnpm test:unit --coverage
 │   │   ├── mcp/                # MCP panel
 │   │   ├── prompts/            # Prompts management
 │   │   ├── skills/             # Skills management
-│   │   ├── sessions/           # Session Manager
 │   │   ├── proxy/              # Proxy mode panel
-│   │   ├── openclaw/           # OpenClaw config panels
-│   │   ├── settings/           # Settings (Terminal/Backup/About)
+│   │   ├── settings/           # Settings (Directory/Backup/About)
 │   │   ├── deeplink/           # Deep Link import
 │   │   ├── env/                # Environment variable management
 │   │   ├── universal/          # Cross-app configuration
@@ -369,7 +362,6 @@ pnpm test:unit --coverage
 │       ├── services/           # Business logic layer
 │       ├── database/           # SQLite DAO layer
 │       ├── proxy/              # Proxy module
-│       ├── session_manager/    # Session management
 │       ├── deeplink/           # Deep Link handling
 │       └── mcp/                # MCP sync module
 ├── tests/                      # Frontend tests

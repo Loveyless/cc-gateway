@@ -5,7 +5,8 @@
 ## 当前状态
 
 - 本维护版采用“独立并存”策略，不覆盖或接管已安装的上游 CC Switch。
-- Gemini CLI、OpenCode、OpenClaw、项目切换和云同步已从运行时下线。旧数据库/设置字段仍可反序列化，但不会再读写这些应用的 live 配置。
+- Gemini CLI、OpenCode、OpenClaw、Hermes、项目切换、会话管理器、套餐额度/Usage Script 和云同步已从运行时下线。旧数据库/设置字段仍可反序列化，但不会再读写这些应用的 live 配置。
+- Skills 只保留本机导入、开关和投影；GitHub 发现、自定义仓库和 ZIP 安装已下线。
 - 应用内 updater 已停用，Release workflow 默认关闭。未启用仓库变量 `CC_GATEWAY_RELEASE_ENABLED=true` 前，不应通过打 tag 发布桌面包。
 - GitHub Funding 和上游商业赞助内容已移除；需要由维护者确认收款主体和披露方式后才能重新配置。
 - 内置供应商预设仍保留部分上游推广 URL 和优惠参数以避免破坏既有入口；界面会明确标注其继承自上游，不代表 CC Gateway 建立了合作关系，也不保证优惠有效。首发前必须决定保留并披露，还是移除这些推广参数。

@@ -1,6 +1,8 @@
 # CC Gateway User Manual
 
-> All-in-One Assistant for Claude Code / Claude Desktop / Codex / Grok Build / Hermes
+> All-in-One Assistant for Claude Code / Claude Desktop / Codex / Grok Build
+
+This maintenance build only manages the four tools above. Gemini CLI, OpenCode, OpenClaw, Hermes, Session Manager, subscription quota scripts, cloud sync, and the Skills marketplace are offline. Pages marked retired are historical only.
 
 ## Table of Contents
 
@@ -19,22 +21,22 @@ CC Gateway User Manual
 │   ├── 2.2 Switch Provider
 │   ├── 2.3 Edit Provider
 │   ├── 2.4 Sort & Duplicate
-│   ├── 2.5 Usage Query
+│   ├── 2.5 Usage Query (retired)
 │   └── 2.6 Claude Desktop
 │
 ├── 3. Extensions
 │   ├── 3.1 MCP Server Management
 │   ├── 3.2 Prompts Management
 │   ├── 3.3 Skills Management
-│   ├── 3.4 Session Manager
-│   └── 3.5 Workspace & Memory
+│   ├── 3.4 Session Manager (retired)
+│   └── 3.5 Workspace & Memory (retired)
 │
 ├── 4. Proxy & High Availability
 │   ├── 4.1 Proxy Service
 │   ├── 4.2 App Takeover
-│   ├── 4.3 Failover
+│   ├── 4.3 Failover (retired)
 │   ├── 4.4 Usage Statistics
-│   └── 4.5 Model Test
+│   └── 4.5 Model Test (retired)
 │
 └── 5. FAQ
     ├── 5.1 Configuration Files
@@ -53,7 +55,7 @@ CC Gateway User Manual
 | [1.2-installation.md](./1-getting-started/1.2-installation.md) | Windows/macOS/Linux installation guide |
 | [1.3-interface.md](./1-getting-started/1.3-interface.md) | Interface layout, navigation bar, provider cards |
 | [1.4-quickstart.md](./1-getting-started/1.4-quickstart.md) | 5-minute quick start tutorial |
-| [1.5-settings.md](./1-getting-started/1.5-settings.md) | Language, theme, directories, cloud sync settings |
+| [1.5-settings.md](./1-getting-started/1.5-settings.md) | Language, theme, and directory settings |
 
 ### 2. Provider Management
 
@@ -63,7 +65,7 @@ CC Gateway User Manual
 | [2.2-switch.md](./2-providers/2.2-switch.md) | Main UI switching, tray switching, activation methods |
 | [2.3-edit.md](./2-providers/2.3-edit.md) | Edit configuration, modify API Key, backfill mechanism |
 | [2.4-sort-duplicate.md](./2-providers/2.4-sort-duplicate.md) | Drag-to-reorder, duplicate provider, delete |
-| [2.5-usage-query.md](./2-providers/2.5-usage-query.md) | Usage query, remaining balance, multi-plan display |
+| [2.5-usage-query.md](./2-providers/2.5-usage-query.md) | Retired: subscription quota / Usage Script |
 | [2.6-claude-desktop.md](./2-providers/2.6-claude-desktop.md) | Claude Desktop third-party providers, direct mode, and model mapping |
 
 ### 3. Extensions
@@ -72,8 +74,8 @@ CC Gateway User Manual
 |------|-------------|
 | [3.1-mcp.md](./3-extensions/3.1-mcp.md) | MCP protocol, add servers, app binding |
 | [3.2-prompts.md](./3-extensions/3.2-prompts.md) | Create presets, activate/switch, smart backfill |
-| [3.3-skills.md](./3-extensions/3.3-skills.md) | Discover skills, install/uninstall, repository management |
-| [3.4-sessions.md](./3-extensions/3.4-sessions.md) | Session Manager: browse, search, resume, delete sessions |
+| [3.3-skills.md](./3-extensions/3.3-skills.md) | Import local skills, per-app toggles, project to app directories |
+| [3.4-sessions.md](./3-extensions/3.4-sessions.md) | Retired: Session Manager |
 
 ### 4. Proxy & High Availability
 
@@ -81,9 +83,9 @@ CC Gateway User Manual
 |------|-------------|
 | [4.1-service.md](./4-proxy/4.1-service.md) | Start proxy, configuration, running status |
 | [4.2-routing.md](./4-proxy/4.2-routing.md) | App routing, configuration changes, status indicators |
-| [4.3-failover.md](./4-proxy/4.3-failover.md) | Failover queue, circuit breaker, health status |
+| [4.3-failover.md](./4-proxy/4.3-failover.md) | Retired: failover queue |
 | [4.4-usage.md](./4-proxy/4.4-usage.md) | Usage statistics, trend charts, pricing configuration |
-| [4.5-model-test.md](./4-proxy/4.5-model-test.md) | Model test, health check, latency testing |
+| [4.5-model-test.md](./4-proxy/4.5-model-test.md) | Retired: connectivity / stream check |
 
 ### 5. FAQ
 
@@ -105,25 +107,15 @@ CC Gateway User Manual
 
 ## Version Information
 
-- Documentation version: v3.16.0
-- Last updated: 2026-05-29
-- Applicable to CC Gateway v3.16.0+
+- Documentation version: current maintenance boundary
+- Last updated: 2026-08-18
+- Applies to this repository's current four-tool build (Claude Code / Claude Desktop / Codex / Grok Build)
 
-### v3.16.0 Highlights
+### Current maintenance boundary
 
-- **Codex Chat Completions routing**: route Chat-only providers such as DeepSeek, Kimi, GLM, and MiniMax through Codex. See [2.1 Add Provider](./2-providers/2.1-add.md)
-- **Managed CLI tool lifecycle**: install, update, update all, and diagnose Claude / Codex / Grok Build / Hermes from Settings / About. See [1.5 Personalization](./1-getting-started/1.5-settings.md)
-- **Provider and model refresh**: new partner presets, refreshed default models and pricing, Claude Opus 4.8 defaults, and GPT 5.5 defaults where applicable
-- **Routing support badges**: Claude Code / Codex provider cards indicate whether a provider can be served through Local Routing
-- **Codex OAuth live model discovery**: ChatGPT Codex providers fetch available models from the ChatGPT backend on demand
-- **Filter-driven Usage Hero**: shows cache-normalized real total tokens and cache hit rate, updating with date / provider / model filters — see [4.4 Usage Statistics](./4-proxy/4.4-usage.md)
-- **Lightweight Mode**: Destroys the main window when minimizing to tray — near-zero idle footprint. See [1.5 Personalization](./1-getting-started/1.5-settings.md)
-- **Quota & Balance Display**: Official subscriptions (Claude/Codex/Grok Build/Copilot/Codex OAuth) auto-display quotas; Token Plan and third-party balances use built-in templates with one-click enable — see [2.5 Usage Query](./2-providers/2.5-usage-query.md)
-- **Codex OAuth Reverse Proxy**: Reuse your ChatGPT account's Codex service inside Claude Code — see [2.1 Add Provider](./2-providers/2.1-add.md)
-- **Per-App Tray Submenus**: Claude / Codex / Grok Build submenus show the current provider and available usage summaries — see [2.2 Switch Provider](./2-providers/2.2-switch.md)
-- **Skills Discovery & Batch Updates**: SHA-256 update detection, batch updates, skills.sh public registry search — see [3.3 Skills Management](./3-extensions/3.3-skills.md)
-- **Full URL Endpoint Mode**: Advanced option to treat `base_url` as the full upstream endpoint — see [2.1 Add Provider](./2-providers/2.1-add.md)
-- **OpenCode / OpenClaw / Hermes Stream Check Coverage**: Stream Check covers Claude / Codex / Grok Build / Hermes — see [4.5 Model Test](./4-proxy/4.5-model-test.md)
+- Runtime apps: Claude Code, Claude Desktop, Codex, Grok Build
+- Skills: local import, toggles, and projection only; no GitHub / ZIP / skills.sh
+- Retired: Hermes, Session Manager, subscription quota / Usage Script, failover UI, connectivity check, cloud sync
 
 ## Contributing
 

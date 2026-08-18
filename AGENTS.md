@@ -7,7 +7,7 @@
 - 当前仓库：`Loveyless/cc-gateway`，默认分支为 `main`。
 - 上游基线：`farion1231/cc-switch`。本维护版采用独立并存身份，不能重新引入会覆盖上游安装或数据的标识。
 - 技术栈：Tauri 2；React + TypeScript 前端；Rust 后端；pnpm 管理前端依赖；SQLite 保存本地业务数据。
-- 主要功能边界：Claude Code / Claude Desktop / Codex / Grok Build / Hermes 的 Provider 配置切换，以及 MCP、Prompts、Skills、Proxy、Usage、Sessions 和 Deep Link。
+- 主要功能边界：Claude Code / Claude Desktop / Codex / Grok Build 的 Provider 配置切换，以及 MCP、Prompts、Skills、Proxy、Usage 和 Deep Link。
 
 ## 修改前的基本要求
 
